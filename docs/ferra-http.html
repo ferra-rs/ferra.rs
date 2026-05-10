@@ -1,0 +1,588 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Ferra HTTP - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-ec34d538.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-95aa1458.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-d364ce7b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/ferra-http.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="ferra-http--the-axum-crud-handler-layer"><a class="header" href="#ferra-http--the-axum-crud-handler-layer"><code>ferra-http</code> — the Axum CRUD handler layer</a></h1>
+<p><em>The 0.4.0 Refining deliverable. Turns a <code>#[derive(FerraModel, DeriveEntityModel)]</code> entity into a fully-wired Axum router with RFC 7807 errors, HAL-lite hypermedia, pagination, and constitutional security defaults — zero hand-written routes, zero hand-written error mapping.</em></p>
+<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-http</code>. A reader with only this page plus standard Rust knowledge produces a compiling <code>ferra_router::&lt;Film&gt;(state)</code> call site on the first attempt — no ADR, no constitution, and no framework source is required.</p>
+<hr>
+<h2 id="zero-to-api-in-five-lines"><a class="header" href="#zero-to-api-in-five-lines">Zero-to-API in five lines</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::*;
+
+let conn = sea_orm::Database::connect(&amp;database_url).await?;
+let state = FerraState::&lt;Film&gt;::new(conn);
+let app = ferra_router::&lt;Film&gt;(state);
+let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+axum::serve(listener, app).await?;
+<span class="boring">}</span></code></pre>
+<p>Drop one <code>#[derive(FerraModel, DeriveEntityModel, Serialize, Deserialize)]</code> on a struct whose PK is <code>i32</code> (or any <code>Display + DeserializeOwned + Send + Sync + 'static</code>) and you get the five CRUD endpoints (<code>GET /films</code> / <code>GET /films/:id</code> / <code>POST /films</code> / <code>PUT /films/:id</code> / <code>DELETE /films/:id</code>), a <code>Location</code> header on creation, a <code>Warning: 214</code> header on <code>per_page</code> clamp, and an <code>application/problem+json</code> body on every error — with no further code.</p>
+<p>See <a href="../../examples/hello-ferra/"><code>examples/hello-ferra/</code></a> for the full worked example with PostgreSQL container + Rust-coded migrations.</p>
+<hr>
+<h2 id="the-ferrastatem-constructor"><a class="header" href="#the-ferrastatem-constructor">The <code>FerraState&lt;M&gt;</code> constructor</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FerraState&lt;M&gt; { pub repo: Arc&lt;PgRepository&lt;M&gt;&gt; }
+impl&lt;M&gt; FerraState&lt;M&gt; {
+    pub fn new(pool: DatabaseConnection) -&gt; Self;
+}
+<span class="boring">}</span></code></pre>
+<ul>
+<li><code>#[non_exhaustive]</code> — construct via <code>FerraState::new(pool)</code>; struct-literal construction is not supported. Future phases add fields (tracing context, auth identity) without breaking this.</li>
+<li><code>#[derive(Clone)]</code> — cloning is a reference-count bump on <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>. Every request clones.</li>
+<li>Implements <code>axum::extract::FromRef&lt;FerraState&lt;M&gt;&gt; for Arc&lt;PgRepository&lt;M&gt;&gt;</code>. Custom handlers that only need the repository write <code>State(repo): State&lt;Arc&lt;PgRepository&lt;M&gt;&gt;&gt;</code>; the Ferra handlers all take <code>State(state): State&lt;FerraState&lt;M&gt;&gt;</code>.</li>
+</ul>
+<p>Instantiate one <code>FerraState&lt;M&gt;</code> per model per database; cheaply share the same <code>DatabaseConnection</code> across models by calling <code>FerraState::new(conn.clone())</code> multiple times.</p>
+<hr>
+<h2 id="the-five-crud-handlers"><a class="header" href="#the-five-crud-handlers">The five CRUD handlers</a></h2>
+<p>All five handlers are generic over <code>M: FerraModel + &lt;Sea-ORM bounds&gt;</code>. You rarely name them directly — <a href="#the-ferra_routerm-constructor"><code>ferra_router&lt;M&gt;</code></a> mounts them for you. When you do, the HTTP contracts are:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Handler</th><th>Method</th><th>Path</th><th>Request</th><th>Success</th><th>Error surfaces</th></tr>
+</thead>
+<tbody>
+<tr><td><code>get_item&lt;M&gt;</code></td><td><code>GET</code></td><td><code>/{resource}/:id</code></td><td>—</td><td><code>200 OK</code> + <code>Json&lt;ItemResponse&lt;M&gt;&gt;</code></td><td>400 on path-extractor rejection · 404 on missing row · 500 on DB error</td></tr>
+<tr><td><code>get_collection&lt;M&gt;</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + optional <code>Warning: 214 …</code> + <code>Json&lt;CollectionResponse&lt;M&gt;&gt;</code></td><td>500 on DB error</td></tr>
+<tr><td><code>create_item&lt;M&gt;</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td><code>Json&lt;M&gt;</code> body</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + <code>Json&lt;ItemResponse&lt;M&gt;&gt;</code></td><td>400 on body parse · 409 on unique violation · 413 on oversized body · 429 on rate limit · 500</td></tr>
+<tr><td><code>update_item&lt;M&gt;</code></td><td><code>PUT</code></td><td><code>/{resource}/:id</code></td><td><code>Json&lt;M&gt;</code> body</td><td><code>200 OK</code> + <code>Json&lt;ItemResponse&lt;M&gt;&gt;</code></td><td>400 · 404 · 409 · 413 · 429 · 500</td></tr>
+<tr><td><code>delete_item&lt;M&gt;</code></td><td><code>DELETE</code></td><td><code>/{resource}/:id</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 404 · 429 · 500</td></tr>
+</tbody>
+</table>
+</div>
+<p>Path <code>id</code> is authoritative on update and delete — any <code>id</code> field in the request body is ignored for the <code>WHERE</code> clause. <code>{resource}</code> is <code>&lt;M as FerraModel&gt;::meta().resource_name</code> (e.g. <code>"films"</code>).</p>
+<hr>
+<h2 id="rfc-7807-error-taxonomy"><a class="header" href="#rfc-7807-error-taxonomy">RFC 7807 error taxonomy</a></h2>
+<p>Every error from every handler is rendered as <code>application/problem+json</code> per RFC 7807 §3. Six variants, locked through 0.6.0 Welding:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variant</th><th>HTTP status</th><th><code>type</code> URI</th><th><code>title</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>FerraError::NotFound { resource, id }</code></td><td>404</td><td><code>https://ferra.rs/errors/not_found</code></td><td><code>Resource Not Found</code></td></tr>
+<tr><td><code>FerraError::Validation(ValidationErrors)</code></td><td>400</td><td><code>https://ferra.rs/errors/validation</code></td><td><code>Validation Error</code></td></tr>
+<tr><td><code>FerraError::Conflict(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code></td></tr>
+<tr><td><code>FerraError::Internal(String)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code></td></tr>
+<tr><td><em>(middleware)</em></td><td>413</td><td><code>https://ferra.rs/errors/payload_too_large</code></td><td><code>Payload Too Large</code> <sup class="footnote-reference" id="fr-middleware-1"><a href="#footnote-middleware">1</a></sup></td></tr>
+<tr><td><em>(middleware)</em></td><td>429</td><td><code>https://ferra.rs/errors/rate_limited</code></td><td><code>Too Many Requests</code> <sup class="footnote-reference" id="fr-middleware-2"><a href="#footnote-middleware">1</a></sup></td></tr>
+</tbody>
+</table>
+</div>
+<p>Worked body for a 404:</p>
+<pre><code class="language-json">{
+  "type":   "https://ferra.rs/errors/not_found",
+  "title":  "Resource Not Found",
+  "status": 404,
+  "detail": "films/42 not found"
+}
+</code></pre>
+<p>Worked body for a 400 from a malformed JSON request:</p>
+<pre><code class="language-json">{
+  "type":   "https://ferra.rs/errors/validation",
+  "title":  "Validation Error",
+  "status": 400,
+  "detail": "validation failed",
+  "errors": {
+    "errors": [
+      { "field": "body", "code": "invalid_json", "message": "expected `,` or `}` at line 1 column 14" }
+    ]
+  }
+}
+</code></pre>
+<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the inner <code>sea_orm::DbErr</code> is dropped before reaching the HTTP body. The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
+<p>Worked body for a 429 from the rate-limit mapper:</p>
+<pre><code class="language-json">{
+  "type":   "https://ferra.rs/errors/rate_limited",
+  "title":  "Too Many Requests",
+  "status": 429,
+  "detail": "rate limit exceeded; retry after 3 seconds"
+}
+</code></pre>
+<p>The response also carries the <code>Retry-After</code> header from the underlying rate-limit component verbatim (integer seconds). When the component does not emit a <code>Retry-After</code> header, <code>detail</code> degrades gracefully to the literal string <code>"rate limit exceeded"</code> and the header is absent from the response. The rate-limit mapper mounts only alongside the framework’s default rate-limit component — consumer-provided rate-limiters produce their own error shape (see ADR-0015 for rationale).</p>
+<hr>
+<h2 id="the-hal-lite-envelope"><a class="header" href="#the-hal-lite-envelope">The HAL-lite envelope</a></h2>
+<p>Every successful body carries <code>_links</code> so an AI agent can navigate the API without prior URL knowledge.</p>
+<h3 id="itemresponsem--single-item-envelope"><a class="header" href="#itemresponsem--single-item-envelope"><code>ItemResponse&lt;M&gt;</code> — single-item envelope</a></h3>
+<p>Model fields are flattened at the top level via <code>#[serde(flatten)]</code>. A <code>Film { id: 1, title: "Rust en pratique", director: "Alice", year: Some(2025) }</code> serializes as:</p>
+<pre><code class="language-json">{
+  "id": 1,
+  "title": "Rust en pratique",
+  "director": "Alice",
+  "year": 2025,
+  "_links": {
+    "self":       { "href": "https://api.example.com/films/1" },
+    "collection": { "href": "https://api.example.com/films" }
+  }
+}
+</code></pre>
+<h3 id="collectionresponsem--paginated-envelope"><a class="header" href="#collectionresponsem--paginated-envelope"><code>CollectionResponse&lt;M&gt;</code> — paginated envelope</a></h3>
+<pre><code class="language-json">{
+  "items": [ /* array of ItemResponse&lt;M&gt; */ ],
+  "total": 25,
+  "page": 2,
+  "per_page": 10,
+  "_links": {
+    "self":  { "href": "https://api.example.com/films?page=2&amp;per_page=10" },
+    "next":  { "href": "https://api.example.com/films?page=3&amp;per_page=10" },
+    "prev":  { "href": "https://api.example.com/films?page=1&amp;per_page=10" },
+    "first": { "href": "https://api.example.com/films?page=1&amp;per_page=10" },
+    "last":  { "href": "https://api.example.com/films?page=3&amp;per_page=10" }
+  }
+}
+</code></pre>
+<p>On boundary pages, <code>next</code> or <code>prev</code> serialize as JSON <code>null</code> (never omitted). On <code>total == 0</code>, <code>last_page == 1</code> and <code>first == last == self</code>.</p>
+<h3 id="building-links-manually"><a class="header" href="#building-links-manually">Building links manually</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn build_item_links(meta: &amp;ModelMeta, id: &amp;str, base_url: &amp;str) -&gt; ItemLinks;
+pub fn build_collection_links(
+    meta: &amp;ModelMeta,
+    page: u32,
+    per_page: u32,
+    total: u64,
+    base_url: &amp;str,
+) -&gt; CollectionLinks;
+<span class="boring">}</span></code></pre>
+<p>Use these when writing a custom handler that returns an envelope-shaped body.</p>
+<hr>
+<h2 id="pagination"><a class="header" href="#pagination">Pagination</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PaginationParams { pub page: Option&lt;u32&gt;, pub per_page: Option&lt;u32&gt; }
+impl PaginationParams {
+    pub const fn with(page: Option&lt;u32&gt;, per_page: Option&lt;u32&gt;) -&gt; Self;
+    pub fn resolved_page(&amp;self) -&gt; u32;          // default 1; 0 → 1
+    pub fn resolved_per_page(&amp;self) -&gt; u32;      // default 20; clamp to [1, 100]
+    pub fn clamped_per_page(&amp;self) -&gt; Option&lt;u32&gt;;
+}
+<span class="boring">}</span></code></pre>
+<p><code>PaginationParams</code> is <code>#[non_exhaustive]</code> — external struct-literal construction is rejected. For code that needs to build a <code>PaginationParams</code> outside an Axum <code>Query&lt;_&gt;</code> extractor (integration tests, admin tools, batch jobs), use the stable <code>with(page, per_page)</code> constructor:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::PaginationParams;
+
+let p = PaginationParams::with(Some(3), Some(50));
+assert_eq!(p.resolved_page(), 3);
+assert_eq!(p.resolved_per_page(), 50);
+
+let defaulted = PaginationParams::with(None, None);
+assert_eq!(defaulted.resolved_page(), 1);
+assert_eq!(defaulted.resolved_per_page(), 20);
+
+let clamped = PaginationParams::with(None, Some(500));
+assert_eq!(clamped.resolved_per_page(), 100);
+assert_eq!(clamped.clamped_per_page(), Some(100));
+<span class="boring">}</span></code></pre>
+<p>The constructor stores the raw <code>Option&lt;u32&gt;</code> inputs as-is and applies the clamp / default lazily through the <code>resolved_*</code> / <code>clamped_per_page</code> methods — values produced via <code>with(...)</code> are observationally identical to those that reach a handler through the HTTP extraction path.</p>
+<ul>
+<li>Default: <code>page=1</code>, <code>per_page=20</code>.</li>
+<li>Cap: <code>per_page ≤ 100</code> (hard limit). Values below 1 or above 100 are silently clamped <strong>and</strong> the response carries <code>Warning: 214 - "per_page clamped to {N} (max 100)"</code> per RFC 7234 §5.5.4.</li>
+<li>The response body’s <code>per_page</code> field reports the clamped value (so clients can detect the clamp without parsing the <code>Warning</code> header).</li>
+</ul>
+<p>Worked <code>curl</code>:</p>
+<pre><code>$ curl -D - 'http://localhost:3000/films?per_page=500'
+HTTP/1.1 200 OK
+warning: 214 - "per_page clamped to 100 (max 100)"
+content-type: application/json
+...
+{"items":[...],"total":523,"page":1,"per_page":100,"_links":{...}}
+</code></pre>
+<hr>
+<h2 id="base-url-extractor"><a class="header" href="#base-url-extractor">Base-URL extractor</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn base_url_from_parts(parts: &amp;http::request::Parts) -&gt; String;
+<span class="boring">}</span></code></pre>
+<p>Produces the <code>base_url</code> prefix used by <code>build_item_links</code> / <code>build_collection_links</code>. Behavior:</p>
+<ul>
+<li>Scheme: first comma-separated token of <code>X-Forwarded-Proto</code> if it matches the <code>{http, https}</code> allowlist; otherwise <code>"http"</code>.</li>
+<li>Host: the <code>Host</code> header if present and non-empty; otherwise <code>"localhost"</code>.</li>
+<li>Output format: <code>"{scheme}://{host}"</code>. No trailing slash.</li>
+</ul>
+<p>Anti-spoofing: <code>X-Forwarded-Proto: javascript</code> (or any non-allowlisted scheme) falls back to <code>http</code>. A spoofed header cannot inject a <code>javascript:</code> URL into <code>_links.*.href</code> by construction.</p>
+<p>Deploying behind a TLS-terminating load balancer? Ensure the LB sets <code>X-Forwarded-Proto: https</code> so the generated links match the client-visible scheme.</p>
+<hr>
+<h2 id="custom-extractors"><a class="header" href="#custom-extractors">Custom extractors</a></h2>
+<p>See <a href="./custom-handlers.html"><code>custom-handlers.md</code></a> — the rationale for <code>FerraJson&lt;T&gt;</code> / <code>FerraPath&lt;T&gt;</code> (RFC 7807 error continuity), the <code>FromRequest</code> vs <code>FromRequestParts</code> ordering rule, the <code>Send + Sync + 'static</code> cheat-sheet, and a worked end-to-end <code>POST /films/{id}/publish</code> action route.</p>
+<hr>
+<h2 id="security-defaults"><a class="header" href="#security-defaults">Security defaults</a></h2>
+<p><code>ferra_router::&lt;M&gt;(state)</code> mounts a deny-by-default Tower layer stack — a consumer who writes exactly those five lines is already constitution-§I compliant:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Layer</th><th>Default</th><th>Override path</th></tr>
+</thead>
+<tbody>
+<tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin</td><td><code>FerraLayer::cors(...)</code> at 0.7.0 Pre-tempering</td></tr>
+<tr><td>413 body-limit mapper</td><td>Rewrites stock <code>text/plain</code> → <code>application/problem+json</code> with <code>type: .../payload_too_large</code></td><td>— (permanent)</td></tr>
+<tr><td><code>tower_http::limit::RequestBodyLimitLayer</code></td><td>1 MiB</td><td><code>FerraLayer::body_limit(...)</code> at 0.7.0</td></tr>
+<tr><td><code>tower_http::trace::TraceLayer</code></td><td>Body sampling OFF (never logs PII)</td><td>Per-route opt-in at 0.12.0 Sheen</td></tr>
+<tr><td><code>tower_governor::GovernorLayer</code> on mutation endpoints</td><td><code>per_second(2)</code> + <code>burst_size(5)</code> + peer-socket-IP key</td><td>Full config at 0.9.0 Forging III</td></tr>
+<tr><td><code>PaginationParams</code> clamp (FR-017)</td><td>Loud <code>Warning: 214</code> header on every clamp</td><td>— (constitutional)</td></tr>
+<tr><td><code>X-Forwarded-Proto</code> allowlist</td><td><code>{http, https}</code> only</td><td>— (constitutional)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>429 wire format</strong> — the framework’s default rate-limit component’s 429 responses are rewritten to <code>application/problem+json</code> with <code>type: https://ferra.rs/errors/rate_limited</code>, preserving the <code>Retry-After</code> header from <code>tower_governor</code> verbatim. See the worked body in §“RFC 7807 error taxonomy” above. Oversized bodies produce the same <code>application/problem+json</code> shape — a client parsing <code>type</code> never sees a mixed wire format.</p>
+<p><strong>Rate-limit observability event.</strong> Each time the rate-limit mapper rewrites a 429, it emits a single structured <code>tracing::warn!</code> event so an operator tailing logs can see rate-limit rejections without reading the framework source:</p>
+<ul>
+<li><strong>Target:</strong> <code>ferra_http::rate_limit</code> — namespaced so an operator can isolate it via <code>EnvFilter</code> (<code>RUST_LOG=ferra_http::rate_limit=warn</code>).</li>
+<li><strong>Message:</strong> <code>rate limit exceeded</code>.</li>
+<li><strong>Severity:</strong> <code>WARN</code>.</li>
+<li><strong>Fields (deliberately minimal):</strong>
+<ul>
+<li><code>http.method</code> — the request HTTP method (e.g. <code>"POST"</code>). Always present.</li>
+<li><code>http.target</code> — the request path-and-query (e.g. <code>"/films"</code> or <code>"/films?page=2"</code>). Always present.</li>
+<li><code>http.retry_after_seconds</code> — integer seconds parsed from the inbound <code>Retry-After</code> header. Present only when the header parses as a non-negative integer; genuinely absent otherwise (not recorded as <code>0</code>).</li>
+</ul>
+</li>
+</ul>
+<p>Request and response body content never appear in this event — only the three fields listed above. The schema is pinned minimal so the framework’s dedicated observability phase at 0.12.0 Sheen can absorb it into span-based telemetry (adding <code>trace_id</code>, <code>span_id</code>, and peer-IP once the trusted-proxy story lands) without breaking a consumer’s existing <code>EnvFilter</code> or custom <code>tracing::Layer</code>.</p>
+<p>Wire up a subscriber in your host binary’s <code>main</code> to surface these events:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>tracing_subscriber::fmt()
+    .with_env_filter("ferra_http::rate_limit=warn")
+    .init();
+<span class="boring">}</span></code></pre>
+<p><strong>Layer placement (FR-006).</strong> The rate-limit mapper mounts as the <strong>outer</strong> layer of the mutation sub-router only, wrapping <code>tower_governor::GovernorLayer</code> from the outside (the last <code>.layer()</code> call on that sub-router). Consumer-added middleware appended to <code>ferra_router::&lt;M&gt;(state)</code> wraps the mapper from further outside — see §“Layer ordering — how <code>.layer()</code> composes” below for the full diagram.</p>
+<h3 id="layer-ordering--how-layer-composes"><a class="header" href="#layer-ordering--how-layer-composes">Layer ordering — how <code>.layer()</code> composes</a></h3>
+<p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>ferra_router::&lt;M&gt;(state)</code> therefore wraps every Ferra-provided layer from the outside.</p>
+<p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>ferra_router::&lt;M&gt;(state)</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
+<pre><code>CONCEPTUAL stack (request top→bottom):        LITERAL call sequence (first→last in source):
+
+ outer → CorsLayer                              .layer(DefaultBodyLimit::disable())   ← first call (innermost)
+         body_limit_mapper                      .layer(TraceLayer::new_for_http())
+         RequestBodyLimitLayer(1 MiB)           .layer(RequestBodyLimitLayer::new(1 MiB))
+         TraceLayer                             .layer(middleware::from_fn(body_limit_mapper))
+         DefaultBodyLimit::disable              .layer(CorsLayer::new())              ← last call (outermost)
+         (on mutation sub-router:)             
+           rate_limit_mapper                    [on mutation sub-router:]
+           GovernorLayer                          .layer(GovernorLayer { ... })       ← first call on mutations
+ inner → handlers                                .layer(middleware::from_fn(rate_limit_mapper))  ← last (outer)
+</code></pre>
+<p><strong>Reading it:</strong> a request enters at <code>CorsLayer</code> (outermost), traverses down to the handler, and the response retraces the stack back out. In the source, the call order is <strong>inverted</strong> — the first <code>.layer()</code> call is the innermost layer on the merged router, and the last <code>.layer()</code> call is the outermost.</p>
+<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a custom observability layer is a decision about which sub-router you wrap — consumers who want to observe only mutations attach to a sub-router; consumers who want to observe everything attach to the merged router returned by <code>ferra_router::&lt;M&gt;(state)</code>.</p>
+<p><strong>Worked consumer example.</strong> A consumer appending two custom layers on top of the framework stack:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let app = ferra_router::&lt;Film&gt;(state)
+    .layer(MyObservabilityLayer::new())   // outer: sees requests before the framework
+    .layer(MyShedLoadLayer::new());       // appended AFTER → now the TRUE outermost
+<span class="boring">}</span></code></pre>
+<p>On incoming requests: <code>MyShedLoadLayer</code> runs first, then <code>MyObservabilityLayer</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
+<p>See also §“RFC 7807 error taxonomy” for the 429 wire body the <code>rate_limit_mapper</code> produces.</p>
+<hr>
+<h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
+<p><code>[dependencies] ferra = "0.4"</code> + <code>use ferra::*;</code> is the canonical entry point at 0.4.0. Every item on this page — <code>FerraState</code>, <code>FerraError</code>, <code>FerraJson</code>, <code>FerraPath</code>, <code>PaginationParams</code>, <code>Link</code>, <code>ItemLinks</code>, <code>CollectionLinks</code>, <code>ItemResponse</code>, <code>CollectionResponse</code>, <code>build_item_links</code>, <code>build_collection_links</code>, <code>base_url_from_parts</code>, the five handlers, and <code>ferra_router</code> — is reached from this single import, alongside the <code>#[derive(FerraModel)]</code> macro and the <code>ferra-core</code> / <code>ferra-db</code> public surface.</p>
+<p>Consumers do not depend on <code>ferra-core</code>, <code>ferra-db</code>, <code>ferra-forge</code>, or <code>ferra-http</code> directly. The 0.4.0 compile-fail trybuild fixture also pins <code>ferra::Statement</code>, <code>ferra::execute_unprepared</code>, <code>ferra::raw_sql</code>, and <code>ferra::sea_orm::Statement</code> as unreachable — there is no raw-SQL entry point on the facade.</p>
+<hr>
+<h2 id="worked-end-to-end-example"><a class="header" href="#worked-end-to-end-example">Worked end-to-end example</a></h2>
+<pre class="playground"><code class="language-rust">use ferra::*;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+mod film {
+    use super::*;
+
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(unique)]
+        pub title: String,
+        pub director: String,
+        pub year: Option&lt;i32&gt;,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub use film::Model as Film;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let database_url = std::env::var("DATABASE_URL")?;
+    let conn = sea_orm::Database::connect(&amp;database_url).await?;
+    let app = ferra_router::&lt;Film&gt;(FerraState::new(conn));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    axum::serve(listener, app).await?;
+    Ok(())
+}</code></pre>
+<p>See <a href="../../examples/hello-ferra/"><code>examples/hello-ferra/</code></a> for the full three-command boot sequence (<code>docker compose up -d postgres</code> <em>or</em> <code>podman compose up -d postgres</code> → <code>sea-orm-cli migrate up</code> → <code>cargo run -p hello-ferra</code>) and the <code>smoke.sh</code> script that exercises all seven wire-format contracts.</p>
+<hr>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="413-vs-400-on-oversized-bodies"><a class="header" href="#413-vs-400-on-oversized-bodies">413 vs 400 on oversized bodies</a></h3>
+<p>A request whose body exceeds the 1 MiB default cap is rejected either with <strong>413 <code>Payload Too Large</code></strong> or with <strong>400 <code>Bad Request</code></strong>, depending on a single precondition: <strong>whether the request declares a <code>Content-Length</code> header.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request</th><th>Response code</th><th><code>type</code> URI</th><th>Responsible mapper</th></tr>
+</thead>
+<tbody>
+<tr><td>Body &gt; 1 MiB <strong>with</strong> <code>Content-Length</code> declared</td><td>413</td><td><code>https://ferra.rs/errors/payload_too_large</code></td><td><code>body_limit_mapper</code> (FR-033a)</td></tr>
+<tr><td>Body &gt; 1 MiB <strong>without</strong> <code>Content-Length</code> (streaming / chunked)</td><td>400</td><td><code>https://ferra.rs/errors/validation</code> (single <code>errors[0].code = "invalid_json"</code>)</td><td><code>FerraJson&lt;T&gt;::from_request</code> surfacing as <code>FerraError::Validation</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>When <code>Content-Length</code> is present, <code>RequestBodyLimitLayer</code> short-circuits at the layer level before the stream is consumed — hence the early 413. When the header is absent, the stream is consumed up to the cap, the read fails, and the JSON extractor rejects the request as a parse error (still machine-readable, still RFC 7807, still parseable via the same generic <code>type</code>-dispatch path you use for the other validation failures).</p>
+<p>Both outcomes are semantically correct — the oversized input is rejected either way. The divergence is intentional at 0.4.1. A future release may unify the two paths under a single 413 (an anvil-class cleanup candidate); the Story 3 regression test pins the current 400 fallback so any such rework must explicitly update or remove it. If you can set <code>Content-Length</code> on your client, do — your clients then see a single, predictable 413.</p>
+<h3 id="other-diagnostics"><a class="header" href="#other-diagnostics">Other diagnostics</a></h3>
+<ul>
+<li><strong>413 with <code>application/problem+json</code> body</strong> — request body exceeds 1 MiB. Split the request or (at 0.7.0 Pre-tempering) raise the limit via <code>FerraLayer::body_limit(...)</code>.</li>
+<li><strong>429 with <code>Retry-After</code></strong> — peer IP hit the mutation rate limit (<code>per_second(2)</code> / <code>burst_size(5)</code>). Back off for the number of seconds in <code>Retry-After</code>.</li>
+<li><strong><code>Warning: 214 - "per_page clamped ..."</code> header</strong> — your <code>per_page</code> query parameter was out of <code>[1, 100]</code>. Use <code>per_page ≤ 100</code> to silence it.</li>
+<li><strong><code>problem+json</code> with <code>type: ".../validation"</code> and <code>errors[0].code = "invalid_path_param"</code></strong> — the path segment after <code>/{resource}/</code> is not a valid primary key for <code>M</code> (e.g. <code>GET /films/abc</code> when <code>Film.id: i32</code>). The built-in path extractor rejects before the handler runs.</li>
+<li><strong>500 with <code>detail: "internal server error"</code></strong> — the DB surfaced an error the framework does not map. Inspect logs / tracing for the <code>Debug</code> form of <code>FerraError::Internal</code>; the HTTP body intentionally says nothing more.</li>
+<li><strong>CORS preflight fails</strong> — <code>CorsLayer::new()</code> denies all cross-origin by default. At 0.4.0, CORS is not configurable; at 0.7.0 Pre-tempering <code>FerraLayer::cors(...)</code> ships the override surface.</li>
+</ul>
+<hr>
+<ol class="footnote-definition">
+<li id="footnote-middleware">
+<p>emitted by a middleware mapper (the 413 body-limit mapper or the 429 rate-limit mapper), not by <code>FerraError::IntoResponse</code>. The wire shape is identical to the four handler-produced variants — a client that handles one <code>type</code> URI handles them all through the same generic RFC 7807 code path. <a href="#fr-middleware-1">↩</a> <a href="#fr-middleware-2">↩2</a></p>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ferra-db.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ferra-openapi.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ferra-db.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ferra-openapi.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ferra.rs — The API Framework Forged in Rust</title>
+  <meta name="description" content="One #[model]. Five things derived. Production-ready APIs in Rust — without writing the same struct five times." />
+  <meta property="og:title" content="Ferra.rs — The API Framework Forged in Rust" />
+  <meta property="og:description" content="One #[model]. Five things derived. Production-ready APIs in Rust." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ferra.rs" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- =============================================================
+     NAV
+     ============================================================= -->
+<header>
+<nav class="nav" id="nav">
+  <a href="/" class="nav__brand" id="brand-home">
+    <span class="mark">Ferra<span style="color:var(--ember)">.</span>rs</span>
+    <span class="ver">v0.4.0 · alpha</span>
+  </a>
+  <button class="nav__hamburger" aria-label="Toggle menu"
+          onclick="document.getElementById('nav').classList.toggle('nav--open')">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav__links">
+    <a href="#why">Why Ferra</a>
+    <a href="#install">Install</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="/docs/" target="_blank" rel="noopener">Docs</a>
+    <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" class="pill">
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">★ GitHub</span>
+    </a>
+  </div>
+</nav>
+</header>
+
+<!-- =============================================================
+     HERO A — Faithful Homage
+     ============================================================= -->
+<main id="main">
+<section class="bleed bleed--white">
+  <div class="hero">
+    <div class="wrap">
+      <div class="heroA__grid">
+        <div>
+          <div class="eyebrow" style="color:var(--ember);margin-bottom:18px">
+            The API framework forged in Rust
+          </div>
+          <h1 class="heroA__mark">
+            Ferra<span class="dot">.</span>rs
+          </h1>
+          <p class="heroA__tag">
+            One <code style="font-family:var(--mono);background:var(--cream);padding:2px 6px">#[model]</code>.
+            Five things derived. Production-ready APIs in Rust &mdash; without
+            writing the same struct five times.
+          </p>
+          <div class="heroA__cta">
+            <a class="btn btn--amber" href="#why">
+              Get Started <span class="arrow">&#8594;</span>
+            </a>
+            <a class="version-link" href="#roadmap">v0.4.0 · Refining</a>
+          </div>
+          <div class="herometa" id="install">
+            <div class="install-snippet">
+              <div class="install-snippet__toml"><span class="tok-mu">[dependencies]</span>
+<span class="tok-kw">ferra</span> = { <span class="tok-fn">package</span> = <span class="tok-str">"ferra-rs"</span>, <span class="tok-fn">version</span> = <span class="tok-str">"0.1"</span> }</div>
+              <div class="install-snippet__use"><span class="tok-kw">use</span> <span class="tok-ty">ferra</span>::*;</div>
+            </div>
+            <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" class="watch-link">
+              <span class="watch-icon">★</span> Watch for RC
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <div class="codeblock">
+            <div class="codeblock__chrome">
+              <span class="codeblock__dot"></span>
+              <span class="codeblock__dot"></span>
+              <span class="codeblock__dot"></span>
+              <span class="codeblock__file">src/main.rs</span>
+            </div>
+            <pre><span class="tok-at">#[model]</span>
+<span class="tok-kw">struct</span> <span class="tok-ty">Film</span> {
+    <span class="tok-at">#[id]</span>
+    id: <span class="tok-ty">Id</span>,
+    title: <span class="tok-ty">String</span>,
+}
+
+<span class="tok-kw">let</span> app = <span class="tok-ty">Foundry</span>::<span class="tok-fn">new</span>()
+    .<span class="tok-fn">mount</span>::&lt;<span class="tok-ty">Film</span>&gt;(state)
+    .<span class="tok-fn">build</span>();
+<span class="tok-mu">// 5 routes · HAL · OpenAPI · typed SQL — from 8 lines.</span></pre>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;font:500 12px/1 var(--mono);color:var(--ink-mute);letter-spacing:0.04em">
+            <span><span style="color:var(--ember)">&#8594;</span> 5 routes</span>
+            <span><span style="color:var(--ember)">&#8594;</span> HAL <code>_links</code></span>
+            <span><span style="color:var(--ember)">&#8594;</span> OpenAPI 3.1</span>
+            <span><span style="color:var(--ember)">&#8594;</span> typed SQL</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     PRINCIPLES — ink
+     ============================================================= -->
+<section id="principles" class="bleed bleed--ink">
+  <div class="principles-inner">
+    <div class="wrap">
+
+      <div class="principles-header">
+        <div>
+          <div class="eyebrow" style="color:var(--amber);margin-bottom:18px">Three pillars</div>
+          <h2 class="principles-h">
+            The <span class="h-underline">three pillars</span><br>of Ferra.
+          </h2>
+          <div class="principles-triad">
+            <span style="color:var(--ember)">Security.</span>
+            <span style="color:var(--amber)">DX.</span>
+            <span style="color:#69d2c5">AI.</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <p class="lede" style="margin:0;font-size:19px;line-height:1.5;color:rgba(255,255,255,0.88)">
+            Not features bolted on &mdash; gravity. Every design decision in Ferra
+            falls toward a single source of truth: <strong style="color:#fff">one Rust struct,
+            written once</strong>.
+          </p>
+          <p style="margin:0;font:500 13.5px/1.55 var(--mono);color:rgba(255,255,255,0.55)">
+            What you write once becomes routes, SQL, validation, OpenAPI &mdash;
+            all of it, forever, automatically.
+          </p>
+        </div>
+      </div>
+
+      <div class="principles-pillars">
+        <div class="pillar">
+          <div class="pillar__stripe" style="background:var(--ember)"></div>
+          <div class="pillar__bg-num" aria-hidden="true">01</div>
+          <div class="pillar__tag" style="color:var(--ember)">01 &middot; Security-first</div>
+          <h3 class="pillar__h">Refuse first.<br>Permit second.</h3>
+          <p class="pillar__body">
+            An API should close every door before opening any. In Ferra
+            the defaults aren&rsquo;t <em style="font-style:italic;color:#fff">safe</em>
+            &mdash; they&rsquo;re hostile to your future bugs.
+          </p>
+          <ul class="pillar__list">
+            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>SQL parameterized at the type level</li>
+            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>#![forbid(unsafe_code)] on every crate</li>
+            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>Missing auth = startup panic, not silent gap</li>
+          </ul>
+        </div>
+
+        <div class="pillar pillar--mid">
+          <div class="pillar__stripe" style="background:var(--amber)"></div>
+          <div class="pillar__bg-num" aria-hidden="true">02</div>
+          <div class="pillar__tag" style="color:var(--amber)">02 &middot; DX-first</div>
+          <h3 class="pillar__h">Struct to documented API in five minutes.</h3>
+          <p class="pillar__body">
+            Write the model once. Routes, SQL, validation, OpenAPI &mdash;
+            all generated, all inspectable. Your time is the product.
+          </p>
+          <ul class="pillar__list">
+            <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>Errors tell you what / where / how to fix</li>
+            <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>Generated code readable via cargo expand</li>
+            <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>ferra-anvil scaffolds, never lectures</li>
+          </ul>
+        </div>
+
+        <div class="pillar">
+          <div class="pillar__stripe" style="background:#69d2c5"></div>
+          <div class="pillar__bg-num" aria-hidden="true">03</div>
+          <div class="pillar__tag" style="color:#69d2c5">03 &middot; AI-first</div>
+          <h3 class="pillar__h">Built for the agents that will read it next.</h3>
+          <p class="pillar__body">
+            Every response carries its own map. Every endpoint is
+            self-describing. The next generation of software is a consumer,
+            not an afterthought.
+          </p>
+          <ul class="pillar__list">
+            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>HAL _links in every response</li>
+            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>OpenAPI 3.1 at /docs/openapi.json</li>
+            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>Native MCP tools in v5.0 &mdash; Precision Steel</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="principles-kicker">
+        <span class="principles-kicker__label">Convergence</span>
+        <span class="principles-kicker__text">
+          Three forces. One source of truth.
+          <span style="color:rgba(255,255,255,0.55)">One
+            <code style="font:700 0.92em/1 var(--mono);color:var(--amber)">#[model]</code>
+            struct &mdash; everything else follows.
+          </span>
+        </span>
+        <a href="#why" class="principles-kicker__link">
+          See what it gives you <span aria-hidden="true">&#8595;</span>
+        </a>
+      </div>
+
+      <div class="principles-tiebreaker">
+        Tie-breaker, when the three pull against each other:
+        <strong style="color:rgba(255,255,255,0.7)">security &gt; DX &gt; AI</strong>.
+        Documented, not negotiated.
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     WHY FERRA — teal
+     ============================================================= -->
+<section id="why" class="bleed bleed--teal">
+  <div class="why">
+    <div class="wrap">
+      <div class="why__head">
+        <div>
+          <div class="eyebrow" style="color:#f7d046;margin-bottom:16px">The payoff</div>
+          <h2 class="h-1 why__h"><span class="h-underline">One model,</span> everything else.</h2>
+        </div>
+        <p class="why__intro">
+          The three forces converge here. You write a Rust struct &mdash; one source
+          of truth &mdash; and Ferra hands back the routes, the SQL, the schema,
+          the docs, the hypermedia, and the guarantees. Five jobs collapsed into one.
+        </p>
+      </div>
+
+      <div class="why__mapping-wrap">
+        <div class="why__mapping">
+          <div class="why__col-head">What you write</div>
+          <div class="why__col-head why__col-head--mid"></div>
+          <div class="why__col-head">What you get</div>
+
+          <div class="why__cell why__cell--source">#[model] struct Film</div>
+          <div class="why__cell why__cell--arrow">&#8594;</div>
+          <div class="why__cell why__cell--get">REST routes &mdash; GET, POST, PUT, DELETE</div>
+
+          <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
+          <div class="why__cell why__cell--arrow">&#8594;</div>
+          <div class="why__cell why__cell--get">SQL queries &mdash; <b>parameterized</b>, injection-proof</div>
+
+          <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
+          <div class="why__cell why__cell--arrow">&#8594;</div>
+          <div class="why__cell why__cell--get">OpenAPI 3.1 spec at /docs/openapi.json</div>
+
+          <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
+          <div class="why__cell why__cell--arrow">&#8594;</div>
+          <div class="why__cell why__cell--get">Interactive API docs (Scalar UI)</div>
+
+          <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
+          <div class="why__cell why__cell--arrow">&#8594;</div>
+          <div class="why__cell why__cell--get">HAL hypermedia <code>_links</code> in every response</div>
+
+          <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
+          <div class="why__cell why__cell--arrow">&#8594;</div>
+          <div class="why__cell why__cell--get">Compile-time correctness &mdash; <b>if it builds, it&rsquo;s correct</b></div>
+        </div>
+      </div>
+
+      <div class="why__benchmark">
+        <div class="num">&lt; 5 min</div>
+        <div class="txt">
+          <b style="color:#fff">The zero-to-API benchmark.</b> A developer with a Postgres
+          database and a Rust struct reaches a running, documented,
+          hypermedia-compliant CRUD API in under five minutes.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     STRENGTHS — white
+     ============================================================= -->
+<section class="bleed bleed--white">
+  <div class="strengths">
+    <div class="wrap">
+      <div class="strengths__head">
+        <div>
+          <div class="eyebrow" style="color:var(--ember);margin-bottom:16px">Foundations</div>
+          <h2 class="h-1 strengths__h">Built on <span class="h-underline">Rust&rsquo;s strengths</span>.</h2>
+        </div>
+        <p class="strengths__intro">
+          Ferra doesn&rsquo;t fight the language &mdash; it amplifies it. Every design
+          decision compounds the guarantees you already get from <code>cargo build</code>.
+        </p>
+      </div>
+      <div class="strengths__grid">
+        <div class="strength">
+          <div class="strength__num">01</div>
+          <h3 class="strength__h">Compile-time over runtime</h3>
+          <p class="strength__b">Mismatched routes, missing IDs, broken schemas &mdash; caught by cargo build, not in production at 3am.</p>
+        </div>
+        <div class="strength">
+          <div class="strength__num">02</div>
+          <h3 class="strength__h">Zero-cost abstractions</h3>
+          <p class="strength__b">No reflection, no caching layer, no runtime overhead. p99 latency target: under 1ms.</p>
+        </div>
+        <div class="strength">
+          <div class="strength__num">03</div>
+          <h3 class="strength__h">Security by construction</h3>
+          <p class="strength__b">SQL is always parameterized. CORS is restrictive by default. Auth is a first-class pipeline stage.</p>
+        </div>
+        <div class="strength">
+          <div class="strength__num">04</div>
+          <h3 class="strength__h">#![forbid(unsafe_code)]</h3>
+          <p class="strength__b">On every crate, no exceptions. Ferra inherits Rust&rsquo;s memory-safety guarantees end-to-end.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     TARGETS — white / border
+     ============================================================= -->
+<section class="bleed bleed--white" style="border-top:1px solid rgba(0,0,0,0.08)">
+  <div class="targets-inner">
+    <div class="wrap">
+      <div class="targets-grid">
+        <div>
+          <div class="eyebrow" style="color:var(--ember);margin-bottom:14px">Targets</div>
+          <h2 class="h-1 targets-h"><span class="h-underline">Runs wherever</span> Rust runs.</h2>
+          <p style="margin:20px 0 0;font:400 17px/1.55 var(--sans);color:var(--ink-soft);max-width:480px">
+            One <code>#[model]</code>, every target. Plug Ferra into any
+            Tower-compatible HTTP runtime, ship it to a long-running server,
+            a serverless function, or the edge &mdash; the API you wrote stays
+            the API you deploy.
+          </p>
+        </div>
+        <div class="targets-tiles">
+          <div class="target-tile">
+            <div class="target-tile__k">HTTP/1 &middot; 2 &middot; 3</div>
+            <div class="target-tile__v">Tower-compatible stack</div>
+          </div>
+          <div class="target-tile">
+            <div class="target-tile__k">Axum &middot; Hyper &middot; Actix</div>
+            <div class="target-tile__v">Plug into any runtime</div>
+          </div>
+          <div class="target-tile">
+            <div class="target-tile__k">Lambda &middot; Cloud Run</div>
+            <div class="target-tile__v">Serverless from v0.14</div>
+          </div>
+          <div class="target-tile">
+            <div class="target-tile__k">Workers &middot; Edge</div>
+            <div class="target-tile__v">Same #[model], any target</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     ETYMOLOGY — cream
+     ============================================================= -->
+<section class="bleed bleed--cream">
+  <div class="name">
+    <div class="wrap">
+      <div class="name__lead">
+        <div>
+          <div class="eyebrow" style="color:var(--ember);margin-bottom:16px">The name</div>
+          <h2 class="h-1 name__h"><span class="h-underline">Ferrum.</span></h2>
+          <p class="name__sub" style="margin-top:14px">Latin for iron.</p>
+        </div>
+        <p class="name__quote">
+          Ferra continues Rust&rsquo;s metallurgical lineage &mdash; from <em>ore</em> to
+          <em>vessel</em> to <em>mascot</em> to the metal itself. The roadmap
+          follows the lifecycle of iron: from raw ore to precision steel.
+        </p>
+      </div>
+      <div class="lineage">
+        <div class="lineage__cell">
+          <h3 class="lineage__name">Rust</h3>
+          <p class="lineage__origin">Iron oxide</p>
+        </div>
+        <div class="lineage__cell">
+          <h3 class="lineage__name">Cargo</h3>
+          <p class="lineage__origin">The vessel that carries ore</p>
+        </div>
+        <div class="lineage__cell">
+          <h3 class="lineage__name">Ferris</h3>
+          <p class="lineage__origin">The mascot &mdash; ferrous, iron-bearing</p>
+        </div>
+        <div class="lineage__cell lineage__cell--active">
+          <h3 class="lineage__name">Ferra</h3>
+          <p class="lineage__origin">Iron itself</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     ROADMAP — plum
+     ============================================================= -->
+<section id="roadmap" class="bleed bleed--plum">
+  <div class="roadmap">
+    <div class="wrap">
+      <div class="roadmap__head">
+        <div>
+          <div class="eyebrow" style="color:#f7d046;margin-bottom:16px">The vision</div>
+          <h2 class="h-1 roadmap__h"><span class="h-underline">From ore to precision steel.</span></h2>
+        </div>
+        <p class="roadmap__intro">
+          Five eras, each named for a step in the iron lifecycle. The
+          foundations are shipped; we&rsquo;re rolling out beta capabilities one
+          version at a time on the way to a stable 1.0.
+        </p>
+      </div>
+      <div class="phases">
+        <div class="phase phase--shipped">
+          <div class="phase__status"><span class="phase__dot"></span>Shipped</div>
+          <div class="phase__ver">v0.1 &#8594; v0.4</div>
+          <h3 class="phase__name">The Ore</h3>
+          <p class="phase__desc">Foundations are in place. You can already write a working CRUD API in under 25 lines.</p>
+          <ul class="phase__list">
+            <li>Excavation &middot; workspace + IR</li>
+            <li>Smelting &middot; #[model] macro</li>
+            <li>Casting &middot; typed SQL</li>
+            <li>Refining &middot; CRUD + HAL</li>
+          </ul>
+        </div>
+        <div class="phase phase--building">
+          <div class="phase__status"><span class="phase__dot"></span>Building</div>
+          <div class="phase__ver">v0.5 &#8594; v0.14</div>
+          <h3 class="phase__name">Cast Iron</h3>
+          <p class="phase__desc">APIs usable but not yet stable. Each version adds one major capability.</p>
+          <ul class="phase__list">
+            <li>Rolling &middot; OpenAPI + Scalar (now)</li>
+            <li>Welding &middot; validation + RFC 7807</li>
+            <li>Forging &middot; auth + JWT + roles</li>
+            <li>Polishing &middot; relations + embeds</li>
+          </ul>
+        </div>
+        <div class="phase phase--planned">
+          <div class="phase__status"><span class="phase__dot"></span>Next</div>
+          <div class="phase__ver">v0.15 &mdash; 1.0</div>
+          <h3 class="phase__name">Hardened Steel</h3>
+          <p class="phase__desc">Security audit, benchmarks, OSS launch prep. crates.io publication. SemVer guaranteed.</p>
+          <ul class="phase__list">
+            <li>Audit &amp; benchmarks</li>
+            <li>Public 1.0 release</li>
+            <li>Long-term support track</li>
+          </ul>
+        </div>
+        <div class="phase phase--planned">
+          <div class="phase__status"><span class="phase__dot"></span>Vision</div>
+          <div class="phase__ver">v2.0 &mdash; v4.0</div>
+          <h3 class="phase__name">The Alloy &#8594; Arsenal</h3>
+          <p class="phase__desc">GraphQL, WebSockets, SSE, JSON-LD. Multi-backend storage. Plugin system, admin UI, observability.</p>
+          <ul class="phase__list">
+            <li>Alloy &middot; GraphQL + WS + SSE</li>
+            <li>Foundry &middot; Mongo, Redis, Scylla</li>
+            <li>Arsenal &middot; plugins + admin</li>
+          </ul>
+        </div>
+        <div class="phase phase--planned">
+          <div class="phase__status"><span class="phase__dot"></span>Far horizon</div>
+          <div class="phase__ver">v5.0</div>
+          <h3 class="phase__name">Precision Steel</h3>
+          <p class="phase__desc">Native MCP tools, LLM schemas, agent SDK &mdash; APIs that read themselves to language models.</p>
+          <ul class="phase__list">
+            <li>Native MCP tools</li>
+            <li>LLM-aware schemas</li>
+            <li>First-class agent SDK</li>
+          </ul>
+        </div>
+      </div>
+      <div class="invariant">
+        <div class="invariant__label">Invariant</div>
+        <div class="invariant__text">
+          A <code>#[model]</code> written for v1.0 compiles without modification
+          in v2, v3, v4, and v5. Stability is not a feature &mdash; it&rsquo;s the contract.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     METRICS — white
+     ============================================================= -->
+<section class="bleed bleed--white">
+  <div class="metrics">
+    <div class="wrap">
+      <div class="metrics__head">
+        <div>
+          <div class="eyebrow" style="color:var(--ember);margin-bottom:16px">RC gate</div>
+          <h2 class="h-1 metrics__h"><span class="h-underline">The targets we ship 1.0 against.</span></h2>
+        </div>
+        <p class="metrics__intro">
+          Numbers we hold ourselves to before tagging Hardened Steel &mdash;
+          measured on a baseline Postgres-backed Film CRUD service.
+        </p>
+      </div>
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric__label">Zero to working API with docs</div>
+          <div class="metric__value">&lt; 5<span class="unit">min</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric__label">Lines of code for Film CRUD</div>
+          <div class="metric__value">&lt; 20<span class="unit">loc</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric__label">GET p99 latency</div>
+          <div class="metric__value">&lt; 1<span class="unit">ms</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric__label">Incremental compile (1 field change)</div>
+          <div class="metric__value">&lt; 5<span class="unit">s</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric__label">Server startup time</div>
+          <div class="metric__value">&lt; 50<span class="unit">ms</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric__label">OpenAPI spec &#8596; deployed code</div>
+          <div class="metric__value">1 : 1</div>
+          <div class="metric__guard">Guaranteed &mdash; impossible to compile otherwise.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     FOOTER — iron
+     ============================================================= -->
+</main>
+<footer class="bleed bleed--iron">
+  <div class="footer">
+    <div class="wrap">
+      <div class="footer__top">
+        <div class="footer__brand">
+          <span class="mark">Ferra<span class="dot">.</span>rs</span>
+          <p class="tag">
+            The API framework forged in Rust. One model. Zero boilerplate.
+            Production-ready APIs.
+          </p>
+        </div>
+        <div class="footer__col">
+          <h4>Get Started</h4>
+          <ul>
+            <li><a href="#install">Install <span class="placeholder">soon</span></a></li>
+            <li><span class="footer__dead">Quickstart <span class="placeholder">soon</span></span></li>
+            <li><span class="footer__dead">Examples <span class="placeholder">soon</span></span></li>
+            <li><a href="/docs/" target="_blank" rel="noopener">Documentation</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Project</h4>
+          <ul>
+            <li><a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
+            <li><span class="footer__dead">Changelog <span class="placeholder">soon</span></span></li>
+            <li><span class="footer__dead">RFCs <span class="placeholder">soon</span></span></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Community</h4>
+          <ul>
+            <li><span class="footer__dead">Discord <span class="placeholder">soon</span></span></li>
+            <li><span class="footer__dead">The Forge (forum) <span class="placeholder">soon</span></span></li>
+            <li><span class="footer__dead">Contributing <span class="placeholder">soon</span></span></li>
+            <li><span class="footer__dead">Code of Conduct <span class="placeholder">soon</span></span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__rule"></div>
+      <div class="footer__bottom">
+        <div>&copy; 2026 Ferra contributors &middot; Apache-2.0 / MIT</div>
+        <div class="legal">
+          <span style="font-family:var(--mono)">v0.4.0 &middot; alpha</span>
+          <span class="footer__dead footer__dead--legal">License</span>
+          <span class="footer__dead footer__dead--legal">Security</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* Brand link → scroll to top smoothly when already on home */
+  document.querySelector('#brand-home').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('nav').classList.remove('nav--open');
+  });
+
+  /* Close mobile nav when a link is clicked */
+  document.querySelectorAll('.nav__links a').forEach(function(a) {
+    a.addEventListener('click', function() {
+      document.getElementById('nav').classList.remove('nav--open');
+    });
+  });
+
+  /* Active nav link via Intersection Observer */
+  (function() {
+    var navLinks = document.querySelectorAll('.nav__links a[href^="#"]');
+    var sections = [];
+    navLinks.forEach(function(a) {
+      var el = document.querySelector(a.getAttribute('href'));
+      if (el) sections.push(el);
+    });
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          navLinks.forEach(function(a) { a.classList.remove('nav--active'); });
+          var active = document.querySelector('.nav__links a[href="#' + entry.target.id + '"]');
+          if (active) active.classList.add('nav--active');
+        }
+      });
+    }, { rootMargin: '-82px 0px -60% 0px', threshold: 0 });
+
+    sections.forEach(function(s) { observer.observe(s); });
+  })();
+</script>
+
+</body>
+</html>

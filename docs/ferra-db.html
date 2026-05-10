@@ -1,0 +1,547 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Ferra DB - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-ec34d538.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-95aa1458.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-d364ce7b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/ferra-db.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="ferra-db--the-repository-layer"><a class="header" href="#ferra-db--the-repository-layer"><code>ferra-db</code> — the repository layer</a></h1>
+<p><em>The 0.3.0 Casting deliverable. Turns a <code>#[derive(FerraModel, DeriveEntityModel)]</code> entity into a CRUD-capable repository against a live PostgreSQL, with zero hand-written SQL.</em></p>
+<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-db</code>. A reader with only this page plus standard Rust knowledge can produce a compiling CRUD round-trip on the first attempt — no ADR, no constitution, and no framework source is required.</p>
+<blockquote>
+<p><strong>At 0.4.0 Refining</strong> the <code>ferra</code> facade absorbs <code>ferra-forge</code> (the <code>#[derive(FerraModel)]</code> macro) and <code>ferra-http</code> (the CRUD handler layer). Consumers write <code>use ferra::*;</code> and no longer need a second direct dependency on <code>ferra-forge</code> — the 003 two-line pattern collapses to one line. See <a href="ferra-http.html"><code>ferra-http.md</code></a> for the HTTP surface that composes on top of this page’s repository layer.</p>
+</blockquote>
+<hr>
+<h2 id="zero-to-crud-in-four-lines"><a class="header" href="#zero-to-crud-in-four-lines">Zero-to-CRUD in four lines</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{DatabaseConnection, FerraRepository, PgRepository};
+
+let conn: DatabaseConnection = sea_orm::Database::connect(&amp;database_url).await?;
+let repo = PgRepository::&lt;Film&gt;::new(conn);
+let film = repo.find_by_id(42).await?;
+<span class="boring">}</span></code></pre>
+<p>(<code>Film</code> is the canonical sibling-derive entity shape from <code>ferra-forge</code> — see the worked example below. <code>database_url</code> is read from the <code>DATABASE_URL</code> environment variable in the usual way.)</p>
+<hr>
+<h2 id="the-ferrarepositorym-surface"><a class="header" href="#the-ferrarepositorym-surface">The <code>FerraRepository&lt;M&gt;</code> surface</a></h2>
+<p><code>FerraRepository&lt;M&gt;</code> is an async trait with ten methods, split into two symmetric groups of five. The ambient-connection quintet runs against the pool supplied at construction time; the <code>_in_tx</code> quintet takes a caller-owned transaction handle.</p>
+<h3 id="ambient-connection-methods"><a class="header" href="#ambient-connection-methods">Ambient-connection methods</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Signature summary</th><th>Error outcomes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>find_by_id</code></td><td><code>async fn find_by_id(&amp;self, id: PkValue&lt;M&gt;) -&gt; Result&lt;M, FerraDbError&gt;</code></td><td><code>NotFound</code> · <code>Db</code></td></tr>
+<tr><td><code>find_page</code></td><td><code>async fn find_page(&amp;self, page: u32, per_page: u32) -&gt; Result&lt;Page&lt;M&gt;, FerraDbError&gt;</code></td><td><code>Db</code> (never <code>NotFound</code>)</td></tr>
+<tr><td><code>insert</code></td><td><code>async fn insert(&amp;self, data: M) -&gt; Result&lt;M, FerraDbError&gt;</code></td><td><code>Conflict</code> · <code>Db</code></td></tr>
+<tr><td><code>update</code></td><td><code>async fn update(&amp;self, id: PkValue&lt;M&gt;, data: M) -&gt; Result&lt;M, FerraDbError&gt;</code></td><td><code>NotFound</code> · <code>Conflict</code> · <code>Db</code></td></tr>
+<tr><td><code>delete</code></td><td><code>async fn delete(&amp;self, id: PkValue&lt;M&gt;) -&gt; Result&lt;(), FerraDbError&gt;</code></td><td><code>NotFound</code> · <code>Db</code></td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><code>PkValue&lt;M&gt;</code> is the Sea-ORM primary-key value type for <code>M</code> — for most entities this is a plain <code>i32</code> / <code>i64</code> / <code>Uuid</code>. The exact type alias is <code>pub type PkValue&lt;M&gt; = &lt;&lt;&lt;M as sea_orm::ModelTrait&gt;::Entity as sea_orm::EntityTrait&gt;::PrimaryKey as sea_orm::PrimaryKeyTrait&gt;::ValueType;</code> — consumers rarely spell it out; it propagates through <code>impl</code> blocks automatically.</li>
+<li><code>find_page</code> is 1-indexed (<code>page = 1</code> is the first page). A request past the end returns <code>Ok(Page { items: vec![], total, .. })</code> — never <code>NotFound</code>.</li>
+<li><code>update</code> accepts <code>(id, data)</code> where <code>data: M</code> carries the new values. At 0.3.0 the caller is responsible for ensuring <code>data</code>’s primary key matches <code>id</code>; the 0.4.0 DTO layer will enforce that invariant upstream.</li>
+</ul>
+<h3 id="transaction-scoped-methods"><a class="header" href="#transaction-scoped-methods">Transaction-scoped methods</a></h3>
+<p>Each ambient method has a paired <code>_in_tx</code> variant with the same name + suffix, taking <code>&amp;DatabaseTransaction</code> as its first argument after <code>&amp;self</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn find_by_id_in_tx(&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;M, FerraDbError&gt;;
+async fn find_page_in_tx (&amp;self, tx: &amp;DatabaseTransaction, page: u32, per_page: u32) -&gt; Result&lt;Page&lt;M&gt;, FerraDbError&gt;;
+async fn insert_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, data: M) -&gt; Result&lt;M, FerraDbError&gt;;
+async fn update_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;, data: M) -&gt; Result&lt;M, FerraDbError&gt;;
+async fn delete_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;(), FerraDbError&gt;;
+<span class="boring">}</span></code></pre>
+<p>Semantics are identical to the ambient counterpart modulo the transaction handle. A bug fixed in one path is fixed in both — the two families share their inner implementation via a <code>ConnectionTrait</code>-generic helper.</p>
+<h3 id="object-safety-note"><a class="header" href="#object-safety-note">Object-safety note</a></h3>
+<p><code>FerraRepository&lt;M&gt;</code> is NOT object-safe — edition-2024 native async-in-trait does not support <code>dyn FerraRepository&lt;M&gt;</code>. Compose against it via generics: <code>fn handler&lt;R: FerraRepository&lt;Film&gt;&gt;(repo: R, ...)</code>. A runtime-heterogeneous-backend story is deferred to the post-v1 <code>ferra-db-*</code> sibling crates.</p>
+<hr>
+<h2 id="the-pgrepositorym-constructor"><a class="header" href="#the-pgrepositorym-constructor">The <code>PgRepository&lt;M&gt;</code> constructor</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let repo: PgRepository&lt;Film&gt; = PgRepository::new(conn);
+<span class="boring">}</span></code></pre>
+<ul>
+<li><code>conn</code> is a <code>sea_orm::DatabaseConnection</code> (re-exported from <code>ferra-db</code> so you do not need to add <code>sea-orm</code> as a direct dependency — <code>ferra</code> re-exports the name under <code>ferra::DatabaseConnection</code>).</li>
+<li>The struct derives <code>Clone</code> unconditionally. Sea-ORM’s <code>DatabaseConnection</code> wraps its pool in an <code>Arc</code>, so <code>repo.clone()</code> is cheap — pass <code>PgRepository&lt;M&gt;</code> by value or by clone rather than wrapping in <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>.</li>
+<li>The constructor performs <strong>no validation</strong>. Callers with a non-PostgreSQL <code>DatabaseConnection</code> compile but lose the SQLSTATE <code>23505</code> → <code>Conflict</code> mapping (those failures fall through to the <code>Db(_)</code> variant).</li>
+</ul>
+<h3 id="bounds-on-m"><a class="header" href="#bounds-on-m">Bounds on <code>M</code></a></h3>
+<p><code>PgRepository&lt;M&gt;</code> works for any <code>M</code> that satisfies the 0.2.0 sibling-derive shape — i.e., the derive combination <code>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]</code>. Concretely, <code>M</code> must implement <code>FerraModel</code> (from <code>ferra-core</code>) plus the Sea-ORM trait set (<code>ModelTrait</code>, <code>FromQueryResult</code>, <code>IntoActiveModel&lt;ActiveModel&gt;</code>, with <code>Entity: EntityTrait&lt;Model = M&gt;</code> and the <code>ActiveModel: ActiveModelTrait + ActiveModelBehavior + Send</code>). The 0.2.0 canonical shape satisfies every bound automatically.</p>
+<p>If you see <code>error[E0277]: the trait bound &lt;M&gt;: sea_orm::ModelTrait is not satisfied</code> at a <code>PgRepository::&lt;M&gt;::new(conn)</code> call site, you forgot the <code>DeriveEntityModel</code> derive on the same struct. Add it per the 0.2.0 canonical shape.</p>
+<hr>
+<h2 id="error-taxonomy"><a class="header" href="#error-taxonomy">Error taxonomy</a></h2>
+<p><code>FerraDbError</code> has exactly three variants. The set is locked from 0.3.0 through 0.6.0 Welding — adding a variant requires an ADR.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variant</th><th>When</th><th><code>Display</code> template</th><th>0.4.0 HTTP mapping</th></tr>
+</thead>
+<tbody>
+<tr><td><code>NotFound { resource: &amp;'static str, id: String }</code></td><td><code>find_by_id</code> / <code>update</code> / <code>delete</code> observed zero matching rows</td><td><code>"{resource}/{id} not found"</code></td><td>404 Not Found</td></tr>
+<tr><td><code>Conflict(String)</code></td><td><code>insert</code> / <code>update</code> hit a Postgres SQLSTATE <code>23505</code> unique-constraint violation</td><td><code>"unique constraint \"{constraint}\" violated on {target}"</code></td><td>409 Conflict</td></tr>
+<tr><td><code>Db(sea_orm::DbErr)</code></td><td>Every other <code>sea_orm::DbErr</code></td><td>whatever the wrapped <code>DbErr</code> renders as</td><td>500 Internal Server Error (no internal fragment leaks into the response body)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="display-guarantees"><a class="header" href="#display-guarantees"><code>Display</code> guarantees</a></h3>
+<ul>
+<li><code>NotFound { resource: "films", id: "42".into() }.to_string()</code> → <code>"films/42 not found"</code>.</li>
+<li><code>Conflict("unique constraint \"films_title_key\" violated on column \"title\"".into()).to_string()</code> → <code>"unique constraint \"films_title_key\" violated on column \"title\""</code>.</li>
+<li><code>Db(db_err).to_string()</code> → whatever <code>db_err.to_string()</code> renders (e.g., <code>"Record not found"</code>, <code>"Execution Error: ..."</code>).</li>
+</ul>
+<p>Every variant’s <code>Display</code> is stable through 0.6.0 Welding — the 0.4.0 RFC 7807 layer serializes these templates verbatim into the <code>problem+json</code> response. No <code>Display</code> output contains any internal Rust path fragment (no <code>sea_orm::...</code>, no <code>sqlx::...</code>, no rustc error codes).</p>
+<h3 id="source--downcasting"><a class="header" href="#source--downcasting"><code>source()</code> + downcasting</a></h3>
+<p><code>FerraDbError::Db(_).source()</code> returns <code>Some(&amp;dyn Error)</code> pointing at the wrapped <code>sea_orm::DbErr</code>. You can downcast to inspect specific Sea-ORM failure modes:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::error::Error as _;
+
+if let FerraDbError::Db(_) = &amp;err {
+    if let Some(db_err) = err.source().and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;()) {
+        // inspect db_err
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>source()</code> on <code>NotFound</code> and <code>Conflict</code> returns <code>None</code> — these variants carry their context in their fields.</p>
+<h3 id="construction-rules"><a class="header" href="#construction-rules">Construction rules</a></h3>
+<p>External consumers cannot directly construct <code>NotFound</code> or <code>Conflict</code> — those variants are produced exclusively by the repository itself at the single <code>from_sea_orm</code> mapping site. A raw <code>sea_orm::DbErr</code> that propagates through <code>?</code> becomes <code>FerraDbError::Db(_)</code> via the <code>From&lt;sea_orm::DbErr&gt;</code> derive; that is the only construction path available to user code.</p>
+<hr>
+<h2 id="the-pagem-shape"><a class="header" href="#the-pagem-shape">The <code>Page&lt;M&gt;</code> shape</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[non_exhaustive]
+#[derive(Debug)]
+pub struct Page&lt;M&gt; {
+    pub items: Vec&lt;M&gt;,
+    pub total: u64,
+    pub page: u32,
+    pub per_page: u32,
+}
+<span class="boring">}</span></code></pre>
+<ul>
+<li><strong>1-indexed <code>page</code></strong> by framework convention. <code>page = 0</code> is treated identically to <code>page = 1</code> (the repository applies <code>saturating_sub(1)</code> internally to hand Sea-ORM its 0-indexed offset).</li>
+<li><strong><code>total: u64</code></strong> fits any Postgres <code>bigint</code> in the non-negative half — the full-table row count observed by the count query.</li>
+<li><strong><code>items.len() &lt;= per_page</code></strong> always. An over-scrolled request is <code>Ok(Page { items: vec![], total, .. })</code>, never <code>NotFound</code>.</li>
+<li><strong>Concurrent-insert drift.</strong> <code>items.len()</code> and <code>total</code> may disagree by ±1 under concurrent inserts — both queries run serially on the same connection (FR-015), not in parallel. Callers that need strict consistency use <code>find_page_in_tx</code> inside a <code>SERIALIZABLE</code> transaction.</li>
+<li><strong>Serialize, not Deserialize.</strong> <code>Page&lt;M&gt;: serde::Serialize</code> (inherited from <code>M: FerraModel: Serialize</code>). No <code>Deserialize</code> — pages are server-constructed, never parsed from client input.</li>
+<li><strong><code>#[non_exhaustive]</code></strong> — future phases may add fields (e.g., <code>cursor: Option&lt;Cursor&gt;</code> at 0.7.5 Enameling). Construct via <code>Page::new(items, total, page, per_page)</code>, not a struct literal.</li>
+</ul>
+<hr>
+<h2 id="transactions"><a class="header" href="#transactions">Transactions</a></h2>
+<p><code>ferra-db</code> re-exports <code>DatabaseConnection</code> and <code>DatabaseTransaction</code> from Sea-ORM under their original names, so you can type both handles without a direct <code>sea-orm</code> dependency. Obtaining a transaction requires importing Sea-ORM’s <code>TransactionTrait</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{DatabaseConnection, DatabaseTransaction, FerraRepository, PgRepository};
+use sea_orm::TransactionTrait; // import needed for .begin()
+
+let tx: DatabaseTransaction = conn.begin().await?;
+repo.insert_in_tx(&amp;tx, film_1).await?;
+repo.insert_in_tx(&amp;tx, film_2).await?;
+tx.commit().await?; // both rows persist atomically
+<span class="boring">}</span></code></pre>
+<h3 id="rollback-on-drop"><a class="header" href="#rollback-on-drop">Rollback on drop</a></h3>
+<p>Dropping a <code>DatabaseTransaction</code> without calling <code>.commit()</code> rolls it back. No cleanup call is required on the failure path:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let tx = conn.begin().await?;
+repo.insert_in_tx(&amp;tx, film_1).await?;
+if let Err(e) = repo.insert_in_tx(&amp;tx, film_2).await {
+    // tx goes out of scope here → Sea-ORM rolls it back. film_1 is NOT persisted.
+    return Err(e.into());
+}
+tx.commit().await?;
+<span class="boring">}</span></code></pre>
+<h3 id="the-transactiontrait-import"><a class="header" href="#the-transactiontrait-import">The <code>TransactionTrait</code> import</a></h3>
+<p><code>ferra-db</code> deliberately does <strong>not</strong> re-export <code>sea_orm::TransactionTrait</code> under a Ferra-prefixed alias. Callers import it explicitly: <code>use sea_orm::TransactionTrait;</code>. This is a one-line acknowledgment that Sea-ORM owns the transaction mechanism; it is not a barrier to use, just intentional transparency.</p>
+<hr>
+<h2 id="no-raw-sql-entry-point"><a class="header" href="#no-raw-sql-entry-point">No raw-SQL entry point</a></h2>
+<p><code>ferra-db</code> publishes NO entry point that accepts a pre-formed SQL string. The following paths do NOT resolve and WILL NOT resolve in 0.3.0 — each is asserted by a trybuild compile-fail fixture (FR-029 is a release blocker):</p>
+<pre><code class="language-text">ferra_db::Statement            // not reachable
+ferra_db::execute_unprepared   // not reachable
+ferra_db::raw_sql              // not reachable
+</code></pre>
+<p>The same three fragments are also blocked under <code>ferra::</code> via the companion fixture at <code>crates/ferra/tests/ui/no_raw_sql.rs</code>.</p>
+<h3 id="the-escape-hatch"><a class="header" href="#the-escape-hatch">The escape hatch</a></h3>
+<p>If you genuinely need raw SQL (a hand-written migration, a complex analytics query that defeats Sea-ORM’s builder), add <code>sea-orm</code> as a <strong>direct dependency</strong> of your consumer crate:</p>
+<pre><code class="language-toml">[dependencies]
+ferra   = "0.3"
+sea-orm = { version = "=2.0.0-rc.38", features = ["runtime-tokio-rustls", "sqlx-postgres", "macros"] }
+</code></pre>
+<p>Then use Sea-ORM’s own raw-SQL entry points (<code>Statement::from_string</code>, <code>execute_unprepared</code>, etc.) directly. This is a deliberate, transparent act — your code reads as “I am opting out of Ferra’s SQL-injection-by-construction contract for this specific query” rather than reaching through a convenience hole in the framework.</p>
+<hr>
+<h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
+<p>The <code>ferra</code> crate is the single user-facing dependency. At 0.3.0 it re-exports the public surface of <code>ferra-core</code> and <code>ferra-db</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{
+    FerraDbError, FerraRepository, PgRepository, Page,
+    DatabaseConnection, DatabaseTransaction,
+    Id, FerraModel, ModelMeta, FieldMeta, FieldType,
+};
+<span class="boring">}</span></code></pre>
+<p><strong><code>#[derive(FerraModel)]</code> is NOT re-exported at 0.3.0.</strong> Consumers who want the derive at 0.3.0 add <code>ferra-forge</code> as a second direct dependency:</p>
+<pre><code class="language-toml">[dependencies]
+ferra       = "0.3"
+ferra-forge = "0.2"   # for #[derive(FerraModel)] — re-export arrives at 0.4.0
+</code></pre>
+<p>At 0.4.0 Refining, <code>ferra</code> will gain <code>pub use ferra_forge::FerraModel;</code> and the two-line pattern collapses to one. The 0.3.0 split is deliberate: re-exporting the derive at 0.3.0 would force every <code>ferra</code>-depending consumer to link the proc-macro toolchain even when only the repository layer is needed.</p>
+<hr>
+<h2 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h2>
+<p>A complete compiling example. Drop this into a downstream crate that depends on <code>ferra</code>, <code>ferra-forge</code>, <code>sea-orm</code>, <code>serde</code>, and the Sea-ORM migration crate. The <code>DATABASE_URL</code> environment variable must point at a reachable PostgreSQL 16.</p>
+<h3 id="1--the-migration"><a class="header" href="#1--the-migration">1 — the migration</a></h3>
+<pre><code class="language-sql">-- migrations/20260417000000_create_films.sql
+CREATE TABLE films (
+    id           SERIAL  PRIMARY KEY,
+    title        TEXT    NOT NULL UNIQUE,
+    release_year INTEGER,
+    archived     BOOLEAN NOT NULL DEFAULT FALSE
+);
+</code></pre>
+<h3 id="2--the-entity-sibling-derive-shape"><a class="header" href="#2--the-entity-sibling-derive-shape">2 — the entity (sibling-derive shape)</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// src/film.rs
+use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[sea_orm(unique)]
+    pub title: String,
+    pub release_year: Option&lt;i32&gt;,
+    pub archived: bool,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+pub use Model as Film;
+<span class="boring">}</span></code></pre>
+<h3 id="3--the-crud-round-trip"><a class="header" href="#3--the-crud-round-trip">3 — the CRUD round-trip</a></h3>
+<pre class="playground"><code class="language-rust">// src/main.rs
+use ferra::{FerraDbError, FerraRepository, PgRepository};
+use sea_orm::TransactionTrait;
+
+mod film;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let db_url = std::env::var("DATABASE_URL")?;
+    let conn = sea_orm::Database::connect(&amp;db_url).await?;
+    let repo = PgRepository::&lt;film::Film&gt;::new(conn.clone());
+
+    // Insert
+    let blade_runner = repo.insert(film::Model {
+        id: 1,
+        title: "Blade Runner".to_owned(),
+        release_year: Some(1982),
+        archived: false,
+    }).await?;
+    println!("inserted: {blade_runner:?}");
+
+    // Read
+    let one = repo.find_by_id(1).await?;
+    assert_eq!(one.title, "Blade Runner");
+
+    // Update
+    let mut tweaked = one.clone();
+    tweaked.archived = true;
+    let updated = repo.update(1, tweaked).await?;
+    assert!(updated.archived);
+
+    // Paginate
+    let page = repo.find_page(1, 10).await?;
+    println!("page 1/10: {} items, {} total", page.items.len(), page.total);
+
+    // Compound write: two inserts in a single transaction
+    let tx = conn.begin().await?;
+    repo.insert_in_tx(&amp;tx, film::Model {
+        id: 2, title: "Alien".into(), release_year: Some(1979), archived: false,
+    }).await?;
+    repo.insert_in_tx(&amp;tx, film::Model {
+        id: 3, title: "2001: A Space Odyssey".into(), release_year: Some(1968), archived: false,
+    }).await?;
+    tx.commit().await?;
+
+    // Delete
+    repo.delete(1).await?;
+    assert!(matches!(repo.find_by_id(1).await, Err(FerraDbError::NotFound { .. })));
+
+    Ok(())
+}</code></pre>
+<hr>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="films42-not-found"><a class="header" href="#films42-not-found"><code>"films/42 not found"</code></a></h3>
+<p>You observed <code>FerraDbError::NotFound { resource: "films", id: "42" }</code> — the <code>find_by_id</code> / <code>update</code> / <code>delete</code> call targeted a primary key that has no row. At the HTTP layer (0.4.0) this maps to 404. Check that the id value you passed corresponds to an extant row.</p>
+<h3 id="unique-constraint-films_title_key-violated-on-column-title"><a class="header" href="#unique-constraint-films_title_key-violated-on-column-title"><code>"unique constraint \"films_title_key\" violated on column \"title\""</code></a></h3>
+<p>You observed <code>FerraDbError::Conflict(_)</code> — Postgres returned SQLSTATE <code>23505</code>. The inner message names the constraint and, when available, the offending column. At the HTTP layer (0.4.0) this maps to 409. Resolve by either changing the colliding value or deleting the existing row first.</p>
+<h3 id="a-dberrcustom-in-logs"><a class="header" href="#a-dberrcustom-in-logs">A <code>DbErr::Custom("...")</code> in logs</a></h3>
+<p>You observed <code>FerraDbError::Db(_)</code> — any <code>sea_orm::DbErr</code> that is not a recognized <code>NotFound</code> / <code>NotUpdated</code> / unique-violation shape falls through here. The wrapped <code>DbErr</code> is reachable via <code>err.source().and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;())</code>. At the HTTP layer (0.4.0) this maps to 500 without leaking the internal detail into the response body.</p>
+<h3 id="errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><a class="header" href="#errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><code>error[E0277]: the trait bound &lt;M&gt;: sea_orm::ModelTrait is not satisfied</code></a></h3>
+<p>You forgot the <code>DeriveEntityModel</code> derive on the struct. The 0.2.0 sibling-derive canonical shape requires BOTH <code>FerraModel</code> AND <code>DeriveEntityModel</code> on the same <code>#[derive(...)]</code> list. Add <code>DeriveEntityModel</code> back and recompile.</p>
+<h3 id="errore0425-cannot-find-value-statement-in-crate-ferra_db"><a class="header" href="#errore0425-cannot-find-value-statement-in-crate-ferra_db"><code>error[E0425]: cannot find value Statement in crate ferra_db</code></a></h3>
+<p>Expected — <code>ferra-db</code> publishes no raw-SQL entry point (FR-007). To reach Sea-ORM’s raw-SQL surface, add <code>sea-orm</code> as a direct dependency of your consumer crate and call through it explicitly.</p>
+<hr>
+<h2 id="stability-commitment"><a class="header" href="#stability-commitment">Stability commitment</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Item</th><th>0.3.0 commitment</th><th>Change requires</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FerraDbError</code> variant list</td><td>Three variants — <code>NotFound</code>, <code>Conflict</code>, <code>Db</code></td><td>ADR (locked through 0.6.0 Welding)</td></tr>
+<tr><td><code>FerraDbError::Display</code> wording</td><td>Stable templates per §Error taxonomy</td><td>ADR + user-guide update</td></tr>
+<tr><td><code>FerraRepository&lt;M&gt;</code> method set</td><td>Ten methods — five ambient + five <code>_in_tx</code></td><td>ADR to remove / rename; additions are additive</td></tr>
+<tr><td><code>PgRepository::new(conn)</code></td><td><code>(conn: DatabaseConnection) -&gt; Self</code></td><td>ADR</td></tr>
+<tr><td><code>Page&lt;M&gt;</code> field list</td><td>Four named fields (<code>items</code>, <code>total</code>, <code>page</code>, <code>per_page</code>)</td><td><code>#[non_exhaustive]</code> allows additions; removals require ADR</td></tr>
+<tr><td><code>DatabaseConnection</code> / <code>DatabaseTransaction</code> re-exports</td><td>Stable names, re-exported from Sea-ORM</td><td>ADR</td></tr>
+<tr><td>Forbidden raw-SQL fragments</td><td><code>Statement</code> / <code>execute_unprepared</code> / <code>raw_sql</code> do not resolve</td><td>ADR</td></tr>
+</tbody>
+</table>
+</div>
+<p>MSRV: <code>rust-version = "1.88"</code> — inherited from the workspace. Edition 2024 native async-in-trait requires it.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ferra-core.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ferra-http.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ferra-core.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ferra-http.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

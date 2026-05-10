@@ -1,0 +1,181 @@
+/* Shared styles for /errors/ documentation pages */
+
+.doc-nav-active { color: var(--ember) !important; font-weight: 700; }
+
+.doc-hero {
+  background: var(--cream);
+  border-bottom: 1px solid var(--rule);
+  padding: 64px 0 56px;
+}
+.doc-hero__breadcrumb {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+  margin-bottom: 20px;
+}
+.doc-hero__breadcrumb a { color: var(--ember); }
+.doc-hero__breadcrumb a:hover { text-decoration: underline; }
+.doc-hero__title {
+  font: 800 52px/1.05 var(--sans);
+  color: var(--ink);
+  margin: 0 0 16px;
+}
+.doc-hero__lead {
+  font: 400 18px/1.7 var(--sans);
+  color: var(--ink-soft);
+  max-width: 600px;
+  margin: 0;
+}
+
+.doc-body {
+  padding: 72px 0 96px;
+}
+
+/* Index page — variant cards */
+.error-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 72px;
+}
+.error-table th {
+  font: 700 11px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--rule);
+  text-align: left;
+}
+.error-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: middle;
+}
+.error-table tr:hover td { background: var(--cream); }
+.error-table .slug-cell { font: 600 13px/1 var(--mono); color: var(--ember); }
+.error-table .status-cell { font: 500 13px/1 var(--mono); white-space: nowrap; }
+.error-table .title-cell { font-weight: 600; }
+.status-4xx { color: #8a4f00; }
+.status-5xx { color: #9b1b23; }
+
+/* Variant sections on index page */
+.variant { padding: 56px 0; border-top: 1px solid var(--rule); }
+.variant:first-child { border-top: none; padding-top: 0; }
+.variant__slug {
+  font: 700 11px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin-bottom: 12px;
+}
+.variant__h2 {
+  font: 800 32px/1.1 var(--sans);
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.variant__http {
+  display: inline-block;
+  font: 600 13px/1 var(--mono);
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 20px;
+}
+.variant__http--4xx { background: #fff3cd; color: #664d03; }
+.variant__http--5xx { background: #fde8e9; color: #6d1820; }
+.variant__desc {
+  font: 400 16px/1.7 var(--sans);
+  color: var(--ink-soft);
+  max-width: 640px;
+  margin: 0 0 24px;
+}
+.variant__link {
+  font: 600 13px/1 var(--sans);
+  color: var(--ember);
+  letter-spacing: 0.03em;
+}
+.variant__link:hover { text-decoration: underline; }
+
+/* Individual error page */
+.errpage-hero {
+  background: var(--ink);
+  color: #fff;
+  padding: 64px 0 56px;
+}
+.errpage-hero__breadcrumb {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 20px;
+}
+.errpage-hero__breadcrumb a { color: var(--amber); }
+.errpage-hero__breadcrumb a:hover { text-decoration: underline; }
+.errpage-hero__slug {
+  font: 700 12px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin-bottom: 16px;
+}
+.errpage-hero__h1 {
+  font: 800 52px/1.05 var(--sans);
+  color: #fff;
+  margin: 0 0 16px;
+}
+.errpage-hero__http {
+  display: inline-block;
+  font: 600 14px/1 var(--mono);
+  padding: 6px 14px;
+  border-radius: 3px;
+}
+.errpage-hero__http--4xx { background: rgba(255,200,80,0.15); color: #f6c016; border: 1px solid rgba(246,192,22,0.3); }
+.errpage-hero__http--5xx { background: rgba(226,84,91,0.15); color: #e2545b; border: 1px solid rgba(226,84,91,0.3); }
+
+.errpage-body { padding: 64px 0 96px; }
+.errpage-body__desc {
+  font: 400 18px/1.75 var(--sans);
+  color: var(--ink-soft);
+  max-width: 640px;
+  margin: 0 0 40px;
+}
+.errpage-body__label {
+  font: 700 11px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 16px;
+}
+.errpage-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 14px/1 var(--sans);
+  color: var(--ember);
+  margin-top: 48px;
+}
+.errpage-back:hover { text-decoration: underline; }
+
+/* Codeblock overrides for doc pages */
+.doc-codeblock {
+  background: var(--ink);
+  border-radius: 6px;
+  padding: 24px 28px;
+  font: 400 14px/1.7 var(--mono);
+  color: #d8cdb8;
+  overflow-x: auto;
+  margin: 0;
+}
+.doc-codeblock .tok-key   { color: #69d2c5; }
+.doc-codeblock .tok-str   { color: #b9e08a; }
+.doc-codeblock .tok-num   { color: #f6c016; }
+.doc-codeblock .tok-uri   { color: #e2545b; }
+.doc-codeblock .tok-pun   { color: #9b8c7a; }
+
+@media (max-width: 640px) {
+  .doc-hero { padding: 40px 0 36px; }
+  .doc-hero__title { font-size: 36px; }
+  .errpage-hero { padding: 40px 0 36px; }
+  .errpage-hero__h1 { font-size: 36px; }
+  .error-table { font-size: 13px; }
+  .error-table td, .error-table th { padding: 12px 10px; }
+}

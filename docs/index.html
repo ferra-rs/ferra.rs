@@ -1,0 +1,467 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Getting Started - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-ec34d538.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-95aa1458.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-d364ce7b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/getting-started.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="getting-started-with-ferra"><a class="header" href="#getting-started-with-ferra">Getting started with Ferra</a></h1>
+<p>Ferra is a Rust framework for building APIs from model definitions.
+This page walks a contributor from a fresh clone of the repository to a
+green <code>cargo check --workspace</code> and a working test suite.</p>
+<p>If you only have five minutes, read <strong>Building Ferra</strong> and <strong>Daily
+loop</strong>. Everything else is supporting detail.</p>
+<hr>
+<h2 id="workspace-layout"><a class="header" href="#workspace-layout">Workspace layout</a></h2>
+<p>Ferra is a Cargo virtual workspace rooted at the repository root. The
+tree looks like this:</p>
+<pre><code class="language-text">ferra/
+├── Cargo.toml              # virtual workspace manifest
+├── rust-toolchain.toml     # pinned Rust toolchain
+├── .cargo/
+│   └── config.toml         # short command aliases
+├── crates/
+│   ├── ferra-core/                    # the zero-I/O contract layer
+│   ├── ferra-forge/                   # #[derive(FerraModel)] proc-macro (0.2.0)
+│   ├── ferra-forge-trybuild-no-deps/  # CI-only trybuild host for the FR-021 missing-dep fixture (0.5.0)
+│   ├── ferra-db/                      # repository layer over Sea-ORM (0.3.0)
+│   ├── ferra-http/                    # Axum CRUD handler layer (0.4.0)
+│   ├── ferra-openapi/                 # OpenAPI 3.1 + Scalar UI (0.5.0)
+│   └── ferra/                         # facade re-export crate (0.4.0)
+├── examples/
+│   └── hello-ferra/        # canonical five-line CRUD reference (0.5.0)
+├── docs/
+│   ├── decision-record/    # architecture decision records (ADRs)
+│   ├── roadmap/            # phased roadmap (0.1.0 → 1.0.0)
+│   └── user-guide/         # this guide
+└── pocs/                   # standalone proof-of-concept workspace (excluded)
+</code></pre>
+<blockquote>
+<p><strong>0.4.0 Refining</strong> adds three workspace-level dep pins that are not on the constitution’s tracked-crate list: <code>serde_json</code>, <code>tower-http</code> (with <code>cors</code> / <code>trace</code> / <code>limit</code> features), and <code>tower_governor</code>. They exist to wire the <code>ferra-http</code> crate’s RFC 7807 body emission, the constitutional Tower layer stack (CORS / body limit / TraceLayer), and the per-route rate-limit layer on mutation endpoints respectively. Each carries an inline pin-rationale comment in the root <code>Cargo.toml</code>.</p>
+</blockquote>
+<p>The <code>pocs/</code> directory is its own independent Cargo workspace and is
+excluded from the main workspace. <code>cargo check --workspace</code> from the
+repo root builds only the framework crates, never the POCs.</p>
+<p>Later phases add sibling crates under <code>crates/</code> — <code>ferra-http</code>
+(0.4.0), <code>ferra-openapi</code> (0.5.0), <code>ferra-auth</code> (0.8.5), and
+<code>ferra-anvil</code> (0.13.0 CLI). 0.1.0 shipped <code>ferra-core</code>; 0.2.0 added
+<code>ferra-forge</code>; 0.3.0 adds <code>ferra-db</code> and the <code>ferra</code> facade crate.</p>
+<h2 id="the-consumer-cargotoml-one-ferra-dep-one-prelude-opener"><a class="header" href="#the-consumer-cargotoml-one-ferra-dep-one-prelude-opener">The consumer <code>Cargo.toml</code>: one Ferra dep, one prelude opener</a></h2>
+<p>A consumer crate built on Ferra declares a single direct dependency
+among the <code>ferra-*</code> family AND no direct Sea-ORM dependency. The
+canonical 0.5.0 Rolling shape is:</p>
+<pre><code class="language-toml">[dependencies]
+ferra = "0.5"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum  = "0.8"
+serde = { version = "1", features = ["derive"] }
+</code></pre>
+<p>That is the entire framework dep surface. <code>ferra-core</code>, <code>ferra-db</code>,
+<code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>, and <code>sea-orm</code> are all
+reached through the <code>ferra</code> facade — they MUST NOT appear as direct
+deps. The framework’s CI dep-shape gate enforces this on the two
+reference examples (<code>examples/hello-ferra</code>, <code>docs/examples/movie-stars</code>):
+a future regression that re-introduces any of those crates as a direct
+dep is a CI failure.</p>
+<h3 id="the-one-line-opener"><a class="header" href="#the-one-line-opener">The one-line opener</a></h3>
+<p>Open every Ferra source file with a single glob over the prelude
+module:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::prelude::*;
+<span class="boring">}</span></code></pre>
+<p>That brings the dozen items a typical CRUD API needs into scope at
+once: the <code>#[derive(FerraModel)]</code> derive, the typed time newtypes
+(<code>Date</code>, <code>DateTime</code>), the typed error type (<code>FerraError</code>), the runtime
+state and router primitives (<code>FerraState</code>, <code>ferra_router</code>,
+<code>Foundry</code>), the typed-extraction wrappers (<code>FerraJson</code>, <code>FerraPath</code>),
+the response envelopes and pagination params (<code>ItemResponse</code>,
+<code>CollectionResponse</code>, <code>PaginationParams</code>), and Sea-ORM’s entity-derive
+prelude (<code>DeriveEntityModel</code>, <code>EntityTrait</code>, <code>ColumnTrait</code>, …) reached
+via cohabitation. <code>serde::{Deserialize, Serialize}</code> are also included
+so model structs declare their derive-attribute set with no extra
+imports.</p>
+<h3 id="reaching-sea-orm-through-the-facade"><a class="header" href="#reaching-sea-orm-through-the-facade">Reaching Sea-ORM through the facade</a></h3>
+<p>The surrounding ORM is a cohabitation re-export at the facade root
+(ADR-0023). When you need the <code>sea_orm::Database::connect(...)</code>
+constructor, the <code>#[sea_orm(...)]</code> attribute namespace, or any other
+Sea-ORM type, write <code>ferra::sea_orm::...</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;
+<span class="boring">}</span></code></pre>
+<p>The <code>use ferra::prelude::*;</code> glob also brings the <code>sea_orm</code> module
+itself into scope, so the <code>#[derive(DeriveEntityModel, FerraModel)]</code>
+sibling-derive pair on a model struct works without a separate
+<code>use sea_orm::entity::prelude::*;</code> line. See
+<a href="./ferra-db.html"><code>ferra-db.md</code></a> for the repository layer and
+<a href="./ferra-forge.html"><code>ferra-forge.md</code></a> for the model-derive grammar.</p>
+<h3 id="cratesio-publishing-note"><a class="header" href="#cratesio-publishing-note">Crates.io publishing note</a></h3>
+<p>The <code>ferra</code> name on crates.io belongs to an unrelated project, so the
+framework’s facade is published as <code>ferra-rs</code>. Inside this workspace
+the directory is <code>crates/ferra/</code> and the import path is <code>ferra::*</code>;
+when consuming the published crate, use the standard Cargo <code>package</code>
+alias to keep your import paths stable:</p>
+<pre><code class="language-toml">[dependencies]
+ferra = { package = "ferra-rs", version = "0.5" }
+</code></pre>
+<p>The alias is invisible once set — all docs, examples, and Rust source
+in this guide write <code>use ferra::*;</code>.</p>
+<hr>
+<h2 id="toolchain"><a class="header" href="#toolchain">Toolchain</a></h2>
+<p>The workspace pins a specific Rust release in <code>rust-toolchain.toml</code>:</p>
+<pre><code class="language-toml">[toolchain]
+channel    = "1.94.1"
+components = ["rustfmt", "clippy"]
+profile    = "minimal"
+</code></pre>
+<p>The first time you run any <code>cargo</code> command inside the workspace,
+<code>rustup</code> reads this file and installs the pinned toolchain
+automatically. No manual <code>rustup install</code> is required.</p>
+<p>Confirm the active toolchain with:</p>
+<pre><code class="language-bash">rustup show
+</code></pre>
+<p>The active toolchain line must report the version above. If it reports
+something else, an environment override is winning (check
+<code>rustup override list</code>).</p>
+<p>The workspace also declares <code>rust-version = "1.88"</code> — this is the
+<strong>MSRV</strong> (minimum supported Rust version) that Ferra commits to for
+downstream consumers. The development toolchain pin and the MSRV serve
+different purposes: the pin sets the development + CI toolchain; the
+MSRV is the public contract for anyone depending on <code>ferra-*</code> crates.</p>
+<hr>
+<h2 id="building-ferra"><a class="header" href="#building-ferra">Building Ferra</a></h2>
+<p>From a fresh clone:</p>
+<pre><code class="language-bash">git clone &lt;repo-url&gt; ferra
+cd ferra
+cargo check --workspace
+</code></pre>
+<p>On first run this fetches the pinned toolchain, downloads
+dependencies, and verifies every crate compiles. Subsequent runs are
+incremental.</p>
+<p>Run the full test suite with:</p>
+<pre><code class="language-bash">cargo test -p ferra-core
+</code></pre>
+<p>The five-minute contract (success criterion SC-001 of the Excavation
+spec): a fresh clone reaches <code>cargo test -p ferra-core</code> green in under
+five minutes on a machine with internet access and a warm toolchain
+cache. If your first run is slower, the toolchain download is the
+culprit; the second run is the representative baseline.</p>
+<hr>
+<h2 id="daily-loop"><a class="header" href="#daily-loop">Daily loop</a></h2>
+<p>The workspace declares three Cargo aliases in <code>.cargo/config.toml</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Alias</th><th>Expands to</th><th>When you use it</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cargo c</code></td><td><code>check --workspace</code></td><td>After any edit — the fastest feedback loop.</td></tr>
+<tr><td><code>cargo t</code></td><td><code>nextest run</code></td><td>Run tests through <code>cargo-nextest</code>.</td></tr>
+<tr><td><code>cargo x</code></td><td><code>expand</code></td><td>Inspect expanded proc-macro output.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>cargo t</code> requires <code>cargo-nextest</code> to be installed (<code>cargo install cargo-nextest --locked</code>). If it is not available, fall back to
+<code>cargo test</code>. <code>cargo x</code> requires <code>cargo-expand</code> (<code>cargo install cargo-expand --locked</code>); it is rarely load-bearing in 0.1.0 but
+becomes the ground-truth lens for <code>#[model]</code> output from 0.2.0
+onward.</p>
+<p>Before committing:</p>
+<pre><code class="language-bash">cargo fmt
+cargo clippy --workspace -- -D warnings
+cargo test --workspace
+</code></pre>
+<p>All three must succeed. <code>unsafe_code</code> is <code>forbid</code>-ed at workspace
+level; a <code>clippy</code> warning is CI-blocking.</p>
+<hr>
+<h2 id="pinned-stack"><a class="header" href="#pinned-stack">Pinned stack</a></h2>
+<p>The workspace declares a single shared version for every dependency
+every framework crate may use. Individual crates opt in by writing
+<code>{ workspace = true }</code> in their own <code>[dependencies]</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Crate</th><th>Version</th><th>First consumed in</th></tr>
+</thead>
+<tbody>
+<tr><td><code>tokio</code></td><td><code>1.51</code> (<code>macros</code>, <code>rt-multi-thread</code>)</td><td>0.3.0</td></tr>
+<tr><td><code>serde</code></td><td><code>1</code> (<code>derive</code>)</td><td>0.1.0</td></tr>
+<tr><td><code>sea-orm</code></td><td><code>=2.0.0-rc.38</code> (<code>runtime-tokio-rustls</code>, <code>sqlx-postgres</code>, <code>macros</code>)</td><td>0.3.0</td></tr>
+<tr><td><code>axum</code></td><td><code>0.8</code></td><td>0.3.0</td></tr>
+<tr><td><code>utoipa</code></td><td><code>5</code></td><td>0.5.0</td></tr>
+<tr><td><code>utoipa-scalar</code></td><td><code>0.3</code> (<code>axum</code>)</td><td>0.5.0</td></tr>
+<tr><td><code>thiserror</code></td><td><code>2</code></td><td>0.3.0</td></tr>
+<tr><td><code>uuid</code></td><td><code>1</code> (<code>v4</code>, <code>serde</code>)</td><td>0.1.0</td></tr>
+<tr><td><code>jiff</code></td><td><code>0.2</code> (<code>serde</code>)</td><td>0.5.0</td></tr>
+<tr><td><code>tracing</code></td><td><code>0.1</code></td><td>0.3.0</td></tr>
+<tr><td><code>tracing-subscriber</code></td><td><code>0.3</code></td><td>0.3.0</td></tr>
+<tr><td><code>inventory</code></td><td><code>0.3</code></td><td>0.10.5 (dormant)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>sea-orm</code> exact-pin (<code>=2.0.0-rc.38</code>) is intentional: while
+Sea-ORM 2.0 is at release-candidate status, any RC bump is a
+deliberate act and never a resolver side effect. Full rationale lives
+in the ADRs — those cross-references are non-load-bearing sidenotes;
+this table alone is sufficient for building Ferra.</p>
+<p><code>ferra-core</code> itself depends on only <strong>two</strong> of these: <code>serde</code> and
+<code>uuid</code>. That cap is part of the 0.1.0 contract.</p>
+<p><code>ferra-forge</code> (0.2.0) is proc-macro-only and pulls in four
+compile-time deps that are <strong>not</strong> in the table above — <code>syn</code>,
+<code>quote</code>, <code>proc-macro2</code>, <code>heck</code> — plus <code>trybuild</code> as a dev-dep for
+its proc-macro UI test suite. None of these are part of the runtime
+contract; consumers never link them.</p>
+<h3 id="pinned-stack-sidenote-on-raw-sql"><a class="header" href="#pinned-stack-sidenote-on-raw-sql">Pinned stack: sidenote on raw SQL</a></h3>
+<p>You will notice <code>sqlx</code> and <code>sea-query</code> are <strong>not</strong> in the table
+above. They are pulled in transitively through <code>sea-orm</code> but are not
+part of Ferra’s public contract surface. A reader who expects to
+<code>use ferra::sqlx::*</code> will not find that path — it does not exist and
+is not planned. If you need raw SQL in an application built on Ferra,
+reach through Sea-ORM’s own escape hatch inside your application
+code; the framework does not re-export it.</p>
+<p><code>sqlx</code> DOES appear as a <strong>dev-dependency</strong> of <code>ferra-db</code> from 0.3.0
+onward — it powers the <code>#[sqlx::test]</code> integration harness (plus the
+<code>SqlxPostgresConnector::from_sqlx_postgres_pool</code> wiring that hands
+Sea-ORM the isolated per-test database). It is test-only, never a
+runtime dep, and therefore never ships to downstream consumers.</p>
+<hr>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
+<ul>
+<li>The contract layer itself: <a href="./ferra-core.html"><code>ferra-core.md</code></a> —
+<code>Id</code>, <code>FerraModel</code>, <code>ModelMeta</code>.</li>
+<li>The derive macro: <a href="./ferra-forge.html"><code>ferra-forge.md</code></a> —
+<code>#[derive(FerraModel)]</code>, attribute grammar, and the Troubleshooting
+table.</li>
+<li>The phased roadmap:
+<a href="../roadmap/0.1.0-excavation.html"><code>../roadmap/0.1.0-excavation.md</code></a>.</li>
+<li>Architectural history: <a href="../decision-record/"><code>../decision-record/</code></a>.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+                            <a rel="next prefetch" href="architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+                    <a rel="next prefetch" href="architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

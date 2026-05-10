@@ -1,0 +1,22 @@
+[book]
+title       = "Ferra.rs — User Guide"
+authors     = ["Ferra contributors"]
+language    = "en"
+src         = "src"
+
+[build]
+build-dir   = "docs"
+
+[output.html]
+site-url            = "/docs/"
+default-theme       = "light"
+preferred-dark-theme = "navy"
+git-repository-url  = "https://github.com/ferra-rs/ferra"
+edit-url-template   = "https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/{path}"
+additional-css      = ["theme/ferra.css"]
+additional-js       = ["theme/ferra.js"]
+no-section-label    = true
+
+[output.html.search]
+enable      = true
+limit-results = 20

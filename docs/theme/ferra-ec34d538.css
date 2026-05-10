@@ -1,0 +1,232 @@
+/* ============================================================
+   Ferra.rs — mdBook custom theme
+   Colours: cream / charcoal-ink / ember / amber / teal
+   Fonts  : Fira Sans (body), Roboto Slab (headings), Source Code Pro (code)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap');
+
+/* ── Design tokens ─────────────────────────────────────────── */
+:root {
+  --ferra-ink:       #15100c;
+  --ferra-ink-soft:  #2b231d;
+  --ferra-ink-mute:  #5a4f45;
+  --ferra-cream:     #f4ede0;
+  --ferra-cream-deep:#e8dec9;
+  --ferra-rule:      #d9d2c2;
+  --ferra-ember:     #c8410b;
+  --ferra-amber:     #f6c016;
+  --ferra-teal:      #0e7466;
+  --ferra-paper:     #ffffff;
+}
+
+/* ── mdBook colour overrides (light theme) ─────────────────── */
+.light, html {
+  --bg:                      var(--ferra-cream);
+  --fg:                      var(--ferra-ink);
+  --sidebar-bg:              var(--ferra-ink);
+  --sidebar-fg:              #d8cdb8;
+  --sidebar-non-existant:    #9b8c7a;
+  --sidebar-active:          var(--ferra-amber);
+  --sidebar-spacer:          rgba(255,255,255,0.12);
+  --scrollbar:               var(--ferra-rule);
+  --icons:                   var(--ferra-ink-mute);
+  --icons-hover:             var(--ferra-ember);
+  --links:                   var(--ferra-ember);
+  --inline-code-color:       var(--ferra-ember);
+  --theme-popup-bg:          var(--ferra-paper);
+  --theme-popup-border:      var(--ferra-rule);
+  --theme-hover:             var(--ferra-cream-deep);
+  --table-border-color:      var(--ferra-rule);
+  --table-header-bg:         var(--ferra-cream-deep);
+  --table-alternate-bg:      rgba(244,237,224,0.5);
+  --searchbar-border-color:  var(--ferra-rule);
+  --searchbar-bg:            var(--ferra-paper);
+  --searchbar-fg:            var(--ferra-ink);
+  --searchbar-shadow-color:  rgba(21,16,12,0.08);
+  --searchresults-header-fg: var(--ferra-ink-mute);
+  --searchresults-border-color: var(--ferra-rule);
+  --searchresults-li-bg:     var(--ferra-paper);
+  --search-mark-bg:          var(--ferra-amber);
+  --quote-bg:                var(--ferra-cream-deep);
+  --quote-border:            var(--ferra-ember);
+  --warning-border:          var(--ferra-amber);
+  --color-scheme:            light;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+body {
+  font-family: 'Fira Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.content main {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--ferra-ink-soft);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 800;
+  color: var(--ferra-ink);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: 2.4rem; margin-bottom: 0.5em; }
+h2 { font-size: 1.7rem; margin-top: 2em; }
+h3 { font-size: 1.25rem; margin-top: 1.75em; }
+
+/* Ember underline on h2 */
+h2 {
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--ferra-ember);
+}
+
+/* ── Links ──────────────────────────────────────────────────── */
+a { color: var(--ferra-ember); }
+a:hover { text-decoration: underline; color: var(--ferra-ink); }
+
+/* ── Inline code ────────────────────────────────────────────── */
+code {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.88em;
+  background: var(--ferra-cream-deep);
+  color: var(--ferra-ember);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--ferra-rule);
+}
+
+/* ── Code blocks ────────────────────────────────────────────── */
+pre {
+  background: var(--ferra-ink) !important;
+  border-radius: 6px;
+  padding: 20px 24px !important;
+}
+
+pre code {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 14px;
+  background: transparent;
+  color: #d8cdb8;
+  border: none;
+  padding: 0;
+}
+
+/* ── Blockquotes ────────────────────────────────────────────── */
+blockquote {
+  border-left: 4px solid var(--ferra-ember);
+  background: var(--ferra-cream-deep);
+  padding: 12px 20px;
+  border-radius: 0 4px 4px 0;
+  color: var(--ferra-ink-soft);
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+table {
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+table thead th {
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ferra-ink-mute);
+  background: var(--ferra-cream-deep);
+  padding: 10px 16px;
+}
+
+table td { padding: 10px 16px; }
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+.sidebar {
+  background: var(--ferra-ink);
+  border-right: none;
+}
+
+.sidebar .sidebar-scrollbox {
+  padding: 16px 0;
+}
+
+/* Sidebar brand header */
+.sidebar-title {
+  font-family: 'Roboto Slab', serif;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  padding: 20px 24px 16px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 8px;
+}
+
+.sidebar-title span { color: var(--ferra-ember); }
+
+.sidebar ol, .sidebar ul {
+  padding: 0 12px;
+}
+
+.sidebar li a {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(216,205,184,0.8);
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar li a:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.07);
+  text-decoration: none;
+}
+
+.sidebar li.active > a {
+  color: var(--ferra-amber);
+  font-weight: 700;
+  background: rgba(246,192,22,0.1);
+}
+
+/* ── Top nav bar ────────────────────────────────────────────── */
+.menu-bar {
+  background: var(--ferra-paper);
+  border-bottom: 1px solid var(--ferra-rule);
+}
+
+/* ── Content area ───────────────────────────────────────────── */
+.content {
+  background: var(--ferra-cream);
+}
+
+.content main {
+  padding: 32px 48px 80px;
+  max-width: 760px;
+}
+
+/* ── Nav arrows (prev/next) ─────────────────────────────────── */
+.nav-chapters a {
+  color: var(--ferra-ember);
+  font-weight: 700;
+}
+
+/* ── Search ─────────────────────────────────────────────────── */
+#searchbar {
+  border: 1px solid var(--ferra-rule);
+  border-radius: 4px;
+  background: var(--ferra-paper);
+  color: var(--ferra-ink);
+  font-family: 'Fira Sans', sans-serif;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .content main { padding: 24px 20px 64px; }
+  h1 { font-size: 1.8rem; }
+  h2 { font-size: 1.35rem; }
+}
