@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-95aa1458.js";
+            window.path_to_searchindex_js = "searchindex-23852726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d364ce7b.js"></script>
@@ -182,235 +182,201 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="getting-started-with-ferra"><a class="header" href="#getting-started-with-ferra">Getting started with Ferra</a></h1>
-<p>Ferra is a Rust framework for building APIs from model definitions.
-This page walks a contributor from a fresh clone of the repository to a
-green <code>cargo check --workspace</code> and a working test suite.</p>
-<p>If you only have five minutes, read <strong>Building Ferra</strong> and <strong>Daily
-loop</strong>. Everything else is supporting detail.</p>
+<p>Ferra is a Rust framework for building HTTP APIs from a single
+<code>#[model]</code> source of truth. One model annotation gives you a CRUD
+router, an OpenAPI 3.1 spec, a Swagger / Scalar UI, hypermedia
+responses, and typed RFC 7807 errors — all derived at compile time.</p>
+<p>This page walks you from <code>cargo new</code> to a running, documented API. If
+you only have five minutes, read <strong>Add Ferra to your project</strong>, <strong>The
+five-line CRUD</strong>, and <strong>Run it</strong>.</p>
 <hr>
-<h2 id="workspace-layout"><a class="header" href="#workspace-layout">Workspace layout</a></h2>
-<p>Ferra is a Cargo virtual workspace rooted at the repository root. The
-tree looks like this:</p>
-<pre><code class="language-text">ferra/
-├── Cargo.toml              # virtual workspace manifest
-├── rust-toolchain.toml     # pinned Rust toolchain
-├── .cargo/
-│   └── config.toml         # short command aliases
-├── crates/
-│   ├── ferra-core/                    # the zero-I/O contract layer
-│   ├── ferra-forge/                   # #[derive(FerraModel)] proc-macro (0.2.0)
-│   ├── ferra-forge-trybuild-no-deps/  # CI-only trybuild host for the FR-021 missing-dep fixture (0.5.0)
-│   ├── ferra-db/                      # repository layer over Sea-ORM (0.3.0)
-│   ├── ferra-http/                    # Axum CRUD handler layer (0.4.0)
-│   ├── ferra-openapi/                 # OpenAPI 3.1 + Scalar UI (0.5.0)
-│   └── ferra/                         # facade re-export crate (0.4.0)
-├── examples/
-│   └── hello-ferra/        # canonical five-line CRUD reference (0.5.0)
-├── docs/
-│   ├── decision-record/    # architecture decision records (ADRs)
-│   ├── roadmap/            # phased roadmap (0.1.0 → 1.0.0)
-│   └── user-guide/         # this guide
-└── pocs/                   # standalone proof-of-concept workspace (excluded)
-</code></pre>
-<blockquote>
-<p><strong>0.4.0 Refining</strong> adds three workspace-level dep pins that are not on the constitution’s tracked-crate list: <code>serde_json</code>, <code>tower-http</code> (with <code>cors</code> / <code>trace</code> / <code>limit</code> features), and <code>tower_governor</code>. They exist to wire the <code>ferra-http</code> crate’s RFC 7807 body emission, the constitutional Tower layer stack (CORS / body limit / TraceLayer), and the per-route rate-limit layer on mutation endpoints respectively. Each carries an inline pin-rationale comment in the root <code>Cargo.toml</code>.</p>
-</blockquote>
-<p>The <code>pocs/</code> directory is its own independent Cargo workspace and is
-excluded from the main workspace. <code>cargo check --workspace</code> from the
-repo root builds only the framework crates, never the POCs.</p>
-<p>Later phases add sibling crates under <code>crates/</code> — <code>ferra-http</code>
-(0.4.0), <code>ferra-openapi</code> (0.5.0), <code>ferra-auth</code> (0.8.5), and
-<code>ferra-anvil</code> (0.13.0 CLI). 0.1.0 shipped <code>ferra-core</code>; 0.2.0 added
-<code>ferra-forge</code>; 0.3.0 adds <code>ferra-db</code> and the <code>ferra</code> facade crate.</p>
-<h2 id="the-consumer-cargotoml-one-ferra-dep-one-prelude-opener"><a class="header" href="#the-consumer-cargotoml-one-ferra-dep-one-prelude-opener">The consumer <code>Cargo.toml</code>: one Ferra dep, one prelude opener</a></h2>
-<p>A consumer crate built on Ferra declares a single direct dependency
-among the <code>ferra-*</code> family AND no direct Sea-ORM dependency. The
-canonical 0.5.0 Rolling shape is:</p>
+<h2 id="important-the-crate-is-published-as-ferra-rs"><a class="header" href="#important-the-crate-is-published-as-ferra-rs">Important: the crate is published as <code>ferra-rs</code></a></h2>
+<p>The <code>ferra</code> name on crates.io belongs to an unrelated project, so the
+framework’s facade crate is published as <strong><code>ferra-rs</code></strong>. To keep your
+Rust code idiomatic, use Cargo’s <code>package</code> alias — declare the
+dependency under the local name <code>ferra</code> while pulling <code>ferra-rs</code> from
+crates.io:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = "0.5"
+ferra = { package = "ferra-rs", version = "0.5" }
+</code></pre>
+<p>The alias is invisible from this point forward. Every <code>use ferra::...</code>
+import, every example in this guide, every doc snippet on docs.rs uses
+the <code>ferra</code> name — Cargo handles the indirection.</p>
+<blockquote>
+<p><strong><code>ferra.rs</code> (the domain) and <code>ferra-rs</code> (the crate) are two
+different identifiers.</strong> The framework’s official domain is
+<a href="https://ferra.rs"><code>ferra.rs</code></a> — that’s where the documentation site
+lives and where the closed error-type namespace
+(<code>https://ferra.rs/errors/&lt;variant&gt;</code>) resolves. The crate name on
+crates.io is <code>ferra-rs</code> (with a hyphen), because the dotless <code>ferra</code>
+name was already taken. Both are correct and authoritative; do not
+substitute one for the other.</p>
+</blockquote>
+<blockquote>
+<p><strong>If you see a plain <code>ferra = "..."</code> line in older snippets</strong> (with
+no <code>package = "ferra-rs"</code> key), that’s pre-rename documentation.
+Replace it with the form above — the plain line resolves to a
+different, unrelated crate on crates.io.</p>
+</blockquote>
+<hr>
+<h2 id="add-ferra-to-your-project"><a class="header" href="#add-ferra-to-your-project">Add Ferra to your project</a></h2>
+<p>A consumer crate built on Ferra needs <strong>one</strong> direct framework
+dependency plus the surrounding async / HTTP / serde stack:</p>
+<pre><code class="language-toml">[package]
+name    = "my-api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ferra = { package = "ferra-rs", version = "0.5" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum  = "0.8"
 serde = { version = "1", features = ["derive"] }
 </code></pre>
 <p>That is the entire framework dep surface. <code>ferra-core</code>, <code>ferra-db</code>,
-<code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>, and <code>sea-orm</code> are all
-reached through the <code>ferra</code> facade — they MUST NOT appear as direct
-deps. The framework’s CI dep-shape gate enforces this on the two
-reference examples (<code>examples/hello-ferra</code>, <code>docs/examples/movie-stars</code>):
-a future regression that re-introduces any of those crates as a direct
-dep is a CI failure.</p>
+<code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>, and the surrounding
+<code>sea-orm</code> ORM are all reached through the <code>ferra</code> facade — they do
+<strong>not</strong> appear as direct dependencies. Adding them directly fights the
+facade’s cohabitation guarantees and is flagged by the framework’s
+example dep-shape gate.</p>
 <h3 id="the-one-line-opener"><a class="header" href="#the-one-line-opener">The one-line opener</a></h3>
-<p>Open every Ferra source file with a single glob over the prelude
-module:</p>
+<p>Open every Ferra source file with a single glob over the prelude:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::prelude::*;
 <span class="boring">}</span></code></pre>
-<p>That brings the dozen items a typical CRUD API needs into scope at
-once: the <code>#[derive(FerraModel)]</code> derive, the typed time newtypes
-(<code>Date</code>, <code>DateTime</code>), the typed error type (<code>FerraError</code>), the runtime
-state and router primitives (<code>FerraState</code>, <code>ferra_router</code>,
-<code>Foundry</code>), the typed-extraction wrappers (<code>FerraJson</code>, <code>FerraPath</code>),
-the response envelopes and pagination params (<code>ItemResponse</code>,
-<code>CollectionResponse</code>, <code>PaginationParams</code>), and Sea-ORM’s entity-derive
-prelude (<code>DeriveEntityModel</code>, <code>EntityTrait</code>, <code>ColumnTrait</code>, …) reached
-via cohabitation. <code>serde::{Deserialize, Serialize}</code> are also included
-so model structs declare their derive-attribute set with no extra
-imports.</p>
+<p>That brings into scope, in one line:</p>
+<ul>
+<li>The <code>#[derive(FerraModel)]</code> derive — the model annotation.</li>
+<li>The typed time newtypes <code>Date</code> and <code>DateTime</code>.</li>
+<li>The typed error type <code>FerraError</code>.</li>
+<li>The runtime state and router primitives <code>FerraState</code>, <code>ferra_router</code>,
+and the <code>Foundry</code> builder.</li>
+<li>The typed-extraction wrappers <code>FerraJson</code>, <code>FerraPath</code>.</li>
+<li>The response envelopes <code>ItemResponse</code>, <code>CollectionResponse</code> and the
+<code>PaginationParams</code> extractor.</li>
+<li>Sea-ORM’s entity-derive prelude (<code>DeriveEntityModel</code>, <code>EntityTrait</code>,
+<code>ColumnTrait</code>, <code>Uuid</code>, …) reached via the cohabitation re-export.</li>
+<li><code>serde::{Deserialize, Serialize}</code> so model structs declare their
+derive set with no extra imports.</li>
+</ul>
 <h3 id="reaching-sea-orm-through-the-facade"><a class="header" href="#reaching-sea-orm-through-the-facade">Reaching Sea-ORM through the facade</a></h3>
-<p>The surrounding ORM is a cohabitation re-export at the facade root
-(ADR-0023). When you need the <code>sea_orm::Database::connect(...)</code>
-constructor, the <code>#[sea_orm(...)]</code> attribute namespace, or any other
-Sea-ORM type, write <code>ferra::sea_orm::...</code>:</p>
+<p>When you need Sea-ORM types directly — typically the
+<code>Database::connect(...)</code> constructor, or the <code>#[sea_orm(...)]</code>
+attribute namespace on a model struct — write <code>ferra::sea_orm::...</code>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;
 <span class="boring">}</span></code></pre>
-<p>The <code>use ferra::prelude::*;</code> glob also brings the <code>sea_orm</code> module
-itself into scope, so the <code>#[derive(DeriveEntityModel, FerraModel)]</code>
-sibling-derive pair on a model struct works without a separate
-<code>use sea_orm::entity::prelude::*;</code> line. See
-<a href="./ferra-db.html"><code>ferra-db.md</code></a> for the repository layer and
-<a href="./ferra-forge.html"><code>ferra-forge.md</code></a> for the model-derive grammar.</p>
-<h3 id="cratesio-publishing-note"><a class="header" href="#cratesio-publishing-note">Crates.io publishing note</a></h3>
-<p>The <code>ferra</code> name on crates.io belongs to an unrelated project, so the
-framework’s facade is published as <code>ferra-rs</code>. Inside this workspace
-the directory is <code>crates/ferra/</code> and the import path is <code>ferra::*</code>;
-when consuming the published crate, use the standard Cargo <code>package</code>
-alias to keep your import paths stable:</p>
-<pre><code class="language-toml">[dependencies]
-ferra = { package = "ferra-rs", version = "0.5" }
-</code></pre>
-<p>The alias is invisible once set — all docs, examples, and Rust source
-in this guide write <code>use ferra::*;</code>.</p>
+<p>The prelude glob already brings the <code>sea_orm</code> module name into scope,
+so the standard sibling-derive pair <code>#[derive(DeriveEntityModel, FerraModel)]</code> works with no extra <code>use sea_orm::entity::prelude::*;</code>
+line.</p>
 <hr>
-<h2 id="toolchain"><a class="header" href="#toolchain">Toolchain</a></h2>
-<p>The workspace pins a specific Rust release in <code>rust-toolchain.toml</code>:</p>
-<pre><code class="language-toml">[toolchain]
-channel    = "1.94.1"
-components = ["rustfmt", "clippy"]
-profile    = "minimal"
-</code></pre>
-<p>The first time you run any <code>cargo</code> command inside the workspace,
-<code>rustup</code> reads this file and installs the pinned toolchain
-automatically. No manual <code>rustup install</code> is required.</p>
-<p>Confirm the active toolchain with:</p>
-<pre><code class="language-bash">rustup show
-</code></pre>
-<p>The active toolchain line must report the version above. If it reports
-something else, an environment override is winning (check
-<code>rustup override list</code>).</p>
-<p>The workspace also declares <code>rust-version = "1.88"</code> — this is the
-<strong>MSRV</strong> (minimum supported Rust version) that Ferra commits to for
-downstream consumers. The development toolchain pin and the MSRV serve
-different purposes: the pin sets the development + CI toolchain; the
-MSRV is the public contract for anyone depending on <code>ferra-*</code> crates.</p>
-<hr>
-<h2 id="building-ferra"><a class="header" href="#building-ferra">Building Ferra</a></h2>
-<p>From a fresh clone:</p>
-<pre><code class="language-bash">git clone &lt;repo-url&gt; ferra
-cd ferra
-cargo check --workspace
-</code></pre>
-<p>On first run this fetches the pinned toolchain, downloads
-dependencies, and verifies every crate compiles. Subsequent runs are
-incremental.</p>
-<p>Run the full test suite with:</p>
-<pre><code class="language-bash">cargo test -p ferra-core
-</code></pre>
-<p>The five-minute contract (success criterion SC-001 of the Excavation
-spec): a fresh clone reaches <code>cargo test -p ferra-core</code> green in under
-five minutes on a machine with internet access and a warm toolchain
-cache. If your first run is slower, the toolchain download is the
-culprit; the second run is the representative baseline.</p>
-<hr>
-<h2 id="daily-loop"><a class="header" href="#daily-loop">Daily loop</a></h2>
-<p>The workspace declares three Cargo aliases in <code>.cargo/config.toml</code>:</p>
+<h2 id="the-five-line-crud"><a class="header" href="#the-five-line-crud">The five-line CRUD</a></h2>
+<p>The smallest meaningful Ferra application — one resource, full CRUD,
+auto-generated OpenAPI spec, Scalar docs UI, and HAL hypermedia
+responses — fits in this <code>src/main.rs</code>:</p>
+<pre class="playground"><code class="language-rust">use ferra::prelude::*;
+
+mod film {
+    use ferra::prelude::*;
+
+    #[derive(Clone, Debug, PartialEq, Eq,
+             DeriveEntityModel, FerraModel,
+             Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(unique)]
+        pub title: String,
+        pub director: String,
+        pub year: Option&lt;i32&gt;,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub use film::Model as Film;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let database_url = std::env::var("DATABASE_URL")?;
+    let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;
+    let app = Foundry::new(conn).mount::&lt;Film&gt;().with_docs().build();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    axum::serve(listener, app).await?;
+    Ok(())
+}</code></pre>
+<p>What you get on <code>cargo run</code>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Alias</th><th>Expands to</th><th>When you use it</th></tr>
+<tr><th>URL</th><th>Behaviour</th></tr>
 </thead>
 <tbody>
-<tr><td><code>cargo c</code></td><td><code>check --workspace</code></td><td>After any edit — the fastest feedback loop.</td></tr>
-<tr><td><code>cargo t</code></td><td><code>nextest run</code></td><td>Run tests through <code>cargo-nextest</code>.</td></tr>
-<tr><td><code>cargo x</code></td><td><code>expand</code></td><td>Inspect expanded proc-macro output.</td></tr>
+<tr><td><code>GET    /films</code></td><td>Paginated list of films with HAL <code>_links</code>.</td></tr>
+<tr><td><code>GET    /films/{id}</code></td><td>Single film + self-link.</td></tr>
+<tr><td><code>POST   /films</code></td><td>Create — validates, returns <code>201 Created</code>.</td></tr>
+<tr><td><code>PUT    /films/{id}</code></td><td>Update.</td></tr>
+<tr><td><code>DELETE /films/{id}</code></td><td>Delete.</td></tr>
+<tr><td><code>GET    /docs/openapi.json</code></td><td>Generated OpenAPI 3.1 spec — schema names <code>Film</code>, <code>CreateFilmInput</code>, <code>UpdateFilmInput</code>, <code>FilmCollection</code>, <code>ProblemDetails</code>.</td></tr>
+<tr><td><code>GET    /docs</code></td><td>Interactive Scalar UI rendered from the spec.</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>cargo t</code> requires <code>cargo-nextest</code> to be installed (<code>cargo install cargo-nextest --locked</code>). If it is not available, fall back to
-<code>cargo test</code>. <code>cargo x</code> requires <code>cargo-expand</code> (<code>cargo install cargo-expand --locked</code>); it is rarely load-bearing in 0.1.0 but
-becomes the ground-truth lens for <code>#[model]</code> output from 0.2.0
-onward.</p>
-<p>Before committing:</p>
-<pre><code class="language-bash">cargo fmt
-cargo clippy --workspace -- -D warnings
-cargo test --workspace
-</code></pre>
-<p>All three must succeed. <code>unsafe_code</code> is <code>forbid</code>-ed at workspace
-level; a <code>clippy</code> warning is CI-blocking.</p>
+<p>Errors come back as RFC 7807 <code>application/problem+json</code> with typed
+<code>type</code> URIs from a closed namespace (<code>https://ferra.rs/errors/&lt;variant&gt;</code>).</p>
+<blockquote>
+<p>The example in <code>examples/hello-ferra/</code> in the framework repository
+matches this layout one-to-one and is the canonical reference. If
+you’re reading this through docs.rs, the same example is published
+under that name on the Ferra repository.</p>
+</blockquote>
 <hr>
-<h2 id="pinned-stack"><a class="header" href="#pinned-stack">Pinned stack</a></h2>
-<p>The workspace declares a single shared version for every dependency
-every framework crate may use. Individual crates opt in by writing
-<code>{ workspace = true }</code> in their own <code>[dependencies]</code>:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Crate</th><th>Version</th><th>First consumed in</th></tr>
-</thead>
-<tbody>
-<tr><td><code>tokio</code></td><td><code>1.51</code> (<code>macros</code>, <code>rt-multi-thread</code>)</td><td>0.3.0</td></tr>
-<tr><td><code>serde</code></td><td><code>1</code> (<code>derive</code>)</td><td>0.1.0</td></tr>
-<tr><td><code>sea-orm</code></td><td><code>=2.0.0-rc.38</code> (<code>runtime-tokio-rustls</code>, <code>sqlx-postgres</code>, <code>macros</code>)</td><td>0.3.0</td></tr>
-<tr><td><code>axum</code></td><td><code>0.8</code></td><td>0.3.0</td></tr>
-<tr><td><code>utoipa</code></td><td><code>5</code></td><td>0.5.0</td></tr>
-<tr><td><code>utoipa-scalar</code></td><td><code>0.3</code> (<code>axum</code>)</td><td>0.5.0</td></tr>
-<tr><td><code>thiserror</code></td><td><code>2</code></td><td>0.3.0</td></tr>
-<tr><td><code>uuid</code></td><td><code>1</code> (<code>v4</code>, <code>serde</code>)</td><td>0.1.0</td></tr>
-<tr><td><code>jiff</code></td><td><code>0.2</code> (<code>serde</code>)</td><td>0.5.0</td></tr>
-<tr><td><code>tracing</code></td><td><code>0.1</code></td><td>0.3.0</td></tr>
-<tr><td><code>tracing-subscriber</code></td><td><code>0.3</code></td><td>0.3.0</td></tr>
-<tr><td><code>inventory</code></td><td><code>0.3</code></td><td>0.10.5 (dormant)</td></tr>
-</tbody>
-</table>
-</div>
-<p>The <code>sea-orm</code> exact-pin (<code>=2.0.0-rc.38</code>) is intentional: while
-Sea-ORM 2.0 is at release-candidate status, any RC bump is a
-deliberate act and never a resolver side effect. Full rationale lives
-in the ADRs — those cross-references are non-load-bearing sidenotes;
-this table alone is sufficient for building Ferra.</p>
-<p><code>ferra-core</code> itself depends on only <strong>two</strong> of these: <code>serde</code> and
-<code>uuid</code>. That cap is part of the 0.1.0 contract.</p>
-<p><code>ferra-forge</code> (0.2.0) is proc-macro-only and pulls in four
-compile-time deps that are <strong>not</strong> in the table above — <code>syn</code>,
-<code>quote</code>, <code>proc-macro2</code>, <code>heck</code> — plus <code>trybuild</code> as a dev-dep for
-its proc-macro UI test suite. None of these are part of the runtime
-contract; consumers never link them.</p>
-<h3 id="pinned-stack-sidenote-on-raw-sql"><a class="header" href="#pinned-stack-sidenote-on-raw-sql">Pinned stack: sidenote on raw SQL</a></h3>
-<p>You will notice <code>sqlx</code> and <code>sea-query</code> are <strong>not</strong> in the table
-above. They are pulled in transitively through <code>sea-orm</code> but are not
-part of Ferra’s public contract surface. A reader who expects to
-<code>use ferra::sqlx::*</code> will not find that path — it does not exist and
-is not planned. If you need raw SQL in an application built on Ferra,
-reach through Sea-ORM’s own escape hatch inside your application
-code; the framework does not re-export it.</p>
-<p><code>sqlx</code> DOES appear as a <strong>dev-dependency</strong> of <code>ferra-db</code> from 0.3.0
-onward — it powers the <code>#[sqlx::test]</code> integration harness (plus the
-<code>SqlxPostgresConnector::from_sqlx_postgres_pool</code> wiring that hands
-Sea-ORM the isolated per-test database). It is test-only, never a
-runtime dep, and therefore never ships to downstream consumers.</p>
+<h2 id="run-it"><a class="header" href="#run-it">Run it</a></h2>
+<p>You need PostgreSQL reachable at <code>DATABASE_URL</code>. The fastest local
+setup uses Podman or Docker:</p>
+<pre><code class="language-bash">podman run --rm -d --name pg \
+  -e POSTGRES_USER=ferra -e POSTGRES_PASSWORD=ferra \
+  -e POSTGRES_DB=my_api \
+  -p 5432:5432 \
+  postgres:16
+
+export DATABASE_URL=postgres://ferra:ferra@localhost:5432/my_api
+</code></pre>
+<p>Apply your schema migrations (Sea-ORM CLI) and start the server:</p>
+<pre><code class="language-bash">cargo run
+</code></pre>
+<p>You should see <code>listening on 0.0.0.0:3000</code> — open <code>http://localhost:3000/docs</code>
+in a browser.</p>
+<hr>
+<h2 id="msrv-and-toolchain"><a class="header" href="#msrv-and-toolchain">MSRV and toolchain</a></h2>
+<p>Ferra’s MSRV is <strong>Rust 1.88</strong> (edition 2024, resolver v3). <code>let</code>
+chains, native async fn in traits, and the rest of the modern Rust
+feature surface this guide assumes are stable on 1.88+.</p>
+<p>You don’t need a pinned development toolchain in your own project —
+any stable Rust at or above 1.88 works. The framework itself pins a
+specific toolchain in its repository for reproducible CI; that pin
+does not propagate to consumers.</p>
 <hr>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
 <ul>
-<li>The contract layer itself: <a href="./ferra-core.html"><code>ferra-core.md</code></a> —
-<code>Id</code>, <code>FerraModel</code>, <code>ModelMeta</code>.</li>
-<li>The derive macro: <a href="./ferra-forge.html"><code>ferra-forge.md</code></a> —
-<code>#[derive(FerraModel)]</code>, attribute grammar, and the Troubleshooting
-table.</li>
-<li>The phased roadmap:
-<a href="../roadmap/0.1.0-excavation.html"><code>../roadmap/0.1.0-excavation.md</code></a>.</li>
-<li>Architectural history: <a href="../decision-record/"><code>../decision-record/</code></a>.</li>
+<li><strong><a href="./foundry.html">Foundry</a></strong> — the router-assembly facade. Multi-resource
+chains, API versioning, the <code>with_docs_protected(...)</code> auth-gated
+docs variant.</li>
+<li><strong><a href="./ferra-forge.html">Ferra Forge</a></strong> — the <code>#[derive(FerraModel)]</code> derive
+grammar; the full attribute set on model structs and fields.</li>
+<li><strong><a href="./ferra-openapi.html">Ferra OpenAPI</a></strong> — what the generated spec
+contains, schema-name derivation, and how SDK generators consume it.</li>
+<li><strong><a href="./custom-handlers.html">Custom Handlers</a></strong> — drop down to your own
+Axum handler when Ferra’s defaults don’t fit a specific endpoint.</li>
+<li><strong><a href="./ferra-error-handling.html">Error Handling</a></strong> — the closed
+<code>https://ferra.rs/errors/&lt;variant&gt;</code> namespace, the <code>ProblemDetails</code>
+shape, and consumer-side branching.</li>
 </ul>
 
                     </main>
