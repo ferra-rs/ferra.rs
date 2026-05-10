@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-95aa1458.js";
+            window.path_to_searchindex_js = "searchindex-23852726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d364ce7b.js"></script>
@@ -301,8 +301,14 @@ audience-partial features are opt-in.</p>
 </div>
 <h3 id="activating-a-feature"><a class="header" href="#activating-a-feature">Activating a feature</a></h3>
 <pre><code class="language-toml">[dependencies]
-ferra = { version = "0.x", features = ["otel"] }
+ferra = { package = "ferra-rs", version = "0.x", features = ["otel"] }
 </code></pre>
+<blockquote>
+<p>The <code>package = "ferra-rs"</code> alias is required because the <code>ferra</code> name
+on crates.io is owned by an unrelated project; the framework’s facade
+is published as <code>ferra-rs</code>. See <a href="./getting-started.html#important-the-crate-is-published-as-ferra-rs">Getting Started</a>
+for full details.</p>
+</blockquote>
 <p>Adding the feature pulls the locked OTel SDK pin into your build; without
 the feature, none of those crates compile. There is no runtime check —
 the choice is at compile time.</p>
@@ -333,7 +339,7 @@ Rust ecosystem.</p>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <p>A complete Ferra application demonstrating both halves of the principle:</p>
 <pre class="playground"><code class="language-rust">// Cargo.toml:
-//   ferra = { version = "0.x", features = ["otel"] }
+//   ferra = { package = "ferra-rs", version = "0.x", features = ["otel"] }
 
 // Direct re-export (Half A): upstream `sea_orm` reached without renaming.
 use ferra::sea_orm::Database;

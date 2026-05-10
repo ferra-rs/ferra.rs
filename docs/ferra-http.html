@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-95aa1458.js";
+            window.path_to_searchindex_js = "searchindex-23852726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d364ce7b.js"></script>
@@ -455,7 +455,7 @@ content-type: application/json
 <p>See also §“RFC 7807 error taxonomy” for the 429 wire body the <code>rate_limit_mapper</code> produces.</p>
 <hr>
 <h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
-<p><code>[dependencies] ferra = "0.4"</code> + <code>use ferra::*;</code> is the canonical entry point at 0.4.0. Every item on this page — <code>FerraState</code>, <code>FerraError</code>, <code>FerraJson</code>, <code>FerraPath</code>, <code>PaginationParams</code>, <code>Link</code>, <code>ItemLinks</code>, <code>CollectionLinks</code>, <code>ItemResponse</code>, <code>CollectionResponse</code>, <code>build_item_links</code>, <code>build_collection_links</code>, <code>base_url_from_parts</code>, the five handlers, and <code>ferra_router</code> — is reached from this single import, alongside the <code>#[derive(FerraModel)]</code> macro and the <code>ferra-core</code> / <code>ferra-db</code> public surface.</p>
+<p><code>[dependencies] ferra = { package = "ferra-rs", version = "0.5" }</code> + <code>use ferra::*;</code> is the canonical entry point at 0.4.0. The <code>package = "ferra-rs"</code> alias is required because the <code>ferra</code> name on crates.io is owned by an unrelated project; the framework ships as <code>ferra-rs</code> and Cargo’s package alias keeps <code>ferra::*</code> working in your Rust code (see <a href="./getting-started.html#important-the-crate-is-published-as-ferra-rs">Getting Started</a>). Every item on this page — <code>FerraState</code>, <code>FerraError</code>, <code>FerraJson</code>, <code>FerraPath</code>, <code>PaginationParams</code>, <code>Link</code>, <code>ItemLinks</code>, <code>CollectionLinks</code>, <code>ItemResponse</code>, <code>CollectionResponse</code>, <code>build_item_links</code>, <code>build_collection_links</code>, <code>base_url_from_parts</code>, the five handlers, and <code>ferra_router</code> — is reached from this single import, alongside the <code>#[derive(FerraModel)]</code> macro and the <code>ferra-core</code> / <code>ferra-db</code> public surface.</p>
 <p>Consumers do not depend on <code>ferra-core</code>, <code>ferra-db</code>, <code>ferra-forge</code>, or <code>ferra-http</code> directly. The 0.4.0 compile-fail trybuild fixture also pins <code>ferra::Statement</code>, <code>ferra::execute_unprepared</code>, <code>ferra::raw_sql</code>, and <code>ferra::sea_orm::Statement</code> as unreachable — there is no raw-SQL entry point on the facade.</p>
 <hr>
 <h2 id="worked-end-to-end-example"><a class="header" href="#worked-end-to-end-example">Worked end-to-end example</a></h2>
