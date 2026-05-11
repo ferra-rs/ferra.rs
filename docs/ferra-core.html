@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23852726.js";
+            window.path_to_searchindex_js = "searchindex-ba08c701.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-d364ce7b.js"></script>
+        <script src="toc-e963bb26.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -216,11 +216,14 @@ hypermedia links from a single source of truth.</p>
 </span>pub enum FieldType {
     String, I32, I64, F64, Bool, Uuid,
     OptionString, OptionI32, OptionI64, OptionF64, OptionBool,
+    OptionUuid,
 }
 <span class="boring">}</span></code></pre>
 <p>Option variants are spelled out so every field’s nullability is
-visible in the IR without indirection. <code>OptionUuid</code> is deliberately
-absent in 0.1.0 — it is deferred to a later phase.</p>
+visible in the IR without indirection. <code>OptionUuid</code> joins the table
+in 0.6.0 Welding (User Story 4 — FR-014/FR-024); see the recognised
+field types table in <a href="./ferra-forge.html"><code>ferra-forge.md</code></a> for the
+end-user surface.</p>
 <p><code>FieldType</code> is <code>#[non_exhaustive]</code>. Pattern matches on it MUST
 include a <code>_ =&gt;</code> arm to stay forward-compatible:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -234,7 +237,8 @@ fn is_optional(ty: FieldType) -&gt; bool {
             | FieldType::OptionI32
             | FieldType::OptionI64
             | FieldType::OptionF64
-            | FieldType::OptionBool,
+            | FieldType::OptionBool
+            | FieldType::OptionUuid,
     )
 }
 <span class="boring">}</span></code></pre>
@@ -275,18 +279,28 @@ const TITLE_FIELD: FieldMeta = FieldMeta::new(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct ModelMeta {
-    pub resource_name: &amp;'static str,   // external name, e.g. "films"
-    pub table_name:    &amp;'static str,   // SQL table name
-    pub id_field:      &amp;'static str,   // must match one field's name
-    pub fields:        &amp;'static [FieldMeta],
+    pub resource_name:      &amp;'static str,           // external name, e.g. "films"
+    pub table_name:         &amp;'static str,           // SQL table name
+    pub primary_key_fields: &amp;'static [&amp;'static str], // PK column names, declaration order
+    pub fields:             &amp;'static [FieldMeta],
 }
 <span class="boring">}</span></code></pre>
+<p><code>primary_key_fields</code> carries the primary-key column names in
+<strong>declaration order</strong>. Single-PK models hold a one-element slice
+(e.g. <code>&amp;["id"]</code>) — the <strong>single-PK fast path</strong>; downstream
+consumers read <code>primary_key_fields[0]</code> and the route shape stays
+<code>/{resource}/{&lt;pk&gt;}</code>. Composite-PK models hold a multi-element
+slice (e.g. <code>&amp;["tenant_id", "document_id"]</code>) and the route shape
+becomes <code>/{resource}/{&lt;pk1&gt;}/{&lt;pk2&gt;}/…</code>. The composite-PK lift
+landed in 0.6.0 Welding (User Story 3).</p>
 <p>Invariants (hand-authoring discipline in 0.1.0; enforced by
 <code>compile_error!</code> from 0.2.0 Smelting onward):</p>
 <ul>
 <li><code>fields</code> is non-empty.</li>
-<li>Exactly one entry in <code>fields</code> has <code>is_id = true</code> and its <code>name</code>
-matches <code>id_field</code>.</li>
+<li><code>primary_key_fields</code> has length ≥ 1 (the <code>N = 0</code> case is
+rejected by <code>ferra-forge</code> at proc-macro time).</li>
+<li>Each entry of <code>primary_key_fields</code> matches some <code>fields[i].name</code>
+whose <code>is_id = true</code>.</li>
 <li>All <code>fields[i].name</code> values are distinct.</li>
 </ul>
 <h3 id="hand-authoring-in-010"><a class="header" href="#hand-authoring-in-010">Hand-authoring in 0.1.0</a></h3>
@@ -302,8 +316,11 @@ const FILM_FIELDS: &amp;[FieldMeta] = &amp;[
     FieldMeta::new("title", FieldType::String, true, true, true,  false, false),
 ];
 
+// Single-PK fast path: a one-element slice of PK field names in
+// declaration order. Composite-PK models pass a multi-element slice
+// (e.g. `&amp;["tenant_id", "document_id"]`).
 const FILM_META: ModelMeta =
-    ModelMeta::new("films", "films", "id", FILM_FIELDS);
+    ModelMeta::new("films", "films", &amp;["id"], FILM_FIELDS);
 <span class="boring">}</span></code></pre>
 <hr>
 <h2 id="the-ferramodel-trait"><a class="header" href="#the-ferramodel-trait">The <code>FerraModel</code> trait</a></h2>
@@ -342,7 +359,7 @@ load-bearing:</p>
 </span><span class="boring">    FieldMeta::new("id",    FieldType::Uuid,   true, true, false, false, true),
 </span><span class="boring">    FieldMeta::new("title", FieldType::String, true, true, true,  false, false),
 </span><span class="boring">];
-</span><span class="boring">const FILM_META: ModelMeta = ModelMeta::new("films", "films", "id", FILM_FIELDS);
+</span><span class="boring">const FILM_META: ModelMeta = ModelMeta::new("films", "films", &amp;["id"], FILM_FIELDS);
 </span>#[derive(Serialize, Deserialize)]
 struct Film { id: Id, title: String }
 

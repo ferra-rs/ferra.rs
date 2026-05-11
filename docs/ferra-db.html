@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23852726.js";
+            window.path_to_searchindex_js = "searchindex-ba08c701.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-d364ce7b.js"></script>
+        <script src="toc-e963bb26.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -218,6 +218,7 @@ let film = repo.find_by_id(42).await?;
 </div>
 <ul>
 <li><code>PkValue&lt;M&gt;</code> is the Sea-ORM primary-key value type for <code>M</code> — for most entities this is a plain <code>i32</code> / <code>i64</code> / <code>Uuid</code>. The exact type alias is <code>pub type PkValue&lt;M&gt; = &lt;&lt;&lt;M as sea_orm::ModelTrait&gt;::Entity as sea_orm::EntityTrait&gt;::PrimaryKey as sea_orm::PrimaryKeyTrait&gt;::ValueType;</code> — consumers rarely spell it out; it propagates through <code>impl</code> blocks automatically.</li>
+<li>For <strong>composite primary keys</strong> (two or more <code>#[sea_orm(primary_key)]</code> markers — see <a href="ferra-forge.html#composite-primary-keys"><code>ferra-forge.md</code> § Composite primary keys</a>), Sea-ORM resolves <code>PkValue&lt;M&gt;</code> to a tuple matching the declaration order: <code>(K1, K2)</code> for two-key composites, <code>(K1, K2, K3)</code> for three-key, etc. The repository call site is the typed tuple lookup <code>repo.find_by_id((tenant_id, document_id))</code>. Single-PK consumers see no change.</li>
 <li><code>find_page</code> is 1-indexed (<code>page = 1</code> is the first page). A request past the end returns <code>Ok(Page { items: vec![], total, .. })</code> — never <code>NotFound</code>.</li>
 <li><code>update</code> accepts <code>(id, data)</code> where <code>data: M</code> carries the new values. At 0.3.0 the caller is responsible for ensuring <code>data</code>’s primary key matches <code>id</code>; the 0.4.0 DTO layer will enforce that invariant upstream.</li>
 </ul>

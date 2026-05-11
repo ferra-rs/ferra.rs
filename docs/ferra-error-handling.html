@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23852726.js";
+            window.path_to_searchindex_js = "searchindex-ba08c701.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-d364ce7b.js"></script>
+        <script src="toc-e963bb26.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,7 +191,7 @@ HTTP status / title / example body for each variant, and the
 consumer-side branching pattern.</p>
 <hr>
 <h2 id="the-closed-error_types-uri-set"><a class="header" href="#the-closed-error_types-uri-set">The closed <code>ERROR_TYPES</code> URI set</a></h2>
-<p>The framework can emit exactly seven <code>type</code> URIs on the wire. Every
+<p>The framework can emit exactly eight <code>type</code> URIs on the wire. Every
 literal in framework source (and in any consumer crate) MUST appear
 in this set; a CI gate (<code>error_types_closed.sh</code>) fails the build on
 any drift.</p>
@@ -202,7 +202,8 @@ any drift.</p>
 </thead>
 <tbody>
 <tr><td><code>https://ferra.rs/errors/not_found</code></td><td style="text-align: right"><code>404 Not Found</code></td><td>Resource Not Found</td><td><code>FerraError::NotFound</code></td></tr>
-<tr><td><code>https://ferra.rs/errors/validation</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Validation Error</td><td><code>FerraError::Validation</code></td></tr>
+<tr><td><code>https://ferra.rs/errors/validation</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Validation Error</td><td><code>FerraError::Validation</code> (extractor failures: malformed JSON body, unparseable path parameter)</td></tr>
+<tr><td><code>https://ferra.rs/errors/validation_failed</code></td><td style="text-align: right"><code>422 Unprocessable Content</code></td><td>Validation Failed</td><td><code>FerraError::Unprocessable</code> (well-formed body whose values violate <code>#[field(...)]</code> rules — see § Validation failures (422))</td></tr>
 <tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code></td></tr>
 <tr><td><code>https://ferra.rs/errors/internal</code></td><td style="text-align: right"><code>500 Internal Server Error</code></td><td>Internal Server Error</td><td><code>FerraError::Internal</code></td></tr>
 <tr><td><code>https://ferra.rs/errors/payload_too_large</code></td><td style="text-align: right"><code>413 Payload Too Large</code></td><td>Payload Too Large</td><td>request-body-limit middleware</td></tr>
@@ -211,10 +212,18 @@ any drift.</p>
 </tbody>
 </table>
 </div>
-<p>Three of the seven URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
+<p>Three of the eight URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
 <code>unauthorized</code>) are emitted by middleware layers, not through
 <code>FerraError</code>. The framework’s full URI surface is the union of the
 two paths; both are governed by the same <code>ERROR_TYPES</code> slice.</p>
+<p>The <code>validation</code> (400) and <code>validation_failed</code> (422) URIs are
+intentionally distinct. A <em>malformed</em> request body (JSON parse
+failure, type mismatch on a required field, an <code>Id</code> parameter that
+will not parse) returns 400 — the request was <em>syntactically</em>
+unprocessable. A <em>well-formed</em> request body whose values violate
+the model’s declarative <code>#[field(...)]</code> rules returns 422 — the
+request parsed cleanly but its <em>semantics</em> were rejected. The split
+follows RFC 9110 §15.5.1 (400) vs §15.5.21 (422).</p>
 <hr>
 <h2 id="worked-example-bodies"><a class="header" href="#worked-example-bodies">Worked example bodies</a></h2>
 <h3 id="not_found--404"><a class="header" href="#not_found--404"><code>not_found</code> — <code>404</code></a></h3>
@@ -229,9 +238,9 @@ matching rows.</p>
 </code></pre>
 <h3 id="validation--400"><a class="header" href="#validation--400"><code>validation</code> — <code>400</code></a></h3>
 <p>Returned when an inbound JSON body or a path parameter fails the
-framework’s typed deserialisation, when an <code>Id</code> parameter fails to
-parse, or when a future <code>validator</code>-derived field check rejects the
-input.</p>
+framework’s typed deserialisation, or when an <code>Id</code> parameter fails
+to parse. <em>Declarative-rule violations</em> on a well-formed body are
+the separate 422 path — see <a href="#validation-failures-422">§ Validation failures (422)</a>.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/validation",
   "title": "Validation Error",
@@ -243,9 +252,9 @@ input.</p>
   }
 }
 </code></pre>
-<p>The <code>errors</code> object is present only on the <code>validation</code> variant. Its
-shape is <code>Map&lt;String, Vec&lt;String&gt;&gt;</code> — a list of error messages per
-field name.</p>
+<p>The <code>errors</code> object on the 400 path carries a flat list of error
+messages per field name. The 422 path uses a sibling shape — see
+the worked example linked above.</p>
 <h3 id="conflict--409"><a class="header" href="#conflict--409"><code>conflict</code> — <code>409</code></a></h3>
 <p>Returned when a write would violate a unique constraint (duplicate
 slug, primary-key collision, etc.).</p>
@@ -299,6 +308,156 @@ unauthenticated request reaches the docs surface. New in 0.5.0.</p>
   "detail": "authentication required"
 }
 </code></pre>
+<h3 id="validation_failed--422"><a class="header" href="#validation_failed--422"><code>validation_failed</code> — <code>422</code></a></h3>
+<p>Returned when an inbound <code>POST</code> or <code>PUT</code> body parses cleanly but
+violates one or more <code>#[field(...)]</code> rules declared on the target
+model. The full worked example with multi-field aggregation lives
+in <a href="#validation-failures-422">§ Validation failures (422)</a>; the
+short form:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/validation_failed",
+  "title": "Validation Failed",
+  "status": 422,
+  "detail": "validation failed",
+  "errors": {
+    "title": ["must be at least 1 characters"]
+  }
+}
+</code></pre>
+<p>The <code>errors</code> object on this variant is shaped
+<code>Map&lt;String, Vec&lt;String&gt;&gt;</code> keyed by the wire-side field name —
+every violation observed during the validation pass is included
+(no short-circuiting), so a consumer never needs to retry to
+discover further violations.</p>
+<hr>
+<h2 id="validation-failures-422"><a class="header" href="#validation-failures-422">Validation failures (422)</a></h2>
+<p>A 422 response fires when the request body is <em>well-formed</em> — it
+parses as JSON and deserialises into the model’s request shape —
+but one or more values violate the declarative <code>#[field(...)]</code>
+rules on the target model. Validation runs <em>before</em> persistence
+on every <code>POST</code> (create) and <code>PUT</code> (update) handler, so an
+invalid payload never reaches the database. The wire shape is
+identical across create and update.</p>
+<p>This is the 422 path. The 400 <code>validation</code> path above continues
+to denote <em>extractor</em> failures — a body that does not parse as
+JSON at all, a path parameter that will not parse as the
+declared type. Both paths share the <code>application/problem+json</code>
+envelope; only the 422 path carries the per-field <code>errors</code> map.</p>
+<p>The model-side declaration grammar — every supported rule, its
+default English message, and the compile-time <code>FRG-2NN</code> codes
+that protect typos — is documented in
+<a href="./ferra-forge.html#validation-rules"><code>ferra-forge.md</code> § Validation rules</a>.
+This section pins the wire shape your consumer sees.</p>
+<h3 id="worked-example-multi-field-violation"><a class="header" href="#worked-example-multi-field-violation">Worked example: multi-field violation</a></h3>
+<p>For a <code>Film</code> resource declared as:</p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1, max_length = 255)]
+    pub title: String,
+    #[field(min = 0, max = 10)]
+    pub rating: i32,
+}</code></pre>
+<p>a request that violates two fields simultaneously:</p>
+<pre><code class="language-http">POST /films HTTP/1.1
+Content-Type: application/json
+
+{ "title": "", "rating": 99 }
+</code></pre>
+<p>receives:</p>
+<pre><code class="language-http">HTTP/1.1 422 Unprocessable Content
+Content-Type: application/problem+json
+
+{
+  "type": "https://ferra.rs/errors/validation_failed",
+  "title": "Validation Failed",
+  "status": 422,
+  "detail": "validation failed",
+  "errors": {
+    "rating": ["must be at most 10"],
+    "title":  ["must be at least 1 characters"]
+  }
+}
+</code></pre>
+<p>Both fields appear in the same response. Ferra never short-circuits
+on the first failed rule, so a consumer that submits a payload with
+N invalid fields receives N entries in <code>errors</code> in a single
+round-trip. Within a single field, every rule that fired produces
+its own message — <code>#[field(min_length = 5, email)]</code> on a value of
+<code>"ab"</code> produces <code>errors.&lt;field&gt; = ["must be at least 5 characters", "is not a valid email address"]</code> (two entries).</p>
+<h3 id="assertion-contract-for-sdk-consumers"><a class="header" href="#assertion-contract-for-sdk-consumers">Assertion contract for SDK consumers</a></h3>
+<p>A consumer driving validation off the wire response asserts the
+following invariants on a 422:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Wire field</th><th>Value</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>HTTP status</td><td><code>422</code></td><td>always equal to the body’s <code>status</code> integer</td></tr>
+<tr><td><code>Content-Type</code> header</td><td><code>application/problem+json</code></td><td>identical envelope to every other Ferra error</td></tr>
+<tr><td><code>type</code></td><td><code>"https://ferra.rs/errors/validation_failed"</code></td><td>pinned URI; closed-namespace member (table above)</td></tr>
+<tr><td><code>title</code></td><td><code>"Validation Failed"</code></td><td>distinct from <code>"Validation Error"</code> (the 400 path’s title)</td></tr>
+<tr><td><code>status</code></td><td><code>422</code> (integer)</td><td></td></tr>
+<tr><td><code>detail</code></td><td><code>"validation failed"</code></td><td>constant literal — does NOT echo input back into the response (constitution §I — no reflected-XSS on the error path)</td></tr>
+<tr><td><code>errors</code></td><td><code>Map&lt;String, Vec&lt;String&gt;&gt;</code></td><td>keys are wire-side field names (the same names that appear in the request body’s JSON); values are non-empty arrays of human-readable English messages, one entry per rule that fired</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>errors</code> map’s keys preserve the request’s wire-side names —
+when a model uses <code>serde</code>’s <code>#[serde(rename = "...")]</code> to map a
+wire-side name to a different Rust-side field name, the <code>errors</code>
+map keys by the <em>wire-side</em> name (what the consumer submitted and
+what they will inspect).</p>
+<p><code>_links</code> is never present on a 422 body. Validation failure is
+terminal — there is no resource yet, no self-link to thread, no
+hypermedia to follow. A consumer that branches on the response’s
+<code>_links.self.href</code> should treat 422 as the absent-link case.</p>
+<h3 id="update-vs-create-symmetry"><a class="header" href="#update-vs-create-symmetry">Update-vs-create symmetry</a></h3>
+<p>The validation step runs identically on <code>POST /&lt;resource&gt;</code> and
+<code>PUT /&lt;resource&gt;/{id}</code>. The 422 body is identical across both.
+A field omitted from a <code>PUT</code> body is “no change” (Ferra’s
+existing partial-update semantics) and bypasses that field’s
+per-field rules. A field present with explicit <code>null</code> on a <code>PUT</code>
+body for a <code>#[field(required)]</code> <code>Option&lt;T&gt;</code> field fails with
+<code>["is required"]</code> — <code>null</code> on the wire is a positive declaration
+of “set to none”, which the rule rejects.</p>
+<h3 id="consumer-side-branching-pattern"><a class="header" href="#consumer-side-branching-pattern">Consumer-side branching pattern</a></h3>
+<p>Add one branch to the existing <code>match</code> on the wire <code>type</code> field:</p>
+<pre><code class="language-rust ignore">match body["type"].as_str() {
+    Some("https://ferra.rs/errors/validation_failed") =&gt; {
+        // 422 path — read body["errors"] as Map&lt;String, Vec&lt;String&gt;&gt;
+        // and surface each (field, msg) pair into your form's
+        // per-field error UI.
+    }
+    Some("https://ferra.rs/errors/validation") =&gt; {
+        // 400 path — extractor failure; the body shape differs
+        // (flat `errors` list, not the per-field map).
+    }
+    // ... other arms ...
+    _ =&gt; /* unreachable on a non-fabricated error */,
+}</code></pre>
+<p>Server-side, when handling a <code>FerraError</code> value, the 422 path
+reads through the new variant:</p>
+<pre><code class="language-rust ignore">use ferra::FerraError;
+
+fn observe(err: &amp;FerraError) {
+    match err {
+        FerraError::Unprocessable(_) =&gt; {
+            // 422 — declarative-rule violation
+        }
+        FerraError::Validation(_) =&gt; {
+            // 400 — extractor failure
+        }
+        // other arms unchanged
+        _ =&gt; {}
+    }
+}</code></pre>
+<p><code>FerraError::Unprocessable</code> is the typed home for the 422 path;
+<a href="https://docs.rs/ferra/latest/ferra/error/enum.FerraError.html#method.error_type"><code>FerraError::error_type</code></a> returns
+<code>"https://ferra.rs/errors/validation_failed"</code> on this variant.</p>
 <hr>
 <h2 id="consumer-side-branching"><a class="header" href="#consumer-side-branching">Consumer-side branching</a></h2>
 <p>The recommended consumer pattern is to compare the wire <code>type</code> field
@@ -307,13 +466,14 @@ error. The URI is the wire contract; the message text is not.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match body["type"].as_str() {
-    Some("https://ferra.rs/errors/not_found")        =&gt; /* 404 path */,
-    Some("https://ferra.rs/errors/validation")       =&gt; /* 400 path */,
-    Some("https://ferra.rs/errors/conflict")         =&gt; /* 409 path */,
-    Some("https://ferra.rs/errors/payload_too_large") =&gt; /* 413 path */,
-    Some("https://ferra.rs/errors/rate_limited")     =&gt; /* 429 path; check Retry-After */,
-    Some("https://ferra.rs/errors/unauthorized")     =&gt; /* 401 path */,
-    Some("https://ferra.rs/errors/internal")         =&gt; /* 500 path; retry with backoff */,
+    Some("https://ferra.rs/errors/not_found")          =&gt; /* 404 path */,
+    Some("https://ferra.rs/errors/validation")         =&gt; /* 400 path; extractor failure */,
+    Some("https://ferra.rs/errors/validation_failed")  =&gt; /* 422 path; #[field(...)] rule violation */,
+    Some("https://ferra.rs/errors/conflict")           =&gt; /* 409 path */,
+    Some("https://ferra.rs/errors/payload_too_large")  =&gt; /* 413 path */,
+    Some("https://ferra.rs/errors/rate_limited")       =&gt; /* 429 path; check Retry-After */,
+    Some("https://ferra.rs/errors/unauthorized")       =&gt; /* 401 path */,
+    Some("https://ferra.rs/errors/internal")           =&gt; /* 500 path; retry with backoff */,
     _ =&gt; /* unreachable on a non-fabricated error */,
 }
 <span class="boring">}</span></code></pre>
@@ -328,21 +488,21 @@ fn log_one(err: &amp;FerraError) {
     tracing::warn!(error_type = err.error_type(), "request failed");
 }
 <span class="boring">}</span></code></pre>
-<p><code>FerraError::error_type</code> returns one of the four URIs that map
-through the typed enum (<code>not_found</code>, <code>validation</code>, <code>conflict</code>,
-<code>internal</code>). The other three URIs reach the wire via middleware
-layers and are never observed as <code>FerraError</code> values.</p>
+<p><code>FerraError::error_type</code> returns one of the five URIs that map
+through the typed enum (<code>not_found</code>, <code>validation</code>, <code>validation_failed</code>,
+<code>conflict</code>, <code>internal</code>). The other three URIs reach the wire via
+middleware layers and are never observed as <code>FerraError</code> values.</p>
 <hr>
 <h2 id="openapi-schema-constraint"><a class="header" href="#openapi-schema-constraint">OpenAPI schema constraint</a></h2>
 <p>The OpenAPI spec the framework emits at <code>/docs/openapi.json</code>
 constrains <code>ProblemDetails.type</code> to the closed <code>ERROR_TYPES</code> set as
 an <code>enum</code>. SDK generators (orval, openapi-generator, kiota, …)
-produce a typed union over the seven URIs rather than a free-form
+produce a typed union over the eight URIs rather than a free-form
 string — consumers in TypeScript, Go, Python, etc. branch
 exhaustively on the wire <code>type</code> value.</p>
 <p>For an AI coding assistant generating client code: the <code>type</code> field
 is an enum, not a free-form string. Synthesising a value outside the
-seven URIs above fails OpenAPI schema validation against the spec.</p>
+eight URIs above fails OpenAPI schema validation against the spec.</p>
 <hr>
 <h2 id="adding-a-new-uri"><a class="header" href="#adding-a-new-uri">Adding a new URI</a></h2>
 <p>The framework’s URI namespace is closed by design: a new variant

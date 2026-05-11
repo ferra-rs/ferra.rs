@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23852726.js";
+            window.path_to_searchindex_js = "searchindex-ba08c701.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-d364ce7b.js"></script>
+        <script src="toc-e963bb26.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -236,10 +236,28 @@ the next section.</li>
 <li><strong>Visibility must be at least <code>pub(crate)</code></strong>. Private structs trip
 class 8 of the Troubleshooting table.</li>
 </ul>
-<p>Field types recognised in 0.2.0: <code>String</code>, <code>i32</code>, <code>i64</code>, <code>f64</code>,
-<code>bool</code>, <code>Uuid</code> (or <code>ferra_core::id::Id</code>), and <code>Option&lt;T&gt;</code> for the
-first five. <code>Option&lt;Uuid&gt;</code> and <code>Option&lt;Id&gt;</code> are <strong>not</strong> accepted —
-see class 4.</p>
+<p>Recognised field types:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rust type</th><th><code>FieldType</code> variant</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>String</code></td><td><code>String</code></td><td>UTF-8 string.</td></tr>
+<tr><td><code>i32</code></td><td><code>I32</code></td><td>32-bit signed integer.</td></tr>
+<tr><td><code>i64</code></td><td><code>I64</code></td><td>64-bit signed integer.</td></tr>
+<tr><td><code>f64</code></td><td><code>F64</code></td><td>64-bit IEEE-754 float.</td></tr>
+<tr><td><code>bool</code></td><td><code>Bool</code></td><td>Boolean.</td></tr>
+<tr><td><code>Uuid</code> (or <code>ferra_core::id::Id</code>)</td><td><code>Uuid</code></td><td>UUID, always present.</td></tr>
+<tr><td><code>Option&lt;String&gt;</code></td><td><code>OptionString</code></td><td>Nullable string.</td></tr>
+<tr><td><code>Option&lt;i32&gt;</code></td><td><code>OptionI32</code></td><td>Nullable 32-bit integer.</td></tr>
+<tr><td><code>Option&lt;i64&gt;</code></td><td><code>OptionI64</code></td><td>Nullable 64-bit integer.</td></tr>
+<tr><td><code>Option&lt;f64&gt;</code></td><td><code>OptionF64</code></td><td>Nullable float.</td></tr>
+<tr><td><code>Option&lt;bool&gt;</code></td><td><code>OptionBool</code></td><td>Nullable boolean.</td></tr>
+<tr><td><code>Option&lt;Uuid&gt;</code> (or <code>Option&lt;Id&gt;</code>)</td><td><code>OptionUuid</code></td><td>Nullable UUID — added in 0.6.0 Welding (FR-014/FR-024). Surfaces in OpenAPI as <code>"type": ["string","null"]</code> with <code>"format": "uuid"</code> (the OpenAPI 3.1 nullable form). Cannot be combined with <code>#[sea_orm(primary_key)]</code> — that contradiction emits <code>FRG-215</code>.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="explicit-serde-derives-are-required"><a class="header" href="#explicit-serde-derives-are-required">Explicit serde derives are required</a></h2>
 <p><code>ferra-forge</code> does <strong>not</strong> add <code>#[derive(Serialize, Deserialize)]</code> for
 you. If you omit them, <code>rustc</code> fires E0277 with the span pinned to
@@ -260,17 +278,18 @@ to the derive list.</p>
 double-derive and hit E0119 conflicting-impls. Delegating to the
 trait-bound solver is correct by construction.</p>
 </blockquote>
-<h2 id="two-attribute-namespaces-two-policies"><a class="header" href="#two-attribute-namespaces-two-policies">Two attribute namespaces, two policies</a></h2>
-<p><code>ferra-forge</code> reads two attribute namespaces with deliberately
-different handling (ADR-0006):</p>
+<h2 id="three-attribute-namespaces-two-policies"><a class="header" href="#three-attribute-namespaces-two-policies">Three attribute namespaces, two policies</a></h2>
+<p><code>ferra-forge</code> reads three attribute namespaces with deliberately
+different handling:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Namespace</th><th>Owner</th><th>Unknown-key policy</th></tr>
+<tr><th>Namespace</th><th>Owner</th><th>Purpose</th><th>Unknown-key policy</th></tr>
 </thead>
 <tbody>
-<tr><td><code>#[sea_orm(...)]</code></td><td>Sea-ORM</td><td>silently ignored by <code>ferra-forge</code></td></tr>
-<tr><td><code>#[ferra(...)]</code></td><td>Ferra</td><td>hard <code>compile_error!</code></td></tr>
+<tr><td><code>#[sea_orm(...)]</code></td><td>Sea-ORM</td><td>Persistence shape (table name, primary key, column type)</td><td>silently ignored by <code>ferra-forge</code></td></tr>
+<tr><td><code>#[ferra(...)]</code></td><td>Ferra</td><td>Exposure flags (<code>read_only</code>, <code>write_only</code>, <code>skip</code>, <code>resource</code>)</td><td>hard <code>compile_error!</code></td></tr>
+<tr><td><code>#[field(...)]</code></td><td>Ferra</td><td>Declarative validation rules (<code>min_length</code>, <code>email</code>, …) — see § Validation rules</td><td>hard <code>compile_error!</code> (<code>FRG-213</code>)</td></tr>
 </tbody>
 </table>
 </div>
@@ -356,6 +375,470 @@ don’t silently compile code that looks correct but does nothing.</p>
 </tbody>
 </table>
 </div>
+<h2 id="validation-rules"><a class="header" href="#validation-rules">Validation rules</a></h2>
+<p>Ferra’s third attribute namespace, <code>#[field(...)]</code>, declares
+validation rules that fire at the API edge — before persistence,
+on every <code>POST</code> (create) and <code>PUT</code> (update) request. A payload
+that violates any rule is rejected with a 422 Problem+JSON body
+whose <code>errors</code> map names every offending field; a payload that
+satisfies every rule flows on to persistence unchanged. Validation
+is <strong>opt-in</strong>: a model carrying no <code>#[field(...)]</code> attributes
+behaves identically to one written before the namespace existed.</p>
+<p>The full 422 wire shape and consumer-side branching pattern live
+in <a href="./ferra-error-handling.html#validation-failures-422">Error Handling § Validation failures (422)</a>;
+this section pins the model-side declaration grammar.</p>
+<h3 id="the-eight-rules-at-a-glance"><a class="header" href="#the-eight-rules-at-a-glance">The eight rules at a glance</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Compatible field types</th><th>Default English message on violation</th></tr>
+</thead>
+<tbody>
+<tr><td><code>min_length = N</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"must be at least N characters"</code></td></tr>
+<tr><td><code>max_length = N</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"must be at most N characters"</code></td></tr>
+<tr><td><code>min = N</code></td><td><code>i32</code>, <code>i64</code>, <code>f64</code>, and their <code>Option&lt;…&gt;</code></td><td><code>"must be at least N"</code></td></tr>
+<tr><td><code>max = N</code></td><td><code>i32</code>, <code>i64</code>, <code>f64</code>, and their <code>Option&lt;…&gt;</code></td><td><code>"must be at most N"</code></td></tr>
+<tr><td><code>pattern = "regex"</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"does not match the required format"</code></td></tr>
+<tr><td><code>email</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"is not a valid email address"</code></td></tr>
+<tr><td><code>url</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"is not a valid URL"</code></td></tr>
+<tr><td><code>required</code></td><td><code>Option&lt;T&gt;</code> only</td><td><code>"is required"</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Any other rule key is a compile-time error (<code>FRG-213</code>) carrying
+a “did you mean” hint when the typo is within Levenshtein
+distance 2 of a recognised name. Repeated rules of the same
+kind on the same field are <code>FRG-206</code>. Conflicts (<code>min_length &gt; max_length</code>, <code>min &gt; max</code>) are <code>FRG-210</code> / <code>FRG-211</code>. A rule
+applied to an incompatible field type is <code>FRG-207</code> / <code>FRG-208</code>
+/ <code>FRG-209</code> / <code>FRG-212</code> depending on the rule. A wrong-shape
+literal (a string where an integer is expected, an empty regex)
+is <code>FRG-201</code> through <code>FRG-205</code>. Every code surfaces with a
+span anchored on the offending token, and multiple independent
+mistakes on the same struct surface in a single <code>cargo check</code>
+round-trip rather than the first-and-stop pattern.</p>
+<h3 id="combined-rule-example-the-most-common-shape"><a class="header" href="#combined-rule-example-the-most-common-shape">Combined-rule example (the most common shape)</a></h3>
+<p>The headline call site is a single <code>#[field(...)]</code> carrying
+multiple rules separated by commas, on a struct that already
+derives <code>FerraModel</code> and Sea-ORM’s <code>DeriveEntityModel</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+
+    #[field(min_length = 1, max_length = 255)]
+    pub display_name: String,
+
+    #[field(min = 0, max = 120)]
+    pub age: i32,
+
+    #[field(email)]
+    pub contact_email: String,
+
+    #[field(pattern = r"^[a-z0-9-]+$")]
+    pub slug: String,
+
+    #[field(url)]
+    pub homepage: String,
+
+    #[field(required)]
+    pub bio: Option&lt;String&gt;,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+<span class="boring">}</span></code></pre>
+<p>Two or more <code>#[field(...)]</code> attributes on the same field
+accumulate in source order — <code>#[field(min_length = 1)] #[field(max_length = 255)]</code> is identical to <code>#[field(min_length = 1, max_length = 255)]</code>. Two <code>#[field(...)]</code> attributes on
+two different fields are independent; each field’s rule list is
+evaluated in isolation against that field’s value, and every
+violation observed on the request is aggregated into a single
+422 response (Ferra never short-circuits on the first failed
+rule).</p>
+<h3 id="per-rule-details"><a class="header" href="#per-rule-details">Per-rule details</a></h3>
+<h4 id="min_length--n-and-max_length--n"><a class="header" href="#min_length--n-and-max_length--n"><code>min_length = N</code> and <code>max_length = N</code></a></h4>
+<p>Fires on <code>String</code> and <code>Option&lt;String&gt;</code> fields. The literal <code>N</code>
+is a non-negative integer that fits in <code>u32</code>. On <code>Option&lt;String&gt;</code>
+the rule applies only when the value is <code>Some(..)</code> — a <code>None</code> is
+not a length violation (use <code>required</code> to forbid <code>None</code> outright).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra_forge::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1, max_length = 255)]
+    pub title: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>A <code>POST /films</code> with <code>{"title": ""}</code> returns 422 with
+<code>errors.title = ["must be at least 1 characters"]</code>. A 300-char
+title returns 422 with <code>errors.title = ["must be at most 255 characters"]</code>.</p>
+<blockquote>
+<p>Length rules count <em>Unicode scalar values</em>, not grapheme
+clusters or UTF-8 byte length — see § Unicode counting below.</p>
+</blockquote>
+<h4 id="min--n-and-max--n"><a class="header" href="#min--n-and-max--n"><code>min = N</code> and <code>max = N</code></a></h4>
+<p>Fires on <code>i32</code>, <code>i64</code>, <code>f64</code>, and their <code>Option&lt;…&gt;</code> forms. The
+literal type must match the field’s declared numeric type:
+<code>min = 1.5</code> on an <code>i32</code> field is <code>FRG-203</code>. Integer literals on
+<code>f64</code> fields are accepted (and coerce to <code>0.0</code>-style values).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra_forge::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ratings")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 0, max = 10)]
+    pub score: i32,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>A <code>POST /ratings</code> with <code>{"score": 99}</code> returns 422 with
+<code>errors.score = ["must be at most 10"]</code>.</p>
+<h4 id="pattern--regex"><a class="header" href="#pattern--regex"><code>pattern = "regex"</code></a></h4>
+<p>Fires on <code>String</code> and <code>Option&lt;String&gt;</code> fields. The literal is
+a non-empty string carrying a <a href="https://docs.rs/regex/"><code>regex</code>-crate</a>
+pattern (NOT PCRE). The <code>regex</code> crate has no lookaround and no
+backreferences — the syntactic features that drive catastrophic
+backtracking in PCRE-style engines are <em>not even expressible</em>.
+A raw-string literal (<code>r"…"</code>) is the recommended shape so
+backslashes are not double-escaped.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra_forge::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(pattern = r"^[a-z0-9-]+$")]
+    pub slug: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>A <code>POST /posts</code> with <code>{"slug": "Bad Slug!"}</code> returns 422 with
+<code>errors.slug = ["does not match the required format"]</code>.</p>
+<blockquote>
+<p><strong>Bounded-time guarantee.</strong> Every <code>pattern</code> evaluation
+completes in time linear to the input length — <code>O(m·n)</code>
+worst-case, where <code>m</code> is the (compile-time-fixed) pattern
+size and <code>n</code> is the input length, per the <code>regex</code> crate’s
+upstream contract. Combined with Ferra’s default 1 MiB
+request-body cap, this forecloses ReDoS without a per-request
+timeout. You can write any <code>regex</code>-syntax pattern you like
+and submit it to user input; no pattern, regardless of shape,
+can cause unbounded matching time.</p>
+</blockquote>
+<h4 id="email"><a class="header" href="#email"><code>email</code></a></h4>
+<p>Bare flag on <code>String</code> and <code>Option&lt;String&gt;</code> fields — no value.
+Delegates to the upstream HTML5-compliant email validator.
+<code>#[field(email = "x")]</code> is <code>FRG-214</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra_forge::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub email: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>A <code>POST /contacts</code> with <code>{"email": "not-an-email"}</code> returns
+422 with <code>errors.email = ["is not a valid email address"]</code>.</p>
+<h4 id="url"><a class="header" href="#url"><code>url</code></a></h4>
+<p>Bare flag on <code>String</code> and <code>Option&lt;String&gt;</code> fields — no value.
+Delegates to the upstream <code>url</code>-crate-backed validator.
+<code>#[field(url = "x")]</code> is <code>FRG-214</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra_forge::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "links")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(url)]
+    pub href: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>A <code>POST /links</code> with <code>{"href": "not a url"}</code> returns 422 with
+<code>errors.href = ["is not a valid URL"]</code>.</p>
+<h4 id="required"><a class="header" href="#required"><code>required</code></a></h4>
+<p>Bare flag on <code>Option&lt;T&gt;</code> fields only — no value.
+<code>#[field(required)]</code> on a non-<code>Option</code> field is <code>FRG-212</code>
+(non-<code>Option</code> fields are required by Rust’s type system; the
+flag is meaningless there). On a <code>POST</code> request, an absent
+field or an explicit <code>null</code> both fail with <code>"is required"</code>.
+On a <code>PUT</code> request, an absent field is “no change” (Ferra’s
+existing partial-update semantics) and skips per-field rules,
+but an explicit <code>null</code> fails with <code>"is required"</code> — <code>null</code>
+on the wire is a positive declaration of “set to none”, which
+the rule rejects.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra_forge::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "profiles")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(required)]
+    pub bio: Option&lt;String&gt;,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>A <code>POST /profiles</code> with <code>{"bio": null}</code> (or <code>{}</code>) returns 422
+with <code>errors.bio = ["is required"]</code>.</p>
+<h3 id="propagation-to-the-openapi-document"><a class="header" href="#propagation-to-the-openapi-document">Propagation to the OpenAPI document</a></h3>
+<p>Every <code>#[field(...)]</code> rule you declare propagates into the
+emitted OpenAPI 3.1 document under the canonical JSON Schema
+keyword for the rule. SDK generators that consume the spec
+(orval, openapi-generator, kiota, …) and UI tooling that
+drives form validation off the spec (react-jsonschema-form,
+JSON-Forms, …) receive the same rules the server enforces —
+no parallel maintenance, no spec/server drift.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>#[field(...)]</code> rule</th><th>OpenAPI keyword</th><th>Where it lands</th></tr>
+</thead>
+<tbody>
+<tr><td><code>min_length = N</code></td><td><code>minLength: N</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>max_length = N</code></td><td><code>maxLength: N</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>min = N</code></td><td><code>minimum: N</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>max = N</code></td><td><code>maximum: N</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>pattern = "&lt;regex&gt;"</code></td><td><code>pattern: "&lt;regex&gt;"</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>email</code></td><td><code>format: "email"</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>url</code></td><td><code>format: "uri"</code></td><td><code>properties.&lt;field&gt;</code></td></tr>
+<tr><td><code>required</code></td><td>(field name added to schema’s <code>required: [...]</code>)</td><td><code>&lt;schema&gt;.required</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Per-projection coverage.</strong> Keywords appear on <strong>every
+projection</strong> in which the field appears: the read projection
+(<code>Film</code>), the create-input projection (<code>CreateFilmInput</code>), and
+the update-input projection (<code>UpdateFilmInput</code>). A field
+excluded from one projection (for example, a <code>#[ferra(read_only)]</code>
+field is excluded from the create-input projection because it
+is not writable) does NOT appear in that projection’s
+<code>properties</code> map — but its keywords continue to appear on the
+read projection because the rules describe the persisted state,
+not only the input shape.</p>
+<p><strong>Note on <code>url</code> → <code>format: uri</code>.</strong> JSON Schema’s vocabulary
+uses <code>uri</code>, not <code>url</code> — the rule name on the Rust side stays
+as the friendlier <code>url</code>, but the emitted spec uses the JSON
+Schema canonical name. SDK generators look up <code>format: uri</code>.</p>
+<p><strong>Combined rules merge into one property schema.</strong> A field
+carrying <code>#[field(min_length = 1, max_length = 255, pattern = "^[A-Z][a-z]+$")]</code> produces:</p>
+<pre><code class="language-jsonc">"title": {
+  "type": "string",
+  "minLength": 1,
+  "maxLength": 255,
+  "pattern": "^[A-Z][a-z]+$"
+}
+</code></pre>
+<p>The keyword order in the JSON output is not contractual; the
+keyword set is.</p>
+<p><strong>Required behaviour.</strong> The <code>#[field(required)]</code> rule on an
+<code>Option&lt;T&gt;</code> field adds the field name to the create-input and
+update-input projections’ <code>required: [...]</code> arrays — it does
+NOT inject a <code>"required": true</code> keyword on the per-property
+schema (JSON Schema does not have one; required-ness is a
+parent-schema concern). The same array also includes every
+non-<code>Option</code> field, matching Rust’s “non-Option means required”
+semantics on the wire.</p>
+<p><strong>No-rules opt-in.</strong> A model that declares zero <code>#[field(...)]</code>
+rules emits a spec byte-identical to its 0.5.x equivalent.
+Validation surfaces only when you opt in.</p>
+<h3 id="default-messages-and-localisation"><a class="header" href="#default-messages-and-localisation">Default messages and localisation</a></h3>
+<p>Every rule emits a hard-coded English message as its violation
+text — the literal strings shown in the table above. Ferra
+0.6.0 does <strong>not</strong> support per-field, per-rule message overrides
+or <code>Accept-Language</code>-driven locale negotiation; both are deferred
+to a later release.</p>
+<p>If you need localised error text on the consumer side, branch
+on the field name in the response’s <code>errors</code> map and rewrite
+the message client-side. The default English text is a stable
+contract within the 0.6.0 line — string-matching against
+<code>"must be at least"</code>, <code>"is required"</code>, etc. is supported until
+the localisation work lands. SDK consumers that have to rewrite
+the body server-side can do so in a Tower middleware layer
+applied after the framework’s <code>IntoResponse</code> runs.</p>
+<h3 id="unicode-counting"><a class="header" href="#unicode-counting">Unicode counting</a></h3>
+<p>Length rules count characters as the underlying validation
+crate counts them: <code>chars().count()</code> on the underlying <code>&amp;str</code>,
+which counts Unicode <em>scalar values</em>. The framework does not
+interpose a custom counting policy in 0.6.0 — there is no NFC
+normalisation pass, no grapheme-cluster counting, no UTF-16
+code-unit counting.</p>
+<p>The practical consequence: a 10-emoji string may not have a
+length of 10 by your reader’s intuition. The grinning-face
+emoji <code>😀</code> is one scalar value (one <code>chars()</code> count), but
+some emoji sequences (skin-tone modifiers, ZWJ-joined family
+emoji) are several scalar values — a single visible glyph may
+count as 2, 4, or more. If your length rule needs to count
+“what the user sees”, reach for the typed-escape path below
+and write a hand-rolled rule that walks
+<a href="https://docs.rs/unicode-segmentation/"><code>unicode-segmentation</code></a>
+graphemes.</p>
+<h3 id="when-the-eight-rules-are-not-enough--typed-escape-via-ferragarde"><a class="header" href="#when-the-eight-rules-are-not-enough--typed-escape-via-ferragarde">When the eight rules are not enough — typed escape via <code>ferra::garde</code></a></h3>
+<p>The eight-rule namespace is a closed contract surface for
+0.6.0. For rule shapes the surface does not cover — a
+custom function predicate, a locale-aware rule, a regex
+syntax beyond the <code>regex</code> crate, a grapheme-cluster-aware
+length count — Ferra re-exports the underlying validation
+crate at <code>ferra::garde</code> so you can hand-roll a <code>garde::Validate</code>
+impl on your model:</p>
+<pre><code class="language-rust ignore">use ferra::garde::{self, Validate};
+
+impl Validate for MyModel {
+    type Context = ();
+
+    fn validate_into(
+        &amp;self,
+        _ctx: &amp;Self::Context,
+        _parent: &amp;mut dyn FnMut() -&gt; garde::Path,
+        report: &amp;mut garde::error::Report,
+    ) {
+        // your hand-rolled checks here, appending to `report`
+    }
+}</code></pre>
+<p>The escape is the documented fallback — neither encouraged nor
+forbidden, used when the closed set is insufficient. It is
+<strong>not</strong> part of the v1 <code>#[field(...)]</code> contract surface; the
+rule shape and the trait surface follow the upstream <code>garde</code>
+crate’s evolution, not Ferra’s. Use it sparingly: every model
+that hand-rolls validation is a model the <code>#[field(...)]</code>
+diagnostics no longer protect.</p>
+<blockquote>
+<p>Hand-rolling a <code>Validate</code> impl on a model that ALSO carries
+<code>#[field(...)]</code> rules is a duplicate-impl error at compile
+time. The two paths are exclusive: either the framework
+generates the impl from your declarative rules, or you
+write it yourself.</p>
+</blockquote>
+<h2 id="composite-primary-keys"><a class="header" href="#composite-primary-keys">Composite primary keys</a></h2>
+<p>A model can carry <strong>two or more</strong> <code>#[sea_orm(primary_key)]</code> markers.
+Ferra picks them up in declaration order and threads the resulting
+multi-segment shape through the route, the <code>Location</code> header, the
+<code>_links.self.href</code> URL, the OpenAPI per-item parameters list, and
+the <code>find_by_id(...)</code> lookup signature — without consumer-side
+glue.</p>
+<p>A worked example with <code>(tenant_id: Uuid, document_id: i64)</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::*;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(
+    Clone, Debug, PartialEq,
+    DeriveEntityModel, FerraModel,
+    Serialize, Deserialize,
+)]
+#[sea_orm(table_name = "documents")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub tenant_id: Uuid,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub document_id: i64,
+    pub title: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+<span class="boring">}</span></code></pre>
+<p><code>#[sea_orm(auto_increment = false)]</code> is required on every PK field
+in a composite key — PostgreSQL <code>SERIAL</code> only synthesises a value
+for one column per table, so the application supplies an explicit
+value on every insert.</p>
+<p>The framework derives:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Surface</th><th>Single-PK shape</th><th>Composite-PK shape (2 keys)</th></tr>
+</thead>
+<tbody>
+<tr><td>Per-item route</td><td><code>GET /films/{id}</code></td><td><code>GET /documents/{tenant_id}/{document_id}</code></td></tr>
+<tr><td><code>Location</code> header on <code>POST</code></td><td><code>/films/{id}</code></td><td><code>/documents/{tenant_id}/{document_id}</code></td></tr>
+<tr><td><code>_links.self.href</code></td><td><code>/films/{id}</code></td><td><code>/documents/{tenant_id}/{document_id}</code></td></tr>
+<tr><td>OpenAPI <code>parameters</code> count</td><td>1 entry</td><td>2 entries (in declaration order)</td></tr>
+<tr><td><code>repo.find_by_id(...)</code> argument</td><td><code>id</code> (scalar)</td><td><code>(tenant_id, document_id)</code> (tuple)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The repository call site is a typed tuple lookup:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let row = repo.find_by_id((tenant_id, document_id)).await?;
+<span class="boring">}</span></code></pre>
+<p>The tuple element order matches the <code>#[sea_orm(primary_key)]</code>
+declaration order in the struct — Sea-ORM resolves
+<code>PrimaryKeyTrait::ValueType</code> to <code>(Uuid, i64)</code> for the <code>Document</code>
+entity above. Reordering the markers in the source struct is
+therefore a wire-breaking change for any client URL-templating
+against <code>_links.self.href</code> or against the OpenAPI path template.</p>
+<p>The <code>_links.self.href</code> shape on a fetched row:</p>
+<pre><code class="language-jsonc">{
+  "_links": {
+    "self":       { "href": "https://api.example.com/documents/&lt;tenant&gt;/&lt;doc&gt;" },
+    "collection": { "href": "https://api.example.com/documents" }
+  }
+}
+</code></pre>
+<p>Ferra supports any N &gt;= 1. A three-key composite (<code>(tenant_id, year, sequence)</code>) emits <code>GET /issued_documents/{tenant_id}/{year}/{sequence}</code>
+with three OpenAPI parameters. The framework does not impose an
+upper bound; in practice 2-4 keys cover the working set
+(multi-tenant isolation, time-bucketed sequencing, partition keys).
+The N=0 case continues to fail at compile time with the existing
+“this model has no primary key” diagnostic — composite primary keys
+are a widening of the legacy single-PK rule, not a relaxation.</p>
+<p>The <code>FerraRepository&lt;M&gt;</code> surface for composite-PK models is
+documented in <a href="ferra-db.html#the-ferrarepositorym-surface"><code>ferra-db.md</code> § The <code>FerraRepository&lt;M&gt;</code> surface</a>.</p>
 <h2 id="why-deriveentitymodel-is-required"><a class="header" href="#why-deriveentitymodel-is-required">Why <code>DeriveEntityModel</code> is required</a></h2>
 <p>Skipping the <code>DeriveEntityModel</code> sibling is a class-16 compile error:</p>
 <pre><code class="language-text">error: FerraModel requires DeriveEntityModel on the same struct
@@ -406,14 +889,25 @@ later-phase feature.</p>
 <p><strong>Fix.</strong> Model with one of the recognised types, or wait for the
 phase that adds your type (<code>Decimal</code>, <code>Timestamp</code>, relations are on
 the roadmap).</p>
-<h3 id="class-4--optionuuid-rejection"><a class="header" href="#class-4--optionuuid-rejection">Class 4 — <code>Option&lt;Uuid&gt;</code> rejection</a></h3>
-<pre><code class="language-text">error: Option&lt;Uuid&gt; is not supported in Ferra 0.2.0
-  help: remove the `Option&lt;...&gt;` wrapper — UUID identifiers are always required in this phase
-  note: see crates/ferra-core/src/meta.rs for the FieldType gate
+<h3 id="class-4--historical-optionuuid-rejection--retired-in-060"><a class="header" href="#class-4--historical-optionuuid-rejection--retired-in-060">Class 4 — historical (<code>Option&lt;Uuid&gt;</code> rejection — retired in 0.6.0)</a></h3>
+<p><code>Option&lt;Uuid&gt;</code> and <code>Option&lt;Id&gt;</code> are now first-class field types
+admitted as <code>FieldType::OptionUuid</code> (0.6.0 Welding User Story 4 —
+FR-014). The diagnostic that previously fired here (“<code>Option&lt;Uuid&gt;</code>
+is not supported in Ferra 0.2.0”) no longer exists. The class
+number is preserved for historical reference; the contradictory
+case <code>Option&lt;Uuid&gt;</code> tagged <code>#[sea_orm(primary_key)]</code> is now
+rejected with <code>FRG-215</code> instead — shape and fix below.</p>
+<pre><code class="language-text">error: FRG-215: primary key cannot be optional
+   = help: primary key fields must always have a value; remove `Option&lt;...&gt;` from the field type or remove `#[sea_orm(primary_key)]` from the field tag
+   = note: an inserted `None` would be indistinguishable from a row whose key was never assigned, so the round-trip equality semantics a PK guarantees cannot hold; see Spec §Edge Cases "Optional UUID field tagged as primary key"
+  --&gt; src/film.rs:6:9
+   |
+ 6 |     pub id: Option&lt;Uuid&gt;,
+   |         ^^
 </code></pre>
-<p><strong>Fix.</strong> Use <code>Uuid</code> (non-optional) or model the nullable identifier
-at the database layer and project a non-null field into the Ferra
-model.</p>
+<p><strong>Fix.</strong> Either drop the <code>Option&lt;...&gt;</code> from the field type (so the
+PK is always present), or remove <code>#[sea_orm(primary_key)]</code> from the
+tag (so the field becomes a nullable non-key UUID).</p>
 <h3 id="class-5--not-a-struct-with-named-fields"><a class="header" href="#class-5--not-a-struct-with-named-fields">Class 5 — not a struct with named fields</a></h3>
 <pre><code class="language-text">error: FerraModel must be derived on a struct with named fields (not tuple structs, unit structs, enums, or unions)
 </code></pre>
