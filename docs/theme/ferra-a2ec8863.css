@@ -24,7 +24,7 @@
 
 /* ── mdBook colour overrides (light theme) ─────────────────── */
 .light, html {
-  --bg:                      var(--ferra-paper);
+  --bg:                      var(--ferra-cream);
   --fg:                      var(--ferra-ink-soft);
   --sidebar-bg:              var(--ferra-ink);
   --sidebar-fg:              #d8cdb8;
@@ -50,7 +50,7 @@
   --searchresults-border-color: var(--ferra-rule);
   --searchresults-li-bg:     var(--ferra-paper);
   --search-mark-bg:          var(--ferra-amber);
-  --quote-bg:                #faf8f5;
+  --quote-bg:                var(--ferra-cream-deep);
   --quote-border:            var(--ferra-ember);
   --warning-border:          var(--ferra-amber);
   --color-scheme:            light;
@@ -86,36 +86,36 @@ h4 a.header, h5 a.header, h6 a.header {
 }
 
 h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.3em;
+  font-size: 38px;
+  margin-bottom: 8px;
   margin-top: 0;
   color: var(--ferra-ink);
 }
 
 h2 {
-  font-size: 1.55rem;
-  margin-top: 2.5em;
-  margin-bottom: 0.6em;
+  font-size: 26px;
+  margin-top: 48px;
+  margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 2px solid var(--ferra-ember);
   color: var(--ferra-ink);
 }
 
 h3 {
-  font-size: 1.15rem;
-  margin-top: 2em;
-  margin-bottom: 0.4em;
+  font-size: 20px;
+  margin-top: 36px;
+  margin-bottom: 8px;
   color: var(--ferra-ink);
 }
 
 h4 {
-  font-size: 1rem;
+  font-size: 12px;
   font-weight: 700;
-  margin-top: 1.5em;
-  color: var(--ferra-ink-soft);
+  margin-top: 28px;
+  margin-bottom: 6px;
+  color: var(--ferra-ink-mute);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.82rem;
+  letter-spacing: 0.08em;
 }
 
 /* ── Links ──────────────────────────────────────────────────── */
@@ -165,7 +165,7 @@ pre code {
 /* ── Blockquotes / callouts ─────────────────────────────────── */
 blockquote {
   border-left: 3px solid var(--ferra-ember);
-  background: #faf8f5;
+  background: var(--ferra-cream-deep);
   padding: 14px 20px;
   border-radius: 0 4px 4px 0;
   color: var(--ferra-ink-soft);
@@ -279,7 +279,7 @@ table tbody tr:nth-child(even) td { background: #faf8f5; }
 
 /* ── Content area ───────────────────────────────────────────── */
 .content {
-  background: var(--ferra-paper);
+  background: var(--ferra-cream);
 }
 
 .content main {
@@ -305,7 +305,7 @@ table tbody tr:nth-child(even) td { background: #faf8f5; }
 /* ── Mobile ─────────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .content main { padding: 24px 20px 64px; }
-  h1 { font-size: 1.9rem; }
-  h2 { font-size: 1.3rem; }
-  h3 { font-size: 1.05rem; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 21px; }
+  h3 { font-size: 17px; }
 }
