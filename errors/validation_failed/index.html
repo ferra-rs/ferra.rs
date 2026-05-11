@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>validation (400) — Ferra Error Types</title>
-  <meta name="description" content="Ferra RFC 7807 error type: validation. Returned when an inbound body or parameter fails typed deserialisation." />
+  <title>validation_failed (422) — Ferra Error Types</title>
+  <meta name="description" content="Ferra RFC 7807 error type: validation_failed. Returned when a well-formed request body fails one or more #[field(…)] rule constraints." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
@@ -43,38 +43,60 @@
 <div class="bleed bleed--ink">
   <div class="wrap errpage-hero">
     <p class="errpage-hero__breadcrumb">
-      <a href="/">Ferra.rs</a> / <a href="/errors/">Error Types</a> / validation
+      <a href="/">Ferra.rs</a> / <a href="/errors/">Error Types</a> / validation_failed
     </p>
-    <p class="errpage-hero__slug">validation</p>
-    <h1 class="errpage-hero__h1" id="validation">Validation Error</h1>
-    <span class="errpage-hero__http errpage-hero__http--4xx">400 Bad Request</span>
+    <p class="errpage-hero__slug">validation_failed</p>
+    <h1 class="errpage-hero__h1" id="validation_failed">Validation Failed</h1>
+    <span class="errpage-hero__http errpage-hero__http--4xx">422 Unprocessable Content</span>
   </div>
 </div>
 
 <div class="bleed bleed--white">
   <div class="wrap errpage-body">
     <p class="errpage-body__desc">
-      Returned when an inbound JSON body fails to parse, or when a path
-      parameter (e.g. an <code>Id</code>) cannot be deserialised. The
-      <code>errors</code> map contains a single entry keyed by
-      <code>"body"</code> or <code>"id"</code> depending on which
-      extractor rejected the request.
+      Returned when the request body is structurally valid JSON that deserialises
+      into the model's request shape, but one or more
+      <code>#[field(…)]</code> rule constraints fail — for example
+      <code>min_length</code>, <code>max</code>, or <code>pattern</code>.
+      Every failing field is reported in a single response; the framework never
+      short-circuits on the first violation.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
-      For rule-constraint failures on a valid body (e.g.
-      <code>#[field(min_length = 1)]</code>), see
-      <a href="/errors/validation_failed"><code>validation_failed</code> (422)</a>.
+      This is distinct from <a href="/errors/validation"><code>validation</code> (400)</a>,
+      which fires when the body cannot be parsed or a path parameter fails
+      deserialisation. A 400 means "fix your request shape"; a 422 means
+      "fix your field values."
     </p>
-    <p class="errpage-body__label">Example RFC 7807 body — malformed JSON</p>
+
+    <p class="errpage-body__label">Example RFC 7807 body — multiple fields</p>
     <pre class="doc-codeblock">{
-  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/validation"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Error"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/validation_failed"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Failed"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">422</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
   <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"body"</span><span class="tok-pun">:</span> [<span class="tok-str">"invalid character '}' at line 1 column 12"</span>]
+    <span class="tok-key">"title"</span><span class="tok-pun">:</span>  [<span class="tok-str">"must be at least 1 character"</span>]<span class="tok-pun">,</span>
+    <span class="tok-key">"rating"</span><span class="tok-pun">:</span> [<span class="tok-str">"must be at most 10"</span>]
   }
 }</pre>
+
+    <p class="errpage-body__label" style="margin-top:40px">errors map</p>
+    <p class="errpage-body__desc" style="font-size:16px">
+      Keys are wire-side field names (the JSON key the client submitted, respecting
+      any <code>serde rename</code> attributes). Values are non-empty arrays of
+      human-readable English messages, one per failed rule. The shape is
+      <code>Map&lt;String, Vec&lt;String&gt;&gt;</code> and is stable across
+      <code>POST</code> (create) and <code>PUT</code> (update) endpoints.
+    </p>
+
+    <p class="errpage-body__label" style="margin-top:0">how to handle</p>
+    <p class="errpage-body__desc" style="font-size:16px">
+      Iterate <code>errors</code>, surface each message next to the relevant
+      form field, and let the user correct the values. No re-serialisation of
+      the request envelope is needed — the structure was accepted; only the
+      values were rejected.
+    </p>
+
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>
 </div>
