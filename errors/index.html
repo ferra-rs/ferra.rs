@@ -51,7 +51,7 @@
     <h1 class="doc-hero__title">Error type URIs</h1>
     <p class="doc-hero__lead">
       Every Ferra error response carries an RFC&nbsp;7807 body whose
-      <code>type</code> field is one of these seven URIs. The set is closed
+      <code>type</code> field is one of these eight URIs. The set is closed
       — no URI outside this table will ever appear on the wire.
     </p>
   </div>
@@ -83,6 +83,12 @@
           <td class="status-cell status-4xx">400 Bad Request</td>
           <td class="title-cell">Validation Error</td>
           <td><code>FerraError::Validation</code></td>
+        </tr>
+        <tr>
+          <td class="slug-cell"><a href="/errors/validation_failed">validation_failed</a></td>
+          <td class="status-cell status-4xx">422 Unprocessable Content</td>
+          <td class="title-cell">Validation Failed</td>
+          <td><code>FerraError::Unprocessable</code></td>
         </tr>
         <tr>
           <td class="slug-cell"><a href="/errors/conflict">conflict</a></td>
@@ -140,11 +146,12 @@
       <h2 class="variant__h2">Validation Error</h2>
       <span class="variant__http variant__http--4xx">400 Bad Request</span>
       <p class="variant__desc">
-        Returned when an inbound JSON body or path parameter fails the
-        framework's typed deserialisation, when an <code>Id</code> parameter
-        fails to parse, or when a <code>validator</code>-derived field check
-        rejects the input. The optional <code>errors</code> map lists
-        messages per field.
+        Returned when an inbound JSON body fails to parse or a path
+        parameter cannot be deserialised. The <code>errors</code> map
+        contains a single entry keyed by <code>"body"</code> or
+        <code>"id"</code>. For <code>#[field(…)]</code> rule failures on a
+        valid body, see
+        <a href="/errors/validation_failed"><code>validation_failed</code> (422)</a>.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/validation"</span><span class="tok-pun">,</span>
@@ -152,11 +159,35 @@
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
   <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"title"</span><span class="tok-pun">:</span> [<span class="tok-str">"must not be empty"</span>]<span class="tok-pun">,</span>
-    <span class="tok-key">"year"</span><span class="tok-pun">:</span>  [<span class="tok-str">"must be between 1888 and the current year"</span>]
+    <span class="tok-key">"body"</span><span class="tok-pun">:</span> [<span class="tok-str">"invalid character '}' at line 1 column 12"</span>]
   }
 }</pre>
       <a href="/errors/validation" class="variant__link">Full documentation →</a>
+    </div>
+
+    <div class="variant" id="validation_failed">
+      <p class="variant__slug">validation_failed</p>
+      <h2 class="variant__h2">Validation Failed</h2>
+      <span class="variant__http variant__http--4xx">422 Unprocessable Content</span>
+      <p class="variant__desc">
+        Returned when a well-formed JSON body deserialises into the model's
+        request shape but one or more <code>#[field(…)]</code> rule
+        constraints fail. Every violation is reported — the framework never
+        short-circuits on the first error. Distinct from
+        <a href="/errors/validation"><code>validation</code> (400)</a>,
+        which fires when the body cannot be parsed at all.
+      </p>
+      <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/validation_failed"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Failed"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">422</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
+    <span class="tok-key">"title"</span><span class="tok-pun">:</span>  [<span class="tok-str">"must be at least 1 character"</span>]<span class="tok-pun">,</span>
+    <span class="tok-key">"rating"</span><span class="tok-pun">:</span> [<span class="tok-str">"must be at most 10"</span>]
+  }
+}</pre>
+      <a href="/errors/validation_failed" class="variant__link">Full documentation →</a>
     </div>
 
     <div class="variant" id="conflict">
