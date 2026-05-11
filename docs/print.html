@@ -29,7 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-ec34d538.css">
+        <link rel="stylesheet" href="theme/ferra-0c761e90.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ba08c701.js";
+            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e963bb26.js"></script>
+        <script src="toc-6059d525.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3248,6 +3248,12 @@ rejected with <code>FRG-215</code> instead — shape and fix below.</p>
 <p><strong>Fix.</strong> Either drop the <code>Option&lt;...&gt;</code> from the field type (so the
 PK is always present), or remove <code>#[sea_orm(primary_key)]</code> from the
 tag (so the field becomes a nullable non-key UUID).</p>
+<p>The full FRG-2NN matrix and worked examples for every code introduced
+in 0.6.0 Welding live in
+<a href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time diagnostics</a>. This page
+keeps the FRG-215 details inline because the Troubleshooting section
+needs to stand alone for consumers reading <code>ferra-forge.md</code> in
+isolation.</p>
 <h3 id="class-5--not-a-struct-with-named-fields"><a class="header" href="#class-5--not-a-struct-with-named-fields">Class 5 — not a struct with named fields</a></h3>
 <pre><code class="language-text">error: FerraModel must be derived on a struct with named fields (not tuple structs, unit structs, enums, or unions)
 </code></pre>
@@ -3333,6 +3339,615 @@ is not satisfied<code>. All three paths reduce to the same fix: add </code>Deriv
 Ferra. This is the asymmetry documented in § <em>Two attribute
 namespaces, two policies</em>. If Sea-ORM diagnoses the key itself, that
 diagnostic surfaces — Ferra does not layer its own.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="compile-time-diagnostics--the-frg-nnn-namespace"><a class="header" href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time diagnostics — the <code>FRG-NNN</code> namespace</a></h1>
+<p><strong>Status</strong>: 0.6.0 Welding (validation-attribute codes, <code>FRG-201</code> through
+<code>FRG-215</code>).</p>
+<blockquote>
+<p><strong>Reader contract.</strong> This page stands on its own. A reader with only
+this page plus standard Rust and Sea-ORM knowledge can identify the
+trigger condition for any <code>FRG-NNN</code> error in the table below and fix
+the offending source on the first attempt. Cross-references to ADRs
+and the constitution are non-load-bearing — every correctness cue is
+spelled out in the per-code section.</p>
+</blockquote>
+<p><code>#[derive(FerraModel)]</code> and the <code>#[field(...)]</code> attribute parser emit
+typed <code>FRG-NNN</code> codes on every diagnostic. Each code is grep-friendly,
+span-anchored on the offending source token, and documented below with
+a worked-bad → worked-good example pair plus a one-sentence fix
+template.</p>
+<p>The codes are emitted via <code>proc-macro-error2</code>’s
+<code>emit_with_triple</code> / <code>abort_with_triple</code> helpers — multiple
+independent mistakes on the same struct surface in <strong>one</strong>
+<code>cargo check</code> round-trip rather than the first-and-stop pattern. The
+emitted shape carries three logical lines (<code>error:</code> + <code>help:</code> +
+<code>note:</code>) anchored to the offending token via <code>quote_spanned!</code>; the
+<code>note:</code> line in every code below points back to the <code>ferra-forge.md</code>
+section that owns the rule’s call-site documentation.</p>
+<h2 id="namespace-structure"><a class="header" href="#namespace-structure">Namespace structure</a></h2>
+<pre><code class="language-text">FRG-000 .. FRG-099   derive-shape errors        (existing — class 1..16)
+FRG-100 .. FRG-199   #[authorize] errors        (post-0.8.0 — reserved)
+FRG-200 .. FRG-299   validation-attribute       (this release — FRG-201..FRG-215)
+FRG-300 ..           later phases               (reserved)
+</code></pre>
+<p>Code numbers are <strong>never recycled</strong>. A code retired because the class
+becomes unreachable remains documented as historical (see the FRG-215
+note on Class 4 retirement); future codes append to the namespace.</p>
+<h2 id="code-matrix"><a class="header" href="#code-matrix">Code matrix</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Trigger (one-line)</th><th>Section</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FRG-201</code></td><td><code>#[field(min_length = …)]</code> value is not a non-negative integer literal</td><td><a href="#frg-201--min_length-value-is-not-a-non-negative-integer-literal">link</a></td></tr>
+<tr><td><code>FRG-202</code></td><td><code>#[field(max_length = …)]</code> value is not a non-negative integer literal</td><td><a href="#frg-202--max_length-value-is-not-a-non-negative-integer-literal">link</a></td></tr>
+<tr><td><code>FRG-203</code></td><td><code>#[field(min = …)]</code> value type does not match the field’s numeric type</td><td><a href="#frg-203--min-value-type-does-not-match-the-fields-numeric-type">link</a></td></tr>
+<tr><td><code>FRG-204</code></td><td><code>#[field(max = …)]</code> value type does not match the field’s numeric type</td><td><a href="#frg-204--max-value-type-does-not-match-the-fields-numeric-type">link</a></td></tr>
+<tr><td><code>FRG-205</code></td><td><code>#[field(pattern = …)]</code> value is not a non-empty string literal</td><td><a href="#frg-205--pattern-value-is-not-a-non-empty-string-literal">link</a></td></tr>
+<tr><td><code>FRG-206</code></td><td>The same <code>#[field(...)]</code> rule key appears twice on the same field</td><td><a href="#frg-206--duplicate-rule-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-207</code></td><td><code>min_length</code> / <code>max_length</code> rule applied to a non-string field</td><td><a href="#frg-207--length-rule-on-a-non-string-field">link</a></td></tr>
+<tr><td><code>FRG-208</code></td><td><code>min</code> / <code>max</code> rule applied to a non-numeric field</td><td><a href="#frg-208--numeric-rule-on-a-non-numeric-field">link</a></td></tr>
+<tr><td><code>FRG-209</code></td><td><code>pattern</code> / <code>email</code> / <code>url</code> rule applied to a non-string field</td><td><a href="#frg-209--string-rule-on-a-non-string-field">link</a></td></tr>
+<tr><td><code>FRG-210</code></td><td><code>min_length</code> exceeds <code>max_length</code> on the same field</td><td><a href="#frg-210--min_length-exceeds-max_length-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-211</code></td><td><code>min</code> exceeds <code>max</code> on the same field</td><td><a href="#frg-211--min-exceeds-max-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-212</code></td><td><code>#[field(required)]</code> applied to a non-<code>Option&lt;T&gt;</code> field</td><td><a href="#frg-212--required-applied-to-a-non-optiont-field">link</a></td></tr>
+<tr><td><code>FRG-213</code></td><td>Unknown <code>#[field(&lt;key&gt;)]</code> key (with <code>did you mean</code> hint when distance ≤ 2)</td><td><a href="#frg-213--unknown-field-key">link</a></td></tr>
+<tr><td><code>FRG-214</code></td><td><code>#[field(&lt;flag&gt;)]</code> bare flag given a value (e.g. <code>email = "x"</code>)</td><td><a href="#frg-214--bare-flag-given-a-value">link</a></td></tr>
+<tr><td><code>FRG-215</code></td><td><code>Option&lt;Uuid&gt;</code> (or <code>Option&lt;Id&gt;</code>) tagged <code>#[sea_orm(primary_key)]</code></td><td><a href="#frg-215--primary-key-cannot-be-optional">link</a></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="how-to-read-each-entry"><a class="header" href="#how-to-read-each-entry">How to read each entry</a></h2>
+<p>Every section below carries:</p>
+<ul>
+<li><strong>Trigger.</strong> A one-sentence description of when the error fires plus
+the offending <code>#[field(...)]</code> attribute pattern.</li>
+<li><strong>Bad.</strong> A 5-15-line worked example showing the mistake. The block
+compiles in isolation against the canonical entity shape; just paste
+it into a sandbox crate to reproduce the diagnostic.</li>
+<li><strong>Good.</strong> A 5-15-line worked example showing the fix. Replaces the
+bad block one-for-one — same imports, same struct shape, only the
+offending attribute (or field type) changes.</li>
+<li><strong>Fix.</strong> A one- or two-sentence prescription naming what to change
+and where.</li>
+<li><strong>Fixture.</strong> A repo-relative link to the corresponding compile-fail
+fixture under <code>crates/ferra-forge/tests/diagnostics/</code>. The fixture
+is the byte-shape contract — a CI-checked <code>.stderr</code> snapshot proves
+the diagnostic shape stays stable across releases.</li>
+</ul>
+<p>Every code uses the same import preamble. Show it once here so the
+per-code blocks stay short:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+<span class="boring">}</span></code></pre>
+<p>The Sea-ORM boilerplate (<code>Relation</code> enum + <code>ActiveModelBehavior</code>
+impl) below the struct is identical in every example and is
+suppressed in the per-code blocks for brevity. Add it verbatim from
+the <a href="#canonical-entity-shape-sibling-derive">canonical entity shape</a>
+when reproducing locally.</p>
+<hr>
+<h2 id="frg-201--min_length-value-is-not-a-non-negative-integer-literal"><a class="header" href="#frg-201--min_length-value-is-not-a-non-negative-integer-literal">FRG-201 — <code>min_length</code> value is not a non-negative integer literal</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min_length = …)]</code> attribute whose value is
+anything other than a non-negative integer literal — a string, a
+negative integer, a float, an identifier. The <code>min_length</code> rule needs
+a <code>u32</code>-sized count.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = "abc")]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Replace the value with a non-negative integer literal
+(e.g. <code>1</code>, <code>10</code>, <code>255</code>).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_201_min_length_invalid.rs"><code>crates/ferra-forge/tests/diagnostics/frg_201_min_length_invalid.rs</code></a></p>
+<hr>
+<h2 id="frg-202--max_length-value-is-not-a-non-negative-integer-literal"><a class="header" href="#frg-202--max_length-value-is-not-a-non-negative-integer-literal">FRG-202 — <code>max_length</code> value is not a non-negative integer literal</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(max_length = …)]</code> attribute whose value is
+anything other than a non-negative integer literal. Same shape as
+FRG-201, on the upper bound.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max_length = "abc")]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max_length = 255)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Replace the value with a non-negative integer literal
+(e.g. <code>1</code>, <code>10</code>, <code>255</code>).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_202_max_length_invalid.rs"><code>crates/ferra-forge/tests/diagnostics/frg_202_max_length_invalid.rs</code></a></p>
+<hr>
+<h2 id="frg-203--min-value-type-does-not-match-the-fields-numeric-type"><a class="header" href="#frg-203--min-value-type-does-not-match-the-fields-numeric-type">FRG-203 — <code>min</code> value type does not match the field’s numeric type</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min = …)]</code> attribute whose literal type does
+not match the field’s declared numeric type — a float on an <code>i32</code>
+field, an integer where a <code>f64</code> is expected when the literal is
+fractional, etc. The literal type must match: <code>min = 1.5</code> on an
+<code>i32</code> field is rejected; <code>min = 1</code> on a <code>f64</code> field is accepted (and
+coerces).</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1.5)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Use a literal whose Rust type matches the field’s declared
+numeric type (<code>i32</code>, <code>i64</code>, or <code>f64</code>). Or change the field’s type to
+match the literal.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_203_min_type_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_203_min_type_mismatch.rs</code></a></p>
+<hr>
+<h2 id="frg-204--max-value-type-does-not-match-the-fields-numeric-type"><a class="header" href="#frg-204--max-value-type-does-not-match-the-fields-numeric-type">FRG-204 — <code>max</code> value type does not match the field’s numeric type</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(max = …)]</code> attribute whose literal type does
+not match the field’s declared numeric type. Same shape as FRG-203,
+on the upper bound.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max = 2.5)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max = 10)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Use a literal whose Rust type matches the field’s declared
+numeric type. Or change the field’s type to match the literal.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_204_max_type_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_204_max_type_mismatch.rs</code></a></p>
+<hr>
+<h2 id="frg-205--pattern-value-is-not-a-non-empty-string-literal"><a class="header" href="#frg-205--pattern-value-is-not-a-non-empty-string-literal">FRG-205 — <code>pattern</code> value is not a non-empty string literal</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(pattern = …)]</code> attribute whose value is not a
+non-empty string literal — <code>pattern = ""</code> (empty), <code>pattern = 42</code>
+(non-string), <code>pattern = some_const</code> (non-literal). The literal must
+be a non-empty <code>regex</code>-crate-syntax pattern.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(pattern = "")]
+    pub slug: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(pattern = r"^[a-z0-9-]+$")]
+    pub slug: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Provide a non-empty regex literal. A raw-string literal
+(<code>r"…"</code>) is recommended so backslashes are not double-escaped.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_205_empty_pattern.rs"><code>crates/ferra-forge/tests/diagnostics/frg_205_empty_pattern.rs</code></a></p>
+<hr>
+<h2 id="frg-206--duplicate-rule-on-the-same-field"><a class="header" href="#frg-206--duplicate-rule-on-the-same-field">FRG-206 — duplicate rule on the same field</a></h2>
+<p><strong>Trigger.</strong> The same <code>#[field(...)]</code> rule kind appears twice on the
+same field — <code>#[field(min_length = 5, min_length = 10)]</code>, or two
+<code>#[field(...)]</code> attributes each carrying a <code>min_length</code>. Repeated
+rules of the same kind are ambiguous; keep at most one per kind per
+field.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 5, min_length = 10)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 10)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Remove the redundant entry. If you intended two different
+kinds of bound (a length AND a numeric range), the kinds must differ
+— <code>#[field(min_length = 5, max_length = 10)]</code> is fine; two
+<code>min_length</code> entries are not.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_206_duplicate_rule.rs"><code>crates/ferra-forge/tests/diagnostics/frg_206_duplicate_rule.rs</code></a></p>
+<hr>
+<h2 id="frg-207--length-rule-on-a-non-string-field"><a class="header" href="#frg-207--length-rule-on-a-non-string-field">FRG-207 — length rule on a non-string field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min_length = …)]</code> or <code>#[field(max_length = …)]</code>
+attribute on a field whose Rust type is not <code>String</code> or
+<code>Option&lt;String&gt;</code>. Length rules count Unicode scalar values on a
+string body — they are not defined on numeric or other field types.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply length rules to a <code>String</code> or <code>Option&lt;String&gt;</code> field.
+For numeric bounds on a numeric field, use <code>#[field(min = …)]</code> /
+<code>#[field(max = …)]</code> instead.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_207_length_on_non_string.rs"><code>crates/ferra-forge/tests/diagnostics/frg_207_length_on_non_string.rs</code></a></p>
+<hr>
+<h2 id="frg-208--numeric-rule-on-a-non-numeric-field"><a class="header" href="#frg-208--numeric-rule-on-a-non-numeric-field">FRG-208 — numeric rule on a non-numeric field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min = …)]</code> or <code>#[field(max = …)]</code> attribute on
+a field whose Rust type is not <code>i32</code>, <code>i64</code>, <code>f64</code> (or their
+<code>Option&lt;…&gt;</code> form). Numeric range rules are not defined on string,
+boolean, or UUID field types.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply numeric range rules to an <code>i32</code>, <code>i64</code>, or <code>f64</code> field
+(or their <code>Option&lt;…&gt;</code> form). For string-length bounds on a string
+field, use <code>#[field(min_length = …)]</code> / <code>#[field(max_length = …)]</code>
+instead.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_208_range_on_non_numeric.rs"><code>crates/ferra-forge/tests/diagnostics/frg_208_range_on_non_numeric.rs</code></a></p>
+<hr>
+<h2 id="frg-209--string-rule-on-a-non-string-field"><a class="header" href="#frg-209--string-rule-on-a-non-string-field">FRG-209 — string rule on a non-string field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(pattern = …)]</code>, <code>#[field(email)]</code>, or
+<code>#[field(url)]</code> attribute on a field whose Rust type is not <code>String</code>
+or <code>Option&lt;String&gt;</code>. These rules need a string body to evaluate
+against.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub age: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub email: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply <code>pattern</code> / <code>email</code> / <code>url</code> to a <code>String</code> or
+<code>Option&lt;String&gt;</code> field. If the field genuinely is non-string, the
+rule does not apply — drop it.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_209_string_rule_on_non_string.rs"><code>crates/ferra-forge/tests/diagnostics/frg_209_string_rule_on_non_string.rs</code></a></p>
+<hr>
+<h2 id="frg-210--min_length-exceeds-max_length-on-the-same-field"><a class="header" href="#frg-210--min_length-exceeds-max_length-on-the-same-field">FRG-210 — <code>min_length</code> exceeds <code>max_length</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field declares both <code>#[field(min_length = N)]</code> and
+<code>#[field(max_length = M)]</code> with <code>N &gt; M</code> — no string length satisfies
+both bounds, so every wire value would fail validation.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 10, max_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1, max_length = 255)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Ensure <code>min_length &lt;= max_length</code>. The bounds are inclusive
+on both sides, so <code>min_length = max_length</code> (a single fixed length)
+is acceptable.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_210_min_exceeds_max_length.rs"><code>crates/ferra-forge/tests/diagnostics/frg_210_min_exceeds_max_length.rs</code></a></p>
+<hr>
+<h2 id="frg-211--min-exceeds-max-on-the-same-field"><a class="header" href="#frg-211--min-exceeds-max-on-the-same-field">FRG-211 — <code>min</code> exceeds <code>max</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field declares both <code>#[field(min = N)]</code> and
+<code>#[field(max = M)]</code> with <code>N &gt; M</code> — no numeric value satisfies both
+bounds. Same shape as FRG-210, on the numeric range rules.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ratings")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 10, max = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ratings")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 0, max = 10)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Ensure <code>min &lt;= max</code>. The bounds are inclusive, so a single
+fixed value (<code>min = max</code>) is acceptable.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_211_min_exceeds_max.rs"><code>crates/ferra-forge/tests/diagnostics/frg_211_min_exceeds_max.rs</code></a></p>
+<hr>
+<h2 id="frg-212--required-applied-to-a-non-optiont-field"><a class="header" href="#frg-212--required-applied-to-a-non-optiont-field">FRG-212 — <code>required</code> applied to a non-<code>Option&lt;T&gt;</code> field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(required)]</code> attribute on a field whose Rust
+type is not <code>Option&lt;T&gt;</code>. Non-<code>Option</code> fields are required by Rust’s
+type system — the wire value cannot be absent — so the <code>required</code>
+flag is meaningless on them. The flag exists for <code>Option&lt;T&gt;</code> fields,
+where it forbids <code>null</code> on the wire.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(required)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "profiles")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(required)]
+    pub bio: Option&lt;String&gt;,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Either remove <code>required</code> (the field’s non-<code>Option</code> type
+already requires a value) or change the field type to <code>Option&lt;T&gt;</code> if
+the wire form should be nullable but rejected on <code>null</code>.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_212_required_on_non_option.rs"><code>crates/ferra-forge/tests/diagnostics/frg_212_required_on_non_option.rs</code></a></p>
+<hr>
+<h2 id="frg-213--unknown-field-key"><a class="header" href="#frg-213--unknown-field-key">FRG-213 — unknown <code>#[field(...)]</code> key</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(&lt;key&gt;)]</code> invocation whose <code>&lt;key&gt;</code> is not in
+the closed <code>#[field(...)]</code> vocabulary. The closed vocabulary is the
+eight rules listed in
+<a href="#validation-rules"><code>ferra-forge.md</code> § Validation rules</a>
+— <code>min_length</code>, <code>max_length</code>, <code>min</code>, <code>max</code>, <code>pattern</code>, <code>email</code>,
+<code>url</code>, <code>required</code>. When the unknown key’s Levenshtein distance to a
+recognised key is ≤ 2, the diagnostic carries a <code>did you mean &lt;closest&gt;?</code> help line.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_lenght = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply the spelling the <code>did you mean</code> line suggests, or
+consult the closed <code>#[field(...)]</code> vocabulary above. If the key you
+wanted is on the deferred list (see
+<a href="#deferred-keys-and-when-they-land"><code>ferra-forge.md</code> § Deferred keys</a>),
+that feature has not yet shipped.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_213_unknown_field_key.rs"><code>crates/ferra-forge/tests/diagnostics/frg_213_unknown_field_key.rs</code></a></p>
+<hr>
+<h2 id="frg-214--bare-flag-given-a-value"><a class="header" href="#frg-214--bare-flag-given-a-value">FRG-214 — bare flag given a value</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(&lt;flag&gt;)]</code> invocation written as
+<code>#[field(&lt;flag&gt; = &lt;value&gt;)]</code> for one of the bare-flag rules. The
+flags <code>email</code>, <code>url</code>, and <code>required</code> take no value — they fire
+purely on presence. Writing <code>#[field(email = "x")]</code> is a shape
+mismatch.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email = "x")]
+    pub contact_email: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub contact_email: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Drop the <code>= …</code> part — write the flag bare. The rule fires on
+presence; there is nothing to configure.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_214_value_shape_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_214_value_shape_mismatch.rs</code></a></p>
+<hr>
+<h2 id="frg-215--primary-key-cannot-be-optional"><a class="header" href="#frg-215--primary-key-cannot-be-optional">FRG-215 — primary key cannot be optional</a></h2>
+<p><strong>Trigger.</strong> A field declared as <code>#[sea_orm(primary_key)] pub id: Option&lt;Uuid&gt;</code> (or <code>Option&lt;Id&gt;</code>). <code>Option&lt;Uuid&gt;</code> was admitted as a
+field type in 0.6.0 Welding (User Story 4), but a primary key cannot
+be optional — an inserted <code>None</code> would be indistinguishable from a
+row whose key was never assigned, so the round-trip equality
+semantics a PK guarantees cannot hold.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Option&lt;Uuid&gt;,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Uuid,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Either drop the <code>Option&lt;...&gt;</code> from the field type (so the
+PK is always present) or remove <code>#[sea_orm(primary_key)]</code> from the
+tag (so the field becomes a nullable non-key UUID).</p>
+<blockquote>
+<p><strong>Note on Class 4.</strong> <code>Option&lt;Uuid&gt;</code> was previously rejected outright
+by <code>#[derive(FerraModel)]</code> (Class 4 in
+<a href="#troubleshooting-2"><code>ferra-forge.md</code> § Troubleshooting</a>).
+0.6.0 Welding lifts the rejection — the type is now first-class —
+and replaces it with this narrower contradiction check. If you came
+here looking for the old “<code>Option&lt;Uuid&gt;</code> is not supported”
+diagnostic, that class is retired; the per-rule rejection above is
+the current diagnostic.</p>
+</blockquote>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_215_optional_primary_key.rs"><code>crates/ferra-forge/tests/diagnostics/frg_215_optional_primary_key.rs</code></a></p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="custom-handlers"><a class="header" href="#custom-handlers">Custom handlers</a></h1>
 <p>Most Ferra apps need at least one route that is not pure CRUD — a publish action, a derived collection, an aggregation, a webhook receiver. This page is the authoritative guide to writing those handlers on top of a Ferra-served API. A reader with this page plus standard Rust knowledge produces a compiling action route on the first attempt — no framework source, no ADR, no constitution required.</p>
