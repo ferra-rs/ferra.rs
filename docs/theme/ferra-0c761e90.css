@@ -1,29 +1,31 @@
 /* ============================================================
    Ferra.rs — mdBook custom theme
-   Colours: cream / charcoal-ink / ember / amber / teal
-   Fonts  : Fira Sans (body), Roboto Slab (headings), Source Code Pro (code)
+   Colours: white / charcoal-ink / ember / amber / teal
+   Fonts  : Fira Sans (body), Source Code Pro (code)
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600&display=swap');
 
 /* ── Design tokens ─────────────────────────────────────────── */
 :root {
-  --ferra-ink:       #15100c;
-  --ferra-ink-soft:  #2b231d;
-  --ferra-ink-mute:  #5a4f45;
-  --ferra-cream:     #f4ede0;
-  --ferra-cream-deep:#e8dec9;
-  --ferra-rule:      #d9d2c2;
-  --ferra-ember:     #c8410b;
-  --ferra-amber:     #f6c016;
-  --ferra-teal:      #0e7466;
-  --ferra-paper:     #ffffff;
+  --ferra-ink:        #111009;
+  --ferra-ink-soft:   #26201a;
+  --ferra-ink-mute:   #6b5f55;
+  --ferra-cream:      #f4ede0;
+  --ferra-cream-deep: #e8dec9;
+  --ferra-rule:       #e2dbd0;
+  --ferra-rule-soft:  #ede8e0;
+  --ferra-ember:      #c8410b;
+  --ferra-ember-dim:  rgba(200,65,11,0.08);
+  --ferra-amber:      #f6c016;
+  --ferra-teal:       #0e7466;
+  --ferra-paper:      #ffffff;
 }
 
 /* ── mdBook colour overrides (light theme) ─────────────────── */
 .light, html {
-  --bg:                      var(--ferra-cream);
-  --fg:                      var(--ferra-ink);
+  --bg:                      var(--ferra-paper);
+  --fg:                      var(--ferra-ink-soft);
   --sidebar-bg:              var(--ferra-ink);
   --sidebar-fg:              #d8cdb8;
   --sidebar-non-existant:    #9b8c7a;
@@ -38,17 +40,17 @@
   --theme-popup-border:      var(--ferra-rule);
   --theme-hover:             var(--ferra-cream-deep);
   --table-border-color:      var(--ferra-rule);
-  --table-header-bg:         var(--ferra-cream-deep);
-  --table-alternate-bg:      rgba(244,237,224,0.5);
+  --table-header-bg:         #f7f4ef;
+  --table-alternate-bg:      #faf8f5;
   --searchbar-border-color:  var(--ferra-rule);
   --searchbar-bg:            var(--ferra-paper);
   --searchbar-fg:            var(--ferra-ink);
-  --searchbar-shadow-color:  rgba(21,16,12,0.08);
+  --searchbar-shadow-color:  rgba(21,16,12,0.06);
   --searchresults-header-fg: var(--ferra-ink-mute);
   --searchresults-border-color: var(--ferra-rule);
   --searchresults-li-bg:     var(--ferra-paper);
   --search-mark-bg:          var(--ferra-amber);
-  --quote-bg:                var(--ferra-cream-deep);
+  --quote-bg:                #faf8f5;
   --quote-border:            var(--ferra-ember);
   --warning-border:          var(--ferra-amber);
   --color-scheme:            light;
@@ -62,86 +64,156 @@ body {
 
 .content main {
   font-size: 17px;
-  line-height: 1.75;
+  line-height: 1.8;
   color: var(--ferra-ink-soft);
 }
 
+/* ── Headings ───────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Fira Sans', sans-serif;
   font-weight: 800;
   color: var(--ferra-ink);
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
-h1 { font-size: 2.4rem; margin-bottom: 0.5em; }
-h2 { font-size: 1.7rem; margin-top: 2em; }
-h3 { font-size: 1.25rem; margin-top: 1.75em; }
+/* mdBook wraps heading text in <a class="header"> which inherits
+   link colour — force headings to stay ink-dark */
+h1 a.header, h2 a.header, h3 a.header,
+h4 a.header, h5 a.header, h6 a.header {
+  color: inherit !important;
+  text-decoration: none !important;
+}
 
-/* Ember underline on h2 */
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.3em;
+  margin-top: 0;
+  color: var(--ferra-ink);
+}
+
 h2 {
+  font-size: 1.55rem;
+  margin-top: 2.5em;
+  margin-bottom: 0.6em;
   padding-bottom: 10px;
-  border-bottom: 3px solid var(--ferra-ember);
+  border-bottom: 2px solid var(--ferra-ember);
+  color: var(--ferra-ink);
+}
+
+h3 {
+  font-size: 1.15rem;
+  margin-top: 2em;
+  margin-bottom: 0.4em;
+  color: var(--ferra-ink);
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 1.5em;
+  color: var(--ferra-ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.82rem;
 }
 
 /* ── Links ──────────────────────────────────────────────────── */
 a { color: var(--ferra-ember); }
-a:hover { text-decoration: underline; color: var(--ferra-ink); }
+a:hover { text-decoration: underline; color: #a33008; }
+
+/* ── Paragraphs & lists ─────────────────────────────────────── */
+p { margin: 0 0 1.1em; }
+
+ul, ol {
+  padding-left: 1.4em;
+  margin: 0 0 1.1em;
+}
+
+li { margin-bottom: 0.35em; }
 
 /* ── Inline code ────────────────────────────────────────────── */
 code {
   font-family: 'Source Code Pro', monospace;
-  font-size: 0.88em;
-  background: var(--ferra-cream-deep);
-  color: var(--ferra-ember);
-  padding: 2px 6px;
+  font-size: 0.86em;
+  background: var(--ferra-ember-dim);
+  color: #a33008;
+  padding: 2px 5px;
   border-radius: 3px;
-  border: 1px solid var(--ferra-rule);
+  border: 1px solid rgba(200,65,11,0.14);
 }
 
 /* ── Code blocks ────────────────────────────────────────────── */
 pre {
-  background: var(--ferra-ink) !important;
+  background: #1a1410 !important;
   border-radius: 6px;
   padding: 20px 24px !important;
+  margin: 1.25em 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
 
 pre code {
   font-family: 'Source Code Pro', monospace;
   font-size: 14px;
+  line-height: 1.65;
   background: transparent;
   color: #d8cdb8;
   border: none;
   padding: 0;
 }
 
-/* ── Blockquotes ────────────────────────────────────────────── */
+/* ── Blockquotes / callouts ─────────────────────────────────── */
 blockquote {
-  border-left: 4px solid var(--ferra-ember);
-  background: var(--ferra-cream-deep);
-  padding: 12px 20px;
+  border-left: 3px solid var(--ferra-ember);
+  background: #faf8f5;
+  padding: 14px 20px;
   border-radius: 0 4px 4px 0;
   color: var(--ferra-ink-soft);
+  margin: 1.25em 0;
+  font-size: 15.5px;
+}
+
+blockquote p:last-child { margin-bottom: 0; }
+
+/* ── Horizontal rules ───────────────────────────────────────── */
+hr {
+  border: none;
+  border-top: 1px solid var(--ferra-rule);
+  margin: 2.5em 0;
 }
 
 /* ── Tables ─────────────────────────────────────────────────── */
 table {
   border-collapse: collapse;
   font-size: 15px;
+  width: 100%;
+  margin: 1.25em 0;
+  border: 1px solid var(--ferra-rule);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 table thead th {
   font-family: 'Fira Sans', sans-serif;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ferra-ink-mute);
-  background: var(--ferra-cream-deep);
+  background: #f0ece4;
   padding: 10px 16px;
+  border-bottom: 1px solid var(--ferra-rule);
+  text-align: left;
 }
 
-table td { padding: 10px 16px; }
+table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ferra-rule-soft);
+  vertical-align: top;
+}
+
+table tbody tr:last-child td { border-bottom: none; }
+table tbody tr:nth-child(even) td { background: #faf8f5; }
 
 /* ── Sidebar ────────────────────────────────────────────────── */
 .sidebar {
@@ -153,11 +225,10 @@ table td { padding: 10px 16px; }
   padding: 16px 0;
 }
 
-/* Sidebar brand header */
 .sidebar-title {
-  font-family: 'Roboto Slab', serif;
+  font-family: 'Fira Sans', sans-serif;
   font-weight: 900;
-  font-size: 20px;
+  font-size: 18px;
   letter-spacing: -0.01em;
   padding: 20px 24px 16px;
   color: #fff;
@@ -168,17 +239,18 @@ table td { padding: 10px 16px; }
 .sidebar-title span { color: var(--ferra-ember); }
 
 .sidebar ol, .sidebar ul {
-  padding: 0 12px;
+  padding: 0 10px;
 }
 
 .sidebar li a {
   font-family: 'Fira Sans', sans-serif;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: rgba(216,205,184,0.8);
-  padding: 6px 12px;
+  color: rgba(216,205,184,0.75);
+  padding: 5px 12px;
   border-radius: 4px;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.1s, color 0.1s;
+  display: block;
 }
 
 .sidebar li a:hover {
@@ -193,6 +265,12 @@ table td { padding: 10px 16px; }
   background: rgba(246,192,22,0.1);
 }
 
+/* Section headers in sidebar (top-level entries without links) */
+.sidebar li > .chapter-item > a[href] {
+  font-weight: 600;
+  color: rgba(216,205,184,0.9);
+}
+
 /* ── Top nav bar ────────────────────────────────────────────── */
 .menu-bar {
   background: var(--ferra-paper);
@@ -201,15 +279,15 @@ table td { padding: 10px 16px; }
 
 /* ── Content area ───────────────────────────────────────────── */
 .content {
-  background: var(--ferra-cream);
+  background: var(--ferra-paper);
 }
 
 .content main {
-  padding: 32px 48px 80px;
-  max-width: 760px;
+  padding: 40px 56px 96px;
+  max-width: 800px;
 }
 
-/* ── Nav arrows (prev/next) ─────────────────────────────────── */
+/* ── Nav arrows ─────────────────────────────────────────────── */
 .nav-chapters a {
   color: var(--ferra-ember);
   font-weight: 700;
@@ -227,6 +305,7 @@ table td { padding: 10px 16px; }
 /* ── Mobile ─────────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .content main { padding: 24px 20px 64px; }
-  h1 { font-size: 1.8rem; }
-  h2 { font-size: 1.35rem; }
+  h1 { font-size: 1.9rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.05rem; }
 }

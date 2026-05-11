@@ -1,0 +1,850 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Compile-time Diagnostics - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0c761e90.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-6059d525.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/ferra-forge-diagnostics.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="compile-time-diagnostics--the-frg-nnn-namespace"><a class="header" href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time diagnostics — the <code>FRG-NNN</code> namespace</a></h1>
+<p><strong>Status</strong>: 0.6.0 Welding (validation-attribute codes, <code>FRG-201</code> through
+<code>FRG-215</code>).</p>
+<blockquote>
+<p><strong>Reader contract.</strong> This page stands on its own. A reader with only
+this page plus standard Rust and Sea-ORM knowledge can identify the
+trigger condition for any <code>FRG-NNN</code> error in the table below and fix
+the offending source on the first attempt. Cross-references to ADRs
+and the constitution are non-load-bearing — every correctness cue is
+spelled out in the per-code section.</p>
+</blockquote>
+<p><code>#[derive(FerraModel)]</code> and the <code>#[field(...)]</code> attribute parser emit
+typed <code>FRG-NNN</code> codes on every diagnostic. Each code is grep-friendly,
+span-anchored on the offending source token, and documented below with
+a worked-bad → worked-good example pair plus a one-sentence fix
+template.</p>
+<p>The codes are emitted via <code>proc-macro-error2</code>’s
+<code>emit_with_triple</code> / <code>abort_with_triple</code> helpers — multiple
+independent mistakes on the same struct surface in <strong>one</strong>
+<code>cargo check</code> round-trip rather than the first-and-stop pattern. The
+emitted shape carries three logical lines (<code>error:</code> + <code>help:</code> +
+<code>note:</code>) anchored to the offending token via <code>quote_spanned!</code>; the
+<code>note:</code> line in every code below points back to the <code>ferra-forge.md</code>
+section that owns the rule’s call-site documentation.</p>
+<h2 id="namespace-structure"><a class="header" href="#namespace-structure">Namespace structure</a></h2>
+<pre><code class="language-text">FRG-000 .. FRG-099   derive-shape errors        (existing — class 1..16)
+FRG-100 .. FRG-199   #[authorize] errors        (post-0.8.0 — reserved)
+FRG-200 .. FRG-299   validation-attribute       (this release — FRG-201..FRG-215)
+FRG-300 ..           later phases               (reserved)
+</code></pre>
+<p>Code numbers are <strong>never recycled</strong>. A code retired because the class
+becomes unreachable remains documented as historical (see the FRG-215
+note on Class 4 retirement); future codes append to the namespace.</p>
+<h2 id="code-matrix"><a class="header" href="#code-matrix">Code matrix</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Trigger (one-line)</th><th>Section</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FRG-201</code></td><td><code>#[field(min_length = …)]</code> value is not a non-negative integer literal</td><td><a href="#frg-201--min_length-value-is-not-a-non-negative-integer-literal">link</a></td></tr>
+<tr><td><code>FRG-202</code></td><td><code>#[field(max_length = …)]</code> value is not a non-negative integer literal</td><td><a href="#frg-202--max_length-value-is-not-a-non-negative-integer-literal">link</a></td></tr>
+<tr><td><code>FRG-203</code></td><td><code>#[field(min = …)]</code> value type does not match the field’s numeric type</td><td><a href="#frg-203--min-value-type-does-not-match-the-fields-numeric-type">link</a></td></tr>
+<tr><td><code>FRG-204</code></td><td><code>#[field(max = …)]</code> value type does not match the field’s numeric type</td><td><a href="#frg-204--max-value-type-does-not-match-the-fields-numeric-type">link</a></td></tr>
+<tr><td><code>FRG-205</code></td><td><code>#[field(pattern = …)]</code> value is not a non-empty string literal</td><td><a href="#frg-205--pattern-value-is-not-a-non-empty-string-literal">link</a></td></tr>
+<tr><td><code>FRG-206</code></td><td>The same <code>#[field(...)]</code> rule key appears twice on the same field</td><td><a href="#frg-206--duplicate-rule-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-207</code></td><td><code>min_length</code> / <code>max_length</code> rule applied to a non-string field</td><td><a href="#frg-207--length-rule-on-a-non-string-field">link</a></td></tr>
+<tr><td><code>FRG-208</code></td><td><code>min</code> / <code>max</code> rule applied to a non-numeric field</td><td><a href="#frg-208--numeric-rule-on-a-non-numeric-field">link</a></td></tr>
+<tr><td><code>FRG-209</code></td><td><code>pattern</code> / <code>email</code> / <code>url</code> rule applied to a non-string field</td><td><a href="#frg-209--string-rule-on-a-non-string-field">link</a></td></tr>
+<tr><td><code>FRG-210</code></td><td><code>min_length</code> exceeds <code>max_length</code> on the same field</td><td><a href="#frg-210--min_length-exceeds-max_length-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-211</code></td><td><code>min</code> exceeds <code>max</code> on the same field</td><td><a href="#frg-211--min-exceeds-max-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-212</code></td><td><code>#[field(required)]</code> applied to a non-<code>Option&lt;T&gt;</code> field</td><td><a href="#frg-212--required-applied-to-a-non-optiont-field">link</a></td></tr>
+<tr><td><code>FRG-213</code></td><td>Unknown <code>#[field(&lt;key&gt;)]</code> key (with <code>did you mean</code> hint when distance ≤ 2)</td><td><a href="#frg-213--unknown-field-key">link</a></td></tr>
+<tr><td><code>FRG-214</code></td><td><code>#[field(&lt;flag&gt;)]</code> bare flag given a value (e.g. <code>email = "x"</code>)</td><td><a href="#frg-214--bare-flag-given-a-value">link</a></td></tr>
+<tr><td><code>FRG-215</code></td><td><code>Option&lt;Uuid&gt;</code> (or <code>Option&lt;Id&gt;</code>) tagged <code>#[sea_orm(primary_key)]</code></td><td><a href="#frg-215--primary-key-cannot-be-optional">link</a></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="how-to-read-each-entry"><a class="header" href="#how-to-read-each-entry">How to read each entry</a></h2>
+<p>Every section below carries:</p>
+<ul>
+<li><strong>Trigger.</strong> A one-sentence description of when the error fires plus
+the offending <code>#[field(...)]</code> attribute pattern.</li>
+<li><strong>Bad.</strong> A 5-15-line worked example showing the mistake. The block
+compiles in isolation against the canonical entity shape; just paste
+it into a sandbox crate to reproduce the diagnostic.</li>
+<li><strong>Good.</strong> A 5-15-line worked example showing the fix. Replaces the
+bad block one-for-one — same imports, same struct shape, only the
+offending attribute (or field type) changes.</li>
+<li><strong>Fix.</strong> A one- or two-sentence prescription naming what to change
+and where.</li>
+<li><strong>Fixture.</strong> A repo-relative link to the corresponding compile-fail
+fixture under <code>crates/ferra-forge/tests/diagnostics/</code>. The fixture
+is the byte-shape contract — a CI-checked <code>.stderr</code> snapshot proves
+the diagnostic shape stays stable across releases.</li>
+</ul>
+<p>Every code uses the same import preamble. Show it once here so the
+per-code blocks stay short:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+<span class="boring">}</span></code></pre>
+<p>The Sea-ORM boilerplate (<code>Relation</code> enum + <code>ActiveModelBehavior</code>
+impl) below the struct is identical in every example and is
+suppressed in the per-code blocks for brevity. Add it verbatim from
+the <a href="ferra-forge.html#canonical-entity-shape-sibling-derive">canonical entity shape</a>
+when reproducing locally.</p>
+<hr>
+<h2 id="frg-201--min_length-value-is-not-a-non-negative-integer-literal"><a class="header" href="#frg-201--min_length-value-is-not-a-non-negative-integer-literal">FRG-201 — <code>min_length</code> value is not a non-negative integer literal</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min_length = …)]</code> attribute whose value is
+anything other than a non-negative integer literal — a string, a
+negative integer, a float, an identifier. The <code>min_length</code> rule needs
+a <code>u32</code>-sized count.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = "abc")]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Replace the value with a non-negative integer literal
+(e.g. <code>1</code>, <code>10</code>, <code>255</code>).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_201_min_length_invalid.rs"><code>crates/ferra-forge/tests/diagnostics/frg_201_min_length_invalid.rs</code></a></p>
+<hr>
+<h2 id="frg-202--max_length-value-is-not-a-non-negative-integer-literal"><a class="header" href="#frg-202--max_length-value-is-not-a-non-negative-integer-literal">FRG-202 — <code>max_length</code> value is not a non-negative integer literal</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(max_length = …)]</code> attribute whose value is
+anything other than a non-negative integer literal. Same shape as
+FRG-201, on the upper bound.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max_length = "abc")]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max_length = 255)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Replace the value with a non-negative integer literal
+(e.g. <code>1</code>, <code>10</code>, <code>255</code>).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_202_max_length_invalid.rs"><code>crates/ferra-forge/tests/diagnostics/frg_202_max_length_invalid.rs</code></a></p>
+<hr>
+<h2 id="frg-203--min-value-type-does-not-match-the-fields-numeric-type"><a class="header" href="#frg-203--min-value-type-does-not-match-the-fields-numeric-type">FRG-203 — <code>min</code> value type does not match the field’s numeric type</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min = …)]</code> attribute whose literal type does
+not match the field’s declared numeric type — a float on an <code>i32</code>
+field, an integer where a <code>f64</code> is expected when the literal is
+fractional, etc. The literal type must match: <code>min = 1.5</code> on an
+<code>i32</code> field is rejected; <code>min = 1</code> on a <code>f64</code> field is accepted (and
+coerces).</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1.5)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Use a literal whose Rust type matches the field’s declared
+numeric type (<code>i32</code>, <code>i64</code>, or <code>f64</code>). Or change the field’s type to
+match the literal.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_203_min_type_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_203_min_type_mismatch.rs</code></a></p>
+<hr>
+<h2 id="frg-204--max-value-type-does-not-match-the-fields-numeric-type"><a class="header" href="#frg-204--max-value-type-does-not-match-the-fields-numeric-type">FRG-204 — <code>max</code> value type does not match the field’s numeric type</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(max = …)]</code> attribute whose literal type does
+not match the field’s declared numeric type. Same shape as FRG-203,
+on the upper bound.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max = 2.5)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(max = 10)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Use a literal whose Rust type matches the field’s declared
+numeric type. Or change the field’s type to match the literal.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_204_max_type_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_204_max_type_mismatch.rs</code></a></p>
+<hr>
+<h2 id="frg-205--pattern-value-is-not-a-non-empty-string-literal"><a class="header" href="#frg-205--pattern-value-is-not-a-non-empty-string-literal">FRG-205 — <code>pattern</code> value is not a non-empty string literal</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(pattern = …)]</code> attribute whose value is not a
+non-empty string literal — <code>pattern = ""</code> (empty), <code>pattern = 42</code>
+(non-string), <code>pattern = some_const</code> (non-literal). The literal must
+be a non-empty <code>regex</code>-crate-syntax pattern.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(pattern = "")]
+    pub slug: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(pattern = r"^[a-z0-9-]+$")]
+    pub slug: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Provide a non-empty regex literal. A raw-string literal
+(<code>r"…"</code>) is recommended so backslashes are not double-escaped.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_205_empty_pattern.rs"><code>crates/ferra-forge/tests/diagnostics/frg_205_empty_pattern.rs</code></a></p>
+<hr>
+<h2 id="frg-206--duplicate-rule-on-the-same-field"><a class="header" href="#frg-206--duplicate-rule-on-the-same-field">FRG-206 — duplicate rule on the same field</a></h2>
+<p><strong>Trigger.</strong> The same <code>#[field(...)]</code> rule kind appears twice on the
+same field — <code>#[field(min_length = 5, min_length = 10)]</code>, or two
+<code>#[field(...)]</code> attributes each carrying a <code>min_length</code>. Repeated
+rules of the same kind are ambiguous; keep at most one per kind per
+field.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 5, min_length = 10)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 10)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Remove the redundant entry. If you intended two different
+kinds of bound (a length AND a numeric range), the kinds must differ
+— <code>#[field(min_length = 5, max_length = 10)]</code> is fine; two
+<code>min_length</code> entries are not.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_206_duplicate_rule.rs"><code>crates/ferra-forge/tests/diagnostics/frg_206_duplicate_rule.rs</code></a></p>
+<hr>
+<h2 id="frg-207--length-rule-on-a-non-string-field"><a class="header" href="#frg-207--length-rule-on-a-non-string-field">FRG-207 — length rule on a non-string field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min_length = …)]</code> or <code>#[field(max_length = …)]</code>
+attribute on a field whose Rust type is not <code>String</code> or
+<code>Option&lt;String&gt;</code>. Length rules count Unicode scalar values on a
+string body — they are not defined on numeric or other field types.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply length rules to a <code>String</code> or <code>Option&lt;String&gt;</code> field.
+For numeric bounds on a numeric field, use <code>#[field(min = …)]</code> /
+<code>#[field(max = …)]</code> instead.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_207_length_on_non_string.rs"><code>crates/ferra-forge/tests/diagnostics/frg_207_length_on_non_string.rs</code></a></p>
+<hr>
+<h2 id="frg-208--numeric-rule-on-a-non-numeric-field"><a class="header" href="#frg-208--numeric-rule-on-a-non-numeric-field">FRG-208 — numeric rule on a non-numeric field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(min = …)]</code> or <code>#[field(max = …)]</code> attribute on
+a field whose Rust type is not <code>i32</code>, <code>i64</code>, <code>f64</code> (or their
+<code>Option&lt;…&gt;</code> form). Numeric range rules are not defined on string,
+boolean, or UUID field types.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply numeric range rules to an <code>i32</code>, <code>i64</code>, or <code>f64</code> field
+(or their <code>Option&lt;…&gt;</code> form). For string-length bounds on a string
+field, use <code>#[field(min_length = …)]</code> / <code>#[field(max_length = …)]</code>
+instead.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_208_range_on_non_numeric.rs"><code>crates/ferra-forge/tests/diagnostics/frg_208_range_on_non_numeric.rs</code></a></p>
+<hr>
+<h2 id="frg-209--string-rule-on-a-non-string-field"><a class="header" href="#frg-209--string-rule-on-a-non-string-field">FRG-209 — string rule on a non-string field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(pattern = …)]</code>, <code>#[field(email)]</code>, or
+<code>#[field(url)]</code> attribute on a field whose Rust type is not <code>String</code>
+or <code>Option&lt;String&gt;</code>. These rules need a string body to evaluate
+against.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub age: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub email: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply <code>pattern</code> / <code>email</code> / <code>url</code> to a <code>String</code> or
+<code>Option&lt;String&gt;</code> field. If the field genuinely is non-string, the
+rule does not apply — drop it.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_209_string_rule_on_non_string.rs"><code>crates/ferra-forge/tests/diagnostics/frg_209_string_rule_on_non_string.rs</code></a></p>
+<hr>
+<h2 id="frg-210--min_length-exceeds-max_length-on-the-same-field"><a class="header" href="#frg-210--min_length-exceeds-max_length-on-the-same-field">FRG-210 — <code>min_length</code> exceeds <code>max_length</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field declares both <code>#[field(min_length = N)]</code> and
+<code>#[field(max_length = M)]</code> with <code>N &gt; M</code> — no string length satisfies
+both bounds, so every wire value would fail validation.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 10, max_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1, max_length = 255)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Ensure <code>min_length &lt;= max_length</code>. The bounds are inclusive
+on both sides, so <code>min_length = max_length</code> (a single fixed length)
+is acceptable.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_210_min_exceeds_max_length.rs"><code>crates/ferra-forge/tests/diagnostics/frg_210_min_exceeds_max_length.rs</code></a></p>
+<hr>
+<h2 id="frg-211--min-exceeds-max-on-the-same-field"><a class="header" href="#frg-211--min-exceeds-max-on-the-same-field">FRG-211 — <code>min</code> exceeds <code>max</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field declares both <code>#[field(min = N)]</code> and
+<code>#[field(max = M)]</code> with <code>N &gt; M</code> — no numeric value satisfies both
+bounds. Same shape as FRG-210, on the numeric range rules.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ratings")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 10, max = 1)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ratings")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min = 0, max = 10)]
+    pub rating: i32,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Ensure <code>min &lt;= max</code>. The bounds are inclusive, so a single
+fixed value (<code>min = max</code>) is acceptable.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_211_min_exceeds_max.rs"><code>crates/ferra-forge/tests/diagnostics/frg_211_min_exceeds_max.rs</code></a></p>
+<hr>
+<h2 id="frg-212--required-applied-to-a-non-optiont-field"><a class="header" href="#frg-212--required-applied-to-a-non-optiont-field">FRG-212 — <code>required</code> applied to a non-<code>Option&lt;T&gt;</code> field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(required)]</code> attribute on a field whose Rust
+type is not <code>Option&lt;T&gt;</code>. Non-<code>Option</code> fields are required by Rust’s
+type system — the wire value cannot be absent — so the <code>required</code>
+flag is meaningless on them. The flag exists for <code>Option&lt;T&gt;</code> fields,
+where it forbids <code>null</code> on the wire.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(required)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "profiles")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(required)]
+    pub bio: Option&lt;String&gt;,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Either remove <code>required</code> (the field’s non-<code>Option</code> type
+already requires a value) or change the field type to <code>Option&lt;T&gt;</code> if
+the wire form should be nullable but rejected on <code>null</code>.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_212_required_on_non_option.rs"><code>crates/ferra-forge/tests/diagnostics/frg_212_required_on_non_option.rs</code></a></p>
+<hr>
+<h2 id="frg-213--unknown-field-key"><a class="header" href="#frg-213--unknown-field-key">FRG-213 — unknown <code>#[field(...)]</code> key</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(&lt;key&gt;)]</code> invocation whose <code>&lt;key&gt;</code> is not in
+the closed <code>#[field(...)]</code> vocabulary. The closed vocabulary is the
+eight rules listed in
+<a href="ferra-forge.html#validation-rules"><code>ferra-forge.md</code> § Validation rules</a>
+— <code>min_length</code>, <code>max_length</code>, <code>min</code>, <code>max</code>, <code>pattern</code>, <code>email</code>,
+<code>url</code>, <code>required</code>. When the unknown key’s Levenshtein distance to a
+recognised key is ≤ 2, the diagnostic carries a <code>did you mean &lt;closest&gt;?</code> help line.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_lenght = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1)]
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Apply the spelling the <code>did you mean</code> line suggests, or
+consult the closed <code>#[field(...)]</code> vocabulary above. If the key you
+wanted is on the deferred list (see
+<a href="ferra-forge.html#deferred-keys-and-when-they-land"><code>ferra-forge.md</code> § Deferred keys</a>),
+that feature has not yet shipped.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_213_unknown_field_key.rs"><code>crates/ferra-forge/tests/diagnostics/frg_213_unknown_field_key.rs</code></a></p>
+<hr>
+<h2 id="frg-214--bare-flag-given-a-value"><a class="header" href="#frg-214--bare-flag-given-a-value">FRG-214 — bare flag given a value</a></h2>
+<p><strong>Trigger.</strong> A <code>#[field(&lt;flag&gt;)]</code> invocation written as
+<code>#[field(&lt;flag&gt; = &lt;value&gt;)]</code> for one of the bare-flag rules. The
+flags <code>email</code>, <code>url</code>, and <code>required</code> take no value — they fire
+purely on presence. Writing <code>#[field(email = "x")]</code> is a shape
+mismatch.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email = "x")]
+    pub contact_email: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(email)]
+    pub contact_email: String,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Drop the <code>= …</code> part — write the flag bare. The rule fires on
+presence; there is nothing to configure.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_214_value_shape_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_214_value_shape_mismatch.rs</code></a></p>
+<hr>
+<h2 id="frg-215--primary-key-cannot-be-optional"><a class="header" href="#frg-215--primary-key-cannot-be-optional">FRG-215 — primary key cannot be optional</a></h2>
+<p><strong>Trigger.</strong> A field declared as <code>#[sea_orm(primary_key)] pub id: Option&lt;Uuid&gt;</code> (or <code>Option&lt;Id&gt;</code>). <code>Option&lt;Uuid&gt;</code> was admitted as a
+field type in 0.6.0 Welding (User Story 4), but a primary key cannot
+be optional — an inserted <code>None</code> would be indistinguishable from a
+row whose key was never assigned, so the round-trip equality
+semantics a PK guarantees cannot hold.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Option&lt;Uuid&gt;,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Uuid,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Fix.</strong> Either drop the <code>Option&lt;...&gt;</code> from the field type (so the
+PK is always present) or remove <code>#[sea_orm(primary_key)]</code> from the
+tag (so the field becomes a nullable non-key UUID).</p>
+<blockquote>
+<p><strong>Note on Class 4.</strong> <code>Option&lt;Uuid&gt;</code> was previously rejected outright
+by <code>#[derive(FerraModel)]</code> (Class 4 in
+<a href="ferra-forge.html#troubleshooting"><code>ferra-forge.md</code> § Troubleshooting</a>).
+0.6.0 Welding lifts the rejection — the type is now first-class —
+and replaces it with this narrower contradiction check. If you came
+here looking for the old “<code>Option&lt;Uuid&gt;</code> is not supported”
+diagnostic, that class is retired; the per-rule rejection above is
+the current diagnostic.</p>
+</blockquote>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_215_optional_primary_key.rs"><code>crates/ferra-forge/tests/diagnostics/frg_215_optional_primary_key.rs</code></a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ferra-forge.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="custom-handlers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ferra-forge.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="custom-handlers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
