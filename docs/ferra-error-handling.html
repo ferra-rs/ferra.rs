@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -320,7 +320,7 @@ short form:</p>
   "status": 422,
   "detail": "validation failed",
   "errors": {
-    "title": ["must be at least 1 characters"]
+    "title": ["must be at least 1 character"]
   }
 }
 </code></pre>
@@ -377,7 +377,7 @@ Content-Type: application/problem+json
   "detail": "validation failed",
   "errors": {
     "rating": ["must be at most 10"],
-    "title":  ["must be at least 1 characters"]
+    "title":  ["must be at least 1 character"]
   }
 }
 </code></pre>
@@ -463,9 +463,7 @@ fn observe(err: &amp;FerraError) {
 <p>The recommended consumer pattern is to compare the wire <code>type</code> field
 against the URI constants — never against the <code>Display</code> form of the
 error. The URI is the wire contract; the message text is not.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>match body["type"].as_str() {
+<pre><code class="language-rust ignore">match body["type"].as_str() {
     Some("https://ferra.rs/errors/not_found")          =&gt; /* 404 path */,
     Some("https://ferra.rs/errors/validation")         =&gt; /* 400 path; extractor failure */,
     Some("https://ferra.rs/errors/validation_failed")  =&gt; /* 422 path; #[field(...)] rule violation */,
@@ -475,19 +473,15 @@ error. The URI is the wire contract; the message text is not.</p>
     Some("https://ferra.rs/errors/unauthorized")       =&gt; /* 401 path */,
     Some("https://ferra.rs/errors/internal")           =&gt; /* 500 path; retry with backoff */,
     _ =&gt; /* unreachable on a non-fabricated error */,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Server-side, when handling a <code>FerraError</code> value (for example, when
 mapping to a custom log line or a metrics tag), use the typed
 <a href="https://docs.rs/ferra/latest/ferra/error/enum.FerraError.html#method.error_type"><code>FerraError::error_type</code></a> method:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::FerraError;
+<pre><code class="language-rust ignore">use ferra::FerraError;
 
 fn log_one(err: &amp;FerraError) {
     tracing::warn!(error_type = err.error_type(), "request failed");
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>FerraError::error_type</code> returns one of the five URIs that map
 through the typed enum (<code>not_found</code>, <code>validation</code>, <code>validation_failed</code>,
 <code>conflict</code>, <code>internal</code>). The other three URIs reach the wire via
@@ -503,6 +497,34 @@ exhaustively on the wire <code>type</code> value.</p>
 <p>For an AI coding assistant generating client code: the <code>type</code> field
 is an enum, not a free-form string. Synthesising a value outside the
 eight URIs above fails OpenAPI schema validation against the spec.</p>
+<hr>
+<h2 id="observability-events"><a class="header" href="#observability-events">Observability events</a></h2>
+<p>Two structured <code>tracing</code> events fire alongside the wire surface of the
+error namespace and the deprecation surface. Both follow the
+<code>&lt;snake-cased crate name&gt;::&lt;event segment&gt;</code> target convention so an
+operator can filter them independently via <code>tracing-subscriber</code>’s
+<code>EnvFilter</code> (<code>RUST_LOG=ferra_http::sunset=warn</code>, etc.).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Target</th><th>Level</th><th>Trigger</th><th>Documented at</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ferra_http::rate_limit</code></td><td><code>WARN</code></td><td>every 429 emission from the governor middleware</td><td>this file § “<code>rate_limited</code> — <code>429</code>”</td></tr>
+<tr><td><code>ferra_http::sunset</code></td><td><code>WARN</code></td><td>once per <code>(version, sunset)</code> per process when a request lands past the declared sunset date</td><td><a href="./foundry.html"><code>foundry.md</code> § “Post-sunset warn-event”</a></td></tr>
+</tbody>
+</table>
+</div>
+<p>The post-sunset event carries five fields (<code>version</code>, <code>sunset</code>,
+<code>days_overdue</code>, <code>http.method</code>, <code>http.target</code>); the rate-limit event
+carries three (<code>http.method</code>, <code>http.target</code>, <code>http.retry_after_seconds</code>).
+Both event-schemas are contracts under ADR-0015 §“event schema is a
+contract” — additive widenings only, never renames.</p>
+<p>When the <code>observability</code> Cargo feature is on, the framework ALSO
+advances a <code>metrics::counter!</code> named <code>ferra.sunset.post_sunset_hits</code>
+on every post-sunset hit (regardless of the once-per-process dedup
+that gates the warn-event). See <a href="./foundry.html"><code>foundry.md</code> § “Post-sunset
+warn-event”</a> for the full surface.</p>
 <hr>
 <h2 id="adding-a-new-uri"><a class="header" href="#adding-a-new-uri">Adding a new URI</a></h2>
 <p>The framework’s URI namespace is closed by design: a new variant

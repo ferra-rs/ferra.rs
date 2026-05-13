@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,10 +199,12 @@ direct use cases and for the per-resource integration test suite.</p>
 <li><strong><code>GET /docs/openapi.json</code></strong> — full <code>OpenAPI</code> 3.1 document.</li>
 <li><strong><code>GET /docs</code></strong> — interactive Scalar UI rendering the spec.</li>
 </ul>
-<p>Both routes are publicly reachable by default. The auth-gated
-variant (<code>Foundry::with_docs_protected(verifier)</code>) ships in the same
-release and is the recommended posture for any publicly-reachable
-network surface.</p>
+<p>Both routes are publicly reachable by default — the inventory is the
+feature. For deployments where the endpoint structure is itself
+sensitive, the auth-gated variant
+(<code>Foundry::with_docs_protected(verifier)</code>) ships in the same release
+and gates the surface behind authentication. See
+§“Public-by-default rationale” below for when to choose which.</p>
 <p>For each mounted model <code>M</code> (PascalCase struct name), the spec
 contains:</p>
 <ul>
@@ -220,15 +222,12 @@ definitions; every body schema is a <code>$ref</code> into
 <hr>
 <h2 id="enabling-the-docs-surface"><a class="header" href="#enabling-the-docs-surface">Enabling the docs surface</a></h2>
 <p>The headline call site is <code>Foundry::with_docs()</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::Foundry;
+<pre><code class="language-rust ignore">use ferra::Foundry;
 
 let app = Foundry::new(conn)
     .mount::&lt;Film&gt;()
     .with_docs()
-    .build();
-<span class="boring">}</span></code></pre>
+    .build();</code></pre>
 <p>That single chain produces a runnable HTTP service mounting <code>Film</code>’s
 five CRUD endpoints <strong>plus</strong> <code>/docs/openapi.json</code> and <code>/docs</code> with
 zero boilerplate.</p>
@@ -248,20 +247,36 @@ zero boilerplate.</p>
 </div>
 <h3 id="public-by-default-rationale"><a class="header" href="#public-by-default-rationale">Public-by-default rationale</a></h3>
 <p>The framework’s default-deny posture on model routes does not extend
-to the docs surface. The reason: the spec describes the API surface
-but does not serve resource data, and gating discovery would block
-the framework’s documented zero-to-API-in-5-minutes standard for
-every new consumer. The deviation is recorded in <a href="../decision-record/0024-ferra-openapi-and-public-default-docs.html">ADR-0024</a>; the
-secure-default <code>.with_docs_protected(verifier)</code> ships in the same
-release as the discoverable opt-in so the consumer’s ability to
-choose a secure posture without changing crates is preserved.</p>
-<p>For any publicly-reachable network surface, prefer
-<code>.with_docs_protected(verifier)</code>.</p>
+to the docs surface — and the deviation is <em>security-positive</em>, not
+a convenience trade-off.</p>
+<p><code>/docs/openapi.json</code> is generated from the same <code>ModelMeta</code> IR that
+drives the routes. By construction, <strong>every endpoint a Ferra
+application exposes is documented</strong>, with no manual schema to keep
+in sync. This structurally closes OWASP API Security Top 10
+API9:2023 (Improper Inventory Management) — the gap between the API
+a team thinks it exposes and the API actually deployed. Salt
+Security research cited in OWASP API9 measures that gap at 40% on
+average in production (one cited case: 54 undocumented endpoints, 12
+exposing PII). The public default makes the complete inventory
+legible to any operator without an opt-in step; a deny-by-default
+<code>/docs</code> would force every team to opt into seeing what their own API
+exposes, which is the inverse of the API9 recommendation.</p>
+<p>For deployments that must restrict who can read the inventory,
+<code>.with_docs_protected(verifier)</code> ships in the same release and gates
+the surface behind authentication — operators keep that floor
+without changing crates.</p>
+<p><strong>Rule of thumb</strong>: prefer <code>.with_docs()</code> for development, internal
+tools, public APIs intentionally discoverable, and AI-consumable
+surfaces (the inventory is the feature). Prefer
+<code>.with_docs_protected(verifier)</code> for any production deployment of an
+internal-only API whose endpoint structure is itself sensitive.</p>
+<p>The deviation from default-deny is recorded in <a href="../decision-record/0024-ferra-openapi-and-public-default-docs.html">ADR-0024</a> for the
+curious reader; this guide stands alone.</p>
 <hr>
 <h2 id="naming-conventions"><a class="header" href="#naming-conventions">Naming conventions</a></h2>
 <h3 id="schema-names"><a class="header" href="#schema-names">Schema names</a></h3>
-<p>For a model named <code>Film</code>, the spec carries four projections in
-<code>components/schemas</code>:</p>
+<p>For a model named <code>Film</code> with no named projections declared, the spec
+carries four entries in <code>components/schemas</code>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -275,10 +290,54 @@ choose a secure posture without changing crates is preserved.</p>
 </tbody>
 </table>
 </div>
-<p>The schema name derives from <code>resource_name</code> (the URL path slug) via PascalCase singularisation.</p>
-<p>These names are SDK-friendly: orval, openapi-generator, kiota, and
-their peers produce idiomatic types in the target language without
-post-processing.</p>
+<p>The schema name derives from <code>resource_name</code> (the URL path slug) via
+PascalCase singularisation.</p>
+<h4 id="per-projection-schemas"><a class="header" href="#per-projection-schemas">Per-projection schemas</a></h4>
+<p>A model that declares one or more <code>#[ferra(projection(...))]</code> blocks
+emits an additional triple of schemas per named projection. For
+<code>Film</code> with one named <code>admin</code> projection (<code>#[ferra(projection(name = "admin", read = […], write = […]))]</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Projection</th><th>OpenAPI schema name</th><th>Operations served at</th></tr>
+</thead>
+<tbody>
+<tr><td>Read</td><td><code>FilmAdmin</code></td><td><code>GET /admin/films/{id}</code>, <code>GET /admin/films</code></td></tr>
+<tr><td>Create</td><td><code>CreateFilmAdminInput</code></td><td><code>POST /admin/films</code></td></tr>
+<tr><td>Update</td><td><code>UpdateFilmAdminInput</code></td><td><code>PUT /admin/films/{id}</code></td></tr>
+<tr><td>Collection</td><td><code>FilmAdminCollection</code></td><td><code>GET /admin/films</code> (pagination envelope)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The general rule:</p>
+<ul>
+<li>Read schema: <code>{Model}{Projection-PascalCase}</code>.</li>
+<li>Create schema: <code>Create{Model}{Projection-PascalCase}Input</code>.</li>
+<li>Update schema: <code>Update{Model}{Projection-PascalCase}Input</code>.</li>
+</ul>
+<p>For the default projection the <code>{Projection-PascalCase}</code> segment is
+the empty string, so the rule produces <code>Film</code>, <code>CreateFilmInput</code>,
+<code>UpdateFilmInput</code>.</p>
+<p>Each schema’s <code>properties</code> map carries exactly the field set the
+corresponding projection declares — no schema reuse via <code>$ref</code> from
+one projection to another. A reader scanning the document sees the
+per-projection shape without dereferencing chains.</p>
+<p>Names are SDK-friendly: orval, openapi-generator, kiota, and their
+peers produce idiomatic, distinguishable types in the target language
+without post-processing. The framework’s internal Rust struct names
+(<code>FilmReadProjection</code>, <code>FilmAdminReadProjection</code>, …) NEVER leak into
+the published document — <code>components/schemas</code> keys, <code>$ref</code> values,
+operation IDs, and descriptions all carry only the public names from
+the tables above.</p>
+<h4 id="x-ferra-promoted-in-vendor-extension"><a class="header" href="#x-ferra-promoted-in-vendor-extension"><code>x-ferra-promoted-in</code> vendor extension</a></h4>
+<p>When a named projection carries <code>default = true</code> with a
+<code>breaking_change_version = "X.Y.Z"</code> attestation (per
+<a href="../decision-record/0030-typed-projection-codegen-url-prefix-routing.html">ADR-0030</a>
+§Default-projection promotion safeguards), every operation served
+under the bare resource path gains an <code>x-ferra-promoted-in: "X.Y.Z"</code>
+vendor extension. SDK generators and downstream tooling
+(<code>ferra anvil</code>) surface the silent breaking change to consumers who
+might otherwise see only the URL stability.</p>
 <h3 id="operationid"><a class="header" href="#operationid"><code>operationId</code></a></h3>
 <p>Every operation carries a stable <code>operationId</code>:</p>
 <div class="table-wrapper">
@@ -339,38 +398,75 @@ projection.</p>
 <p>Excludes the field from every projection schema and from the wire
 contract. Useful for server-only state (audit timestamps, internal
 flags).</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(FerraModel)]
+<pre><code class="language-rust ignore">#[derive(FerraModel)]
 pub struct Film {
     #[id]
     id: ferra::Id,
     title: String,
     #[field(skip)]
     internal_note: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>internal_note</code> does not appear in <code>Film</code>, <code>CreateFilmInput</code>, or
 <code>UpdateFilmInput</code>, and the wire shape rejects an inbound value for
 that field.</p>
-<h3 id="fieldread_only"><a class="header" href="#fieldread_only"><code>#[field(read_only)]</code></a></h3>
-<p>The field appears in the read projection (<code>{Model}</code>) marked
-<code>readOnly: true</code>, but is excluded from <code>CreateFilmInput</code> and
-<code>UpdateFilmInput</code>. Useful for server-assigned values that the
-consumer can read but cannot write.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(FerraModel)]
+<h3 id="ferraread_only"><a class="header" href="#ferraread_only"><code>#[ferra(read_only)]</code></a></h3>
+<p>The field appears in every read schema (<code>Film</code> and any per-projection
+read schema where the field is included) marked <code>readOnly: true</code>, and
+is structurally absent from every create / update input schema.
+Useful for server-assigned values that the consumer can read but
+cannot write.</p>
+<pre><code class="language-rust ignore">#[derive(FerraModel)]
 pub struct Film {
     #[id]
     id: ferra::Id,
     title: String,
-    #[field(read_only)]
+    #[ferra(read_only)]
     indexed_at: ferra::DateTime,
-}
-<span class="boring">}</span></code></pre>
-<p><code>indexed_at</code> appears in <code>Film</code> with <code>readOnly: true</code>; the create /
-update inputs reject the field.</p>
+}</code></pre>
+<p><code>indexed_at</code> appears in <code>Film</code> with <code>readOnly: true</code>; both
+<code>CreateFilmInput</code> and <code>UpdateFilmInput</code> omit the property entirely.
+If the model also declares a named <code>admin</code> projection that includes
+<code>indexed_at</code> in its <code>read = [...]</code> list, the field appears in
+<code>FilmAdmin</code> with <code>readOnly: true</code> and is omitted from
+<code>CreateFilmAdminInput</code> / <code>UpdateFilmAdminInput</code>.</p>
+<h3 id="ferrawrite_only"><a class="header" href="#ferrawrite_only"><code>#[ferra(write_only)]</code></a></h3>
+<p>The field appears in every write schema (<code>CreateFilmInput</code> /
+<code>UpdateFilmInput</code> / per-projection input schemas where the field is
+included), and is <strong>structurally absent</strong> from every read schema —
+not marked <code>writeOnly: true</code> on the read side, but simply missing.
+Useful for fields the consumer must supply on write but should never
+see on read (one-shot secrets, transient hints, write-side credentials).</p>
+<pre><code class="language-rust ignore">#[derive(FerraModel)]
+pub struct Film {
+    #[id]
+    id: ferra::Id,
+    title: String,
+    #[ferra(write_only)]
+    new_password: String,
+}</code></pre>
+<p><code>new_password</code> appears in <code>CreateFilmInput</code> and <code>UpdateFilmInput</code>;
+the <code>Film</code> read schema omits the property entirely. The framework
+guarantees the field cannot leak via a read operation — its absence
+is enforced at compile time on the generated read-projection struct.</p>
+<h3 id="ferracomputed"><a class="header" href="#ferracomputed"><code>#[ferra(computed)]</code></a></h3>
+<p>The field is server-derived (e.g., a derived count, a denormalised
+projection of joined rows). It appears in every read schema with
+<code>readOnly: true</code>, and is structurally absent from every write input
+schema — the framework calls <code>FerraComputed::compute()</code> /
+<code>compute_async_batch()</code> on read and never accepts the field as inbound
+input.</p>
+<pre><code class="language-rust ignore">#[derive(FerraModel)]
+pub struct Film {
+    #[id]
+    id: ferra::Id,
+    title: String,
+    #[ferra(computed)]
+    review_count: i64,
+}</code></pre>
+<p><code>review_count</code> appears in <code>Film</code> with <code>readOnly: true</code>; the create
+and update inputs omit the property entirely. See
+<a href="ferra-core.html#computed-fields"><code>ferra-core.md</code> § Computed fields</a>
+for the <code>FerraComputed</code> trait that drives the compute pipeline.</p>
 <hr>
 <h2 id="the-shared-problemdetails-schema"><a class="header" href="#the-shared-problemdetails-schema">The shared <code>ProblemDetails</code> schema</a></h2>
 <p>Every error response in the spec references the same schema:</p>
@@ -416,9 +512,7 @@ every variant) lives in <a href="ferra-error-handling.html">error handling</a>.<
 Scalar UI at <code>/docs</code> is the bundled default but not the only
 choice. To replace Scalar with Redoc, RapiDoc, or Swagger UI, mount
 the alternative on the existing axum router via <code>Router::merge</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::Foundry;
+<pre><code class="language-rust ignore">use ferra::Foundry;
 use utoipa_redoc::{Redoc, Servable};
 
 let app = Foundry::new(conn)
@@ -432,8 +526,7 @@ let app = Foundry::new(conn)
         ),
         "/docs",
     ))
-    .merge(Redoc::with_url("/redoc", openapi));    // and Redoc on top
-<span class="boring">}</span></code></pre>
+    .merge(Redoc::with_url("/redoc", openapi));    // and Redoc on top</code></pre>
 <p>The same pattern works with <code>utoipa-rapidoc</code> and <code>utoipa-swagger-ui</code>.</p>
 <hr>
 <h2 id="where-the-spec-is-built"><a class="header" href="#where-the-spec-is-built">Where the spec is built</a></h2>
@@ -495,7 +588,7 @@ guide stands alone.</p>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="ferra-http.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="behaviors.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -509,7 +602,7 @@ guide stands alone.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="ferra-http.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="behaviors.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

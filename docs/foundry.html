@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,7 +187,7 @@ with a Sea-ORM <code>DatabaseConnection</code> and ending with <code>.build()</c
 declares every resource on your API, mounts the <code>OpenAPI</code> 3.1 docs
 surface, applies version prefixes, and produces the final
 <code>axum::Router</code>.</p>
-<pre class="playground"><code class="language-rust">use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -268,9 +268,7 @@ compile error (FR-014a, ADR-0025):</p>
 <h3 id="mixed-mode-pattern-two-assemblies-merged"><a class="header" href="#mixed-mode-pattern-two-assemblies-merged">Mixed-mode pattern: two assemblies merged</a></h3>
 <p>If you want a top-level <code>/films</code> <em>and</em> a <code>/v1/films</code>, build two
 Foundry chains and merge them with <code>axum::Router::merge</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 
 let conn = /* … */;
 
@@ -286,8 +284,7 @@ let v1 = Foundry::new(conn)
     .with_docs() // serves /docs/v1/openapi.json
     .build();
 
-let app: axum::Router = legacy.merge(v1);
-<span class="boring">}</span></code></pre>
+let app: axum::Router = legacy.merge(v1);</code></pre>
 <p>Each <code>Foundry::build()</code> produces its own <code>axum::Router</code>; merging
 them is the supported way to expose multiple-version surfaces from
 a single binary. The <code>OpenAPI</code> documents stay separate — one per
@@ -305,20 +302,91 @@ version (RFC 8594);</li>
 the emitted spec, plus an <code>info.x-sunset</code> mirror at the document
 root (ADR-0027).</li>
 </ul>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 
 let v1 = Foundry::new(conn)
     .api_version("v1")?
     .mount::&lt;Film&gt;()
     .deprecated(date!(2027-01-05))
     .with_docs()
-    .build();
-<span class="boring">}</span></code></pre>
+    .build();</code></pre>
 <p>The <code>date!</code> macro validates the calendar date at compile time; an
 invalid month or day fails <code>cargo build</code> rather than panicking at
 startup. See <code>ferra-core.md</code> §“Time vocabulary”.</p>
+<h3 id="post-sunset-warn-event"><a class="header" href="#post-sunset-warn-event">Post-sunset warn-event</a></h3>
+<p>When <code>today_utc &gt; sunset</code> (strict greater-than — equality does not
+trigger; the sunset day is the last day of the grace window), every
+request under the deprecated version causes the framework to emit a
+structured warning at <code>tracing::Level::WARN</code>. The event is layered
+into the same middleware that emits the <code>Sunset:</code> response header, so
+the two signals always travel together.</p>
+<p><strong>Verbatim target string</strong> (filterable via <code>tracing-subscriber</code>’s
+<code>EnvFilter</code>):</p>
+<pre><code class="language-text">ferra_http::sunset
+</code></pre>
+<p><strong>Field set on the event</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field name</th><th>Type</th><th>Source</th></tr>
+</thead>
+<tbody>
+<tr><td><code>version</code></td><td>string</td><td>the version prefix (<code>"v1"</code>)</td></tr>
+<tr><td><code>sunset</code></td><td>string</td><td>the declared sunset date in <code>YYYY-MM-DD</code> form</td></tr>
+<tr><td><code>days_overdue</code></td><td>i64</td><td>whole days from <code>sunset</code> to <code>today_utc</code></td></tr>
+<tr><td><code>http.method</code></td><td>string</td><td>the inbound request method, upper-cased</td></tr>
+<tr><td><code>http.target</code></td><td>string</td><td>the inbound <code>path?query</code> (includes the version prefix)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Message body</strong> (verbatim):</p>
+<blockquote>
+<p><code>deprecated API version reached after declared sunset date</code></p>
+</blockquote>
+<p><strong>Once-per-process de-duplication</strong>: the framework fires the warning
+<strong>exactly once per <code>(version, sunset)</code> pair within a single running
+process</strong>. Two sequential requests on the same pair produce one
+warning; two distinct pairs (e.g., <code>v1</code>/<code>2026-01-01</code> and
+<code>v2</code>/<code>2026-06-01</code>) each fire once independently. The dedup state is
+process-local — a process restart re-creates the registry and the
+first post-restart hit fires the warning again. This is the right
+default for operational paging: a single human-readable signal per
+incident, repeated only when a release rolls the world.</p>
+<p><strong>Operator filtering</strong>. An operator who wants only the post-sunset
+warnings (and nothing else from the framework) sets:</p>
+<pre><code class="language-text">RUST_LOG=ferra_http::sunset=warn
+</code></pre>
+<p>An operator who wants every framework-emitted event at <code>warn</code> level:</p>
+<pre><code class="language-text">RUST_LOG=ferra_http=warn
+</code></pre>
+<p>The convention follows the <code>&lt;snake-cased crate name&gt;::&lt;event segment&gt;</code>
+pattern; the rate-limit event lives at <code>ferra_http::rate_limit</code> and
+is configured the same way.</p>
+<p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
+When the <code>observability</code> feature is enabled:</p>
+<pre><code class="language-toml">[dependencies]
+ferra = { package = "ferra-rs", version = "0.7", features = ["observability"] }
+</code></pre>
+<p>the framework also advances a <code>metrics::counter!</code> named
+<code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,
+labelled with <code>version</code> and <code>sunset</code>. Unlike the warn-event, this
+counter advances on <strong>every</strong> hit — its purpose is rate-of-arrival
+visibility, not signal-per-incident paging. With the feature
+<strong>off</strong> (default), the framework takes zero dependency on the
+<code>metrics</code> crate; the constitutional 0.4.0 secure defaults are
+byte-identical for non-opting-in consumers.</p>
+<p><strong>No-deny on post-sunset</strong>: the comparator is observability-only.
+The framework continues to serve every request past sunset; if you
+want denial after a date, add your own middleware. A first-class
+<code>deprecated_with_enforcement(...)</code> opt-in is on the roadmap but not
+shipped at 0.7.0.</p>
+<p><strong>Per-request budget</strong>: the comparator’s common path runs in well
+under <code>200 ns</code> on the CI reference runner and is informational-tier
+under <code>100 ns</code>. The framework’s first build-gating performance
+contract enforces this: a regression past <code>200 ns</code> fails the build
+(<code>scripts/bench/check_sunset_ceiling.sh</code> against
+<code>cargo bench --bench sunset_comparator</code>). The two-tier discipline is
+documented in ADR-0039 as the pattern for future hot-path additions.</p>
 <hr>
 <h2 id="public-default-docs-and-the-protected-variant"><a class="header" href="#public-default-docs-and-the-protected-variant">Public-default docs and the protected variant</a></h2>
 <p><code>.with_docs()</code> exposes the documentation surface unauthenticated by
@@ -333,9 +401,7 @@ consumer.</p>
 inbound request and returns <code>bool</code>; a <code>false</code> produces an RFC 7807
 <code>401 Unauthorized</code> response with
 <code>type: "https://ferra.rs/errors/unauthorized"</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 use axum::http::header::AUTHORIZATION;
 
 let app = Foundry::new(conn)
@@ -346,8 +412,7 @@ let app = Foundry::new(conn)
             .and_then(|v| v.to_str().ok())
             == Some("Bearer secret")
     })
-    .build();
-<span class="boring">}</span></code></pre>
+    .build();</code></pre>
 <p>The verifier runs synchronously and MUST NOT perform I/O — the
 underlying primitive does not yet integrate with the
 <code>ferra-auth</code> provider chain (that landing is scheduled for 0.8.5
@@ -368,6 +433,207 @@ framework layers, fork to <code>mount_with::&lt;M&gt;(state)</code> and pre-comp
 on the state’s <code>ferra_router::&lt;M&gt;</code> output.</p>
 <p>Cross-reference: <code>ferra-http.md</code> §“Tower layer-ordering notation”
 documents the exact stack order.</p>
+<hr>
+<h2 id="transport-layer-overrides"><a class="header" href="#transport-layer-overrides">Transport-layer overrides</a></h2>
+<blockquote>
+<p><strong>Reader contract.</strong> This section stands on its own. A reader with
+only this page plus standard Rust knowledge produces a correct
+per-app or per-model override on the first attempt. Every knob,
+default, fallback, and validation rule is spelled out below — no
+ADR and no framework source is required.</p>
+</blockquote>
+<p>The framework’s secure Tower stack (CORS deny-by-default, 1 MiB body
+cap, <code>{ per_second: 2, burst_size: 5 }</code> mutation rate-limit, tracing
+with body sampling off) is the right default for the vast majority of
+APIs. Some shapes — file uploads, high-volume mutation endpoints,
+sub-path deployments behind a reverse proxy — need narrow overrides.
+Use the <strong><code>FerraLayer</code></strong> builder for those.</p>
+<p><code>FerraLayer</code> is a single value carrying overrides for five knobs:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Knob</th><th>Default</th><th>Override surface</th></tr>
+</thead>
+<tbody>
+<tr><td>CORS</td><td><code>CorsLayer::new()</code> (deny by default)</td><td><code>.cors(cors_layer)</code></td></tr>
+<tr><td>Body cap</td><td>1 MiB</td><td><code>.body_limit(bytes)</code></td></tr>
+<tr><td>Rate-limit (mutations only)</td><td><code>RateLimitRule::new(2, 5)</code> (2/sec, burst 5)</td><td><code>.rate_limit(RateLimitRule::new(per_second, burst_size))</code></td></tr>
+<tr><td>Tracing</td><td><code>TraceLayer::new_for_http()</code> with body sampling off</td><td><code>.trace_layer(layer)</code></td></tr>
+<tr><td>Base path for <code>_links</code></td><td>none</td><td><code>.base_path("/api")</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>FerraLayer</code> whose every knob is left at its <code>None</code> default
+(<code>FerraLayer::new().build()</code>) reproduces the framework stack
+byte-for-byte — the override surface is <strong>silent when unused</strong>.</p>
+<blockquote>
+<p><strong><code>RateLimitRule</code> construction.</strong> Always use the <code>RateLimitRule::new(per_second, burst_size)</code> constructor.
+The struct carries <code>#[non_exhaustive]</code> to accommodate future
+additive knobs (e.g., per-key extractor selection, per-method
+overrides) without breaking downstream construction sites; direct
+struct-literal construction (<code>RateLimitRule { per_second: 2, burst_size: 5 }</code>) is rejected by the compiler from outside the
+crate.</p>
+</blockquote>
+<h3 id="per-app-vs-per-model--replace-not-merge"><a class="header" href="#per-app-vs-per-model--replace-not-merge">Per-app vs per-model — REPLACE not merge</a></h3>
+<p><code>FerraLayer</code> applies at two scopes:</p>
+<ul>
+<li><strong>Per-application default</strong> — <code>Foundry::new(conn).layer(global)</code> —
+every model mounted afterwards inherits <code>global</code>’s settings.</li>
+<li><strong>Per-model override</strong> — <code>Foundry::new(conn).mount_with_layer::&lt;M&gt;(M_layer)</code> —
+only <code>M</code>’s routes use <code>M_layer</code>.</li>
+</ul>
+<p>The <strong>per-model layer REPLACES (does NOT merge with) the per-app
+layer</strong> for the affected model. Critically, a knob left at <code>None</code> on
+the per-model layer falls back to the <strong>framework default</strong> — NOT to
+the per-app setting. The intent is <strong>per-model auditability in
+isolation</strong>: every <code>mount_with_layer::&lt;M&gt;(...)</code> site is fully
+inspectable on its own, without chasing a per-app default the reader
+may not have on screen, and without the security surprise of inheriting
+a permissive per-app override the per-model author did not intend.</p>
+<blockquote>
+<p><strong>Security posture.</strong> The REPLACE-not-merge rule means that an unset
+knob on a per-model override <strong>cannot</strong> silently inherit a permissive
+per-app value. If the per-app layer raises the body cap to 5 MiB and
+the per-model layer for <code>Document</code> does NOT explicitly call
+<code>.body_limit(...)</code>, <code>Document</code> routes use the <strong>1 MiB framework
+default</strong>, not the 5 MiB per-app value. The rule is auditable
+by <code>grep</code>: every override is explicit at its declaration site.</p>
+</blockquote>
+<pre><code class="language-rust ignore">let global = FerraLayer::new()
+    .body_limit(5 * 1024 * 1024)         // 5 MiB
+    .build();
+let document = FerraLayer::new()
+    .cors(permissive_cors)
+    .build();
+
+let app = Foundry::new(conn)
+    .layer(global)                       // 5 MiB on every model …
+    .mount_with_layer::&lt;Document&gt;(document) // … EXCEPT Document
+    .mount::&lt;Film&gt;()
+    .build();</code></pre>
+<p>Observable behaviour:</p>
+<ul>
+<li><code>Film</code> routes: body limit <strong>5 MiB</strong> (from <code>global</code>), CORS
+deny-by-default (<code>global</code> did not set <code>.cors(...)</code>).</li>
+<li><code>Document</code> routes: body limit <strong>1 MiB</strong> (the <strong>framework default</strong> —
+<code>document</code> did not set <code>.body_limit(...)</code>, so the per-model layer
+does NOT inherit <code>global</code>’s 5 MiB), permissive CORS (the per-model
+setting).</li>
+</ul>
+<h3 id="body-limit-override--verbatim-413-detail"><a class="header" href="#body-limit-override--verbatim-413-detail">Body-limit override + verbatim 413 detail</a></h3>
+<p>When the configured cap is exceeded, the framework’s standard 413
+<code>application/problem+json</code> response carries the verbatim configured
+limit in the <code>detail</code> field:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/payload_too_large",
+  "title": "Payload Too Large",
+  "status": 413,
+  "detail": "request body exceeds 5242880 bytes"
+}
+</code></pre>
+<p>Operators tracing 413s in logs can map the byte cap in the response
+back to the originating <code>FerraLayer::body_limit(...)</code> call site
+without consulting source code.</p>
+<h3 id="sub-path-mount--base_path"><a class="header" href="#sub-path-mount--base_path">Sub-path mount — <code>base_path</code></a></h3>
+<p>A common deployment shape: serve Ferra at <code>/api/</code> behind a reverse
+proxy that strips the prefix before forwarding. Configure the
+framework’s hypermedia links to include the publicly visible prefix
+via <code>.base_path("/api")</code>:</p>
+<blockquote>
+<p><strong>Static prefix only.</strong> <code>base_path</code> is a <strong>static <code>&amp;'static str</code></strong>
+declared at framework-assembly time. Ferra deliberately does NOT
+consume the <code>X-Forwarded-Prefix</code> request header (the dynamic-prefix
+convention used by FastAPI’s <code>root_path_in_servers</code> + Traefik).
+Reasons: (a) request-time prefix discovery breaks <code>_links</code> URL
+stability — two requests through different proxies could yield
+different <code>_links.self.href</code> for the same row; (b) the closed,
+<code>const</code>-evaluable contract enables the validation grammar below to
+fire at compile time, not at proc-macro time. If your deployment
+needs multiple prefixes simultaneously, declare a separate
+<code>FerraLayer</code> per-deployment-target.</p>
+</blockquote>
+<pre><code class="language-rust ignore">let app = Foundry::new(conn)
+    .layer(FerraLayer::new().base_path("/api").build())
+    .mount::&lt;Film&gt;()
+    .build();</code></pre>
+<p>Every <code>_links.*.href</code> (self, collection, restore, named-operation
+links) now carries the <code>/api</code> prefix:</p>
+<ul>
+<li><code>_links.self.href</code> → <code>https://api.example.com/api/films/42</code></li>
+<li><code>_links.collection.href</code> → <code>https://api.example.com/api/films</code></li>
+</ul>
+<p><code>.base_path</code> is validated at proc-macro-equivalent time: the prefix
+<strong>MUST start with <code>/</code></strong> and <strong>MUST NOT end with <code>/</code></strong>. Malformed
+literals produce a compile error at the call site when the value
+is reachable in <code>const</code> context:</p>
+<pre><code class="language-rust ignore">.base_path("api")        // compile error — no leading `/`
+.base_path("/api/")      // compile error — trailing `/`
+.base_path("")           // compile error — empty</code></pre>
+<p>The <code>base_path</code> declaration applies <strong>only to hypermedia link
+generation</strong>. The framework does not assume the prefix is present in
+the inbound request URI — if the reverse proxy strips <code>/api</code> before
+forwarding, no further configuration is needed. To mount under the
+prefix internally as well, compose with <code>axum::Router::nest("/api", foundry.build())</code>.</p>
+<h3 id="rate-limit-override"><a class="header" href="#rate-limit-override">Rate-limit override</a></h3>
+<pre><code class="language-rust ignore">use ferra::{FerraLayer, RateLimitRule};
+
+let layer = FerraLayer::new()
+    .rate_limit(RateLimitRule::new(10, 20))   // 10/sec, burst 20
+    .build();</code></pre>
+<p>The constructor signature is <code>RateLimitRule::new(per_second: u32, burst_size: u32) -&gt; Self</code>. <code>burst_size</code> is the bucket depth (peak
+concurrent mutations); <code>per_second</code> is the steady-state refill rate.
+At <code>RateLimitRule::new(10, 20)</code> a client may issue 20 mutations in
+burst, then 10/second steady-state. The key extractor at 0.7.0 is
+fixed to peer socket IP; richer extractor selection (proxy-aware
+keying, custom keying) composes on top in a later release. The
+<code>#[non_exhaustive]</code> attribute on <code>RateLimitRule</code> ensures additive
+knobs ship without breaking downstream construction sites — always
+use the <code>::new(...)</code> constructor rather than struct-literal
+construction.</p>
+<h3 id="custom-cors--tracing-layers"><a class="header" href="#custom-cors--tracing-layers">Custom CORS + tracing layers</a></h3>
+<p><code>.cors(cors_layer)</code> and <code>.trace_layer(trace_layer)</code> accept the
+underlying [<code>tower_http</code>] types verbatim — the framework does not
+wrap them. To configure CORS for a specific allowed origin:</p>
+<pre><code class="language-rust ignore">use tower_http::cors::{AllowOrigin, CorsLayer};
+
+let cors = CorsLayer::new()
+    .allow_origin(AllowOrigin::list(["https://app.example.com".parse().unwrap()]))
+    .allow_methods(tower_http::cors::AllowMethods::list([
+        axum::http::Method::GET,
+        axum::http::Method::POST,
+    ]));
+let layer = FerraLayer::new().cors(cors).build();</code></pre>
+<p>The accepted <code>TraceLayer</code> type at 0.7.0 is the default
+<code>TraceLayer&lt;HttpMakeClassifier&gt;</code> shape returned by
+<code>TraceLayer::new_for_http()</code>. Consumers who need a custom classifier
+or per-handler customisation that changes the layer’s generic
+parameters compose on top of <code>Foundry::build()</code> with a regular
+<code>.layer(...)</code> call.</p>
+<h3 id="composition-order--preserved"><a class="header" href="#composition-order--preserved">Composition order — preserved</a></h3>
+<p>The constitutional Tower stack order is preserved regardless of
+which knobs are overridden:</p>
+<pre><code class="language-text">CorsLayer                                       (outermost)
+  body_limit_mapper   (413 → problem+json with verbatim detail)
+    RequestBodyLimitLayer({bytes})
+      TraceLayer
+        DefaultBodyLimit::disable
+          [on mutation sub-router only:]
+            rate_limit_mapper   (429 → problem+json)
+              GovernorLayer(per_second, burst_size)
+                &lt;handlers&gt;
+          [on read sub-router:]
+            &lt;handlers&gt;
+</code></pre>
+<p><code>FerraLayer</code> does not reorder, add, or remove layers — only swaps
+the parameters / values that flow into the existing slots.</p>
+<h3 id="typestate-guard--layer-before-mount"><a class="header" href="#typestate-guard--layer-before-mount">Typestate guard — <code>.layer(...)</code> before <code>.mount(...)</code></a></h3>
+<p><code>.layer(...)</code> carries the same <code>Set: IsEmpty</code> typestate bound as
+<code>.api_version(...)</code>. Calling it after a model has been mounted
+produces a compile error pointing at the merge-two-assemblies
+pattern (the same diagnostic shape documented in §“The
+no-mixed-mode rule” above).</p>
+<p><code>.mount_with_layer::&lt;M&gt;(layer)</code> follows the same no-duplicate-mount
+rule as <code>.mount::&lt;M&gt;()</code>.</p>
 <hr>
 <h2 id="escape-hatches"><a class="header" href="#escape-hatches">Escape hatches</a></h2>
 <ul>

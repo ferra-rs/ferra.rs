@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,7 +183,8 @@
                     <main>
                         <h1 id="compile-time-diagnostics--the-frg-nnn-namespace"><a class="header" href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time diagnostics — the <code>FRG-NNN</code> namespace</a></h1>
 <p><strong>Status</strong>: 0.6.0 Welding (validation-attribute codes, <code>FRG-201</code> through
-<code>FRG-215</code>).</p>
+<code>FRG-215</code>) + 0.6.5 Chasing (projection / computed / write-only codes,
+<code>FRG-301</code> through <code>FRG-316</code>, with <code>FRG-313</code> intentionally unallocated).</p>
 <blockquote>
 <p><strong>Reader contract.</strong> This page stands on its own. A reader with only
 this page plus standard Rust and Sea-ORM knowledge can identify the
@@ -208,8 +209,10 @@ section that owns the rule’s call-site documentation.</p>
 <h2 id="namespace-structure"><a class="header" href="#namespace-structure">Namespace structure</a></h2>
 <pre><code class="language-text">FRG-000 .. FRG-099   derive-shape errors        (existing — class 1..16)
 FRG-100 .. FRG-199   #[authorize] errors        (post-0.8.0 — reserved)
-FRG-200 .. FRG-299   validation-attribute       (this release — FRG-201..FRG-215)
-FRG-300 ..           later phases               (reserved)
+FRG-200 .. FRG-299   validation-attribute       (0.6.0 Welding — FRG-201..FRG-215)
+FRG-300 .. FRG-399   projection / computed /    (0.6.5 Chasing — FRG-301..FRG-316,
+                     write-only attribute        FRG-313 intentionally unallocated)
+FRG-400 ..           later phases               (reserved)
 </code></pre>
 <p>Code numbers are <strong>never recycled</strong>. A code retired because the class
 becomes unreachable remains documented as historical (see the FRG-215
@@ -236,6 +239,22 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-213</code></td><td>Unknown <code>#[field(&lt;key&gt;)]</code> key (with <code>did you mean</code> hint when distance ≤ 2)</td><td><a href="#frg-213--unknown-field-key">link</a></td></tr>
 <tr><td><code>FRG-214</code></td><td><code>#[field(&lt;flag&gt;)]</code> bare flag given a value (e.g. <code>email = "x"</code>)</td><td><a href="#frg-214--bare-flag-given-a-value">link</a></td></tr>
 <tr><td><code>FRG-215</code></td><td><code>Option&lt;Uuid&gt;</code> (or <code>Option&lt;Id&gt;</code>) tagged <code>#[sea_orm(primary_key)]</code></td><td><a href="#frg-215--primary-key-cannot-be-optional">link</a></td></tr>
+<tr><td><code>FRG-301</code></td><td>A projection’s <code>read = [...]</code> or <code>write = [...]</code> ident does not match any struct field</td><td><a href="#frg-301--projection-references-an-unknown-field">link</a></td></tr>
+<tr><td><code>FRG-302</code></td><td><code>#[ferra(write_only)]</code> and <code>#[ferra(read_only)]</code> on the same field</td><td><a href="#frg-302--write_only-and-read_only-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-303</code></td><td><code>#[ferra(write_only)]</code> and <code>#[ferra(computed)]</code> on the same field</td><td><a href="#frg-303--write_only-and-computed-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-304</code></td><td><code>#[ferra(write_only)]</code> on a field that carries <code>#[sea_orm(primary_key)]</code></td><td><a href="#frg-304--write_only-on-a-primary-key-field">link</a></td></tr>
+<tr><td><code>FRG-305</code></td><td>A <code>#[ferra(write_only)]</code> field is listed in a projection’s <code>read = [...]</code></td><td><a href="#frg-305--write_only-field-appears-in-a-read-projection">link</a></td></tr>
+<tr><td><code>FRG-306</code></td><td><code>#[ferra(skip)]</code> combined with a non-empty <code>#[ferra(groups = […])]</code> on the same field</td><td><a href="#frg-306--skip-and-non-empty-groups-on-the-same-field">link</a></td></tr>
+<tr><td><code>FRG-307</code></td><td>Legacy <code>#[field(write_only)]</code> form (predates the <code>#[ferra(...)]</code> namespace)</td><td><a href="#frg-307--legacy-fieldwrite_only-form">link</a></td></tr>
+<tr><td><code>FRG-308</code></td><td><code>#[ferra(writeonly)]</code> typo (missing underscore)</td><td><a href="#frg-308--ferrawriteonly-typo-did-you-mean-write_only">link</a></td></tr>
+<tr><td><code>FRG-309</code></td><td><code>#[ferra(computed)] #[ferra(read_only)]</code> on the same field (redundant)</td><td><a href="#frg-309--computed-and-read_only-redundant">link</a></td></tr>
+<tr><td><code>FRG-310</code></td><td>Two projections produce the same URL prefix (duplicate <code>path_prefix</code> or two <code>default = true</code>)</td><td><a href="#frg-310--projection-url-prefix-collision">link</a></td></tr>
+<tr><td><code>FRG-311</code></td><td>A projection <code>name</code> does not normalise to a URL-safe segment, and no <code>path_prefix</code> override</td><td><a href="#frg-311--projection-name-is-not-a-url-safe-segment">link</a></td></tr>
+<tr><td><code>FRG-312</code></td><td>A projection’s auto-derived URL prefix collides with an existing resource route (runtime)</td><td><a href="#frg-312--projection-prefix-collides-with-a-resource-route">link</a></td></tr>
+<tr><td><code>FRG-313</code></td><td>intentionally unallocated — see § FRG-3NN</td><td></td></tr>
+<tr><td><code>FRG-314</code></td><td>An explicit <code>write = [...]</code> list omits a <code>#[ferra(write_only)]</code> field on the model</td><td><a href="#frg-314--write_only-field-omitted-from-an-explicit-write-list">link</a></td></tr>
+<tr><td><code>FRG-315</code></td><td><code>path_prefix</code> declared on a sub-resource (runtime)</td><td><a href="#frg-315--path_prefix-declared-on-a-sub-resource">link</a></td></tr>
+<tr><td><code>FRG-316</code></td><td><code>default = true</code> without <code>promotes_from</code> + <code>breaking_change_version</code> attestations</td><td><a href="#frg-316--default--true-requires-promotes_from--breaking_change_version">link</a></td></tr>
 </tbody>
 </table>
 </div>
@@ -259,12 +278,9 @@ the diagnostic shape stays stable across releases.</li>
 </ul>
 <p>Every code uses the same import preamble. Show it once here so the
 per-code blocks stay short:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore">use ferra_forge::FerraModel;
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-<span class="boring">}</span></code></pre>
+use serde::{Deserialize, Serialize};</code></pre>
 <p>The Sea-ORM boilerplate (<code>Relation</code> enum + <code>ActiveModelBehavior</code>
 impl) below the struct is identical in every example and is
 suppressed in the per-code blocks for brevity. Add it verbatim from
@@ -277,29 +293,23 @@ anything other than a non-negative integer literal — a string, a
 negative integer, a float, an identifier. The <code>min_length</code> rule needs
 a <code>u32</code>-sized count.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = "abc")]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 1)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Replace the value with a non-negative integer literal
 (e.g. <code>1</code>, <code>10</code>, <code>255</code>).</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_201_min_length_invalid.rs"><code>crates/ferra-forge/tests/diagnostics/frg_201_min_length_invalid.rs</code></a></p>
@@ -309,29 +319,23 @@ pub struct Model {
 anything other than a non-negative integer literal. Same shape as
 FRG-201, on the upper bound.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(max_length = "abc")]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(max_length = 255)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Replace the value with a non-negative integer literal
 (e.g. <code>1</code>, <code>10</code>, <code>255</code>).</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_202_max_length_invalid.rs"><code>crates/ferra-forge/tests/diagnostics/frg_202_max_length_invalid.rs</code></a></p>
@@ -344,29 +348,23 @@ fractional, etc. The literal type must match: <code>min = 1.5</code> on an
 <code>i32</code> field is rejected; <code>min = 1</code> on a <code>f64</code> field is accepted (and
 coerces).</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min = 1.5)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min = 1)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Use a literal whose Rust type matches the field’s declared
 numeric type (<code>i32</code>, <code>i64</code>, or <code>f64</code>). Or change the field’s type to
 match the literal.</p>
@@ -377,29 +375,23 @@ match the literal.</p>
 not match the field’s declared numeric type. Same shape as FRG-203,
 on the upper bound.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(max = 2.5)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(max = 10)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Use a literal whose Rust type matches the field’s declared
 numeric type. Or change the field’s type to match the literal.</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_204_max_type_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_204_max_type_mismatch.rs</code></a></p>
@@ -410,29 +402,23 @@ non-empty string literal — <code>pattern = ""</code> (empty), <code>pattern = 
 (non-string), <code>pattern = some_const</code> (non-literal). The literal must
 be a non-empty <code>regex</code>-crate-syntax pattern.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "posts")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(pattern = "")]
     pub slug: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "posts")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(pattern = r"^[a-z0-9-]+$")]
     pub slug: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Provide a non-empty regex literal. A raw-string literal
 (<code>r"…"</code>) is recommended so backslashes are not double-escaped.</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_205_empty_pattern.rs"><code>crates/ferra-forge/tests/diagnostics/frg_205_empty_pattern.rs</code></a></p>
@@ -444,29 +430,23 @@ same field — <code>#[field(min_length = 5, min_length = 10)]</code>, or two
 rules of the same kind are ambiguous; keep at most one per kind per
 field.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 5, min_length = 10)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 10)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Remove the redundant entry. If you intended two different
 kinds of bound (a length AND a numeric range), the kinds must differ
 — <code>#[field(min_length = 5, max_length = 10)]</code> is fine; two
@@ -479,29 +459,23 @@ attribute on a field whose Rust type is not <code>String</code> or
 <code>Option&lt;String&gt;</code>. Length rules count Unicode scalar values on a
 string body — they are not defined on numeric or other field types.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 1)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min = 1)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Apply length rules to a <code>String</code> or <code>Option&lt;String&gt;</code> field.
 For numeric bounds on a numeric field, use <code>#[field(min = …)]</code> /
 <code>#[field(max = …)]</code> instead.</p>
@@ -513,29 +487,23 @@ a field whose Rust type is not <code>i32</code>, <code>i64</code>, <code>f64</co
 <code>Option&lt;…&gt;</code> form). Numeric range rules are not defined on string,
 boolean, or UUID field types.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min = 1)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 1)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Apply numeric range rules to an <code>i32</code>, <code>i64</code>, or <code>f64</code> field
 (or their <code>Option&lt;…&gt;</code> form). For string-length bounds on a string
 field, use <code>#[field(min_length = …)]</code> / <code>#[field(max_length = …)]</code>
@@ -548,29 +516,23 @@ instead.</p>
 or <code>Option&lt;String&gt;</code>. These rules need a string body to evaluate
 against.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(email)]
     pub age: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "contacts")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(email)]
     pub email: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Apply <code>pattern</code> / <code>email</code> / <code>url</code> to a <code>String</code> or
 <code>Option&lt;String&gt;</code> field. If the field genuinely is non-string, the
 rule does not apply — drop it.</p>
@@ -581,29 +543,23 @@ rule does not apply — drop it.</p>
 <code>#[field(max_length = M)]</code> with <code>N &gt; M</code> — no string length satisfies
 both bounds, so every wire value would fail validation.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 10, max_length = 1)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 1, max_length = 255)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Ensure <code>min_length &lt;= max_length</code>. The bounds are inclusive
 on both sides, so <code>min_length = max_length</code> (a single fixed length)
 is acceptable.</p>
@@ -614,29 +570,23 @@ is acceptable.</p>
 <code>#[field(max = M)]</code> with <code>N &gt; M</code> — no numeric value satisfies both
 bounds. Same shape as FRG-210, on the numeric range rules.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ratings")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min = 10, max = 1)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ratings")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min = 0, max = 10)]
     pub rating: i32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Ensure <code>min &lt;= max</code>. The bounds are inclusive, so a single
 fixed value (<code>min = max</code>) is acceptable.</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_211_min_exceeds_max.rs"><code>crates/ferra-forge/tests/diagnostics/frg_211_min_exceeds_max.rs</code></a></p>
@@ -648,29 +598,23 @@ type system — the wire value cannot be absent — so the <code>required</code>
 flag is meaningless on them. The flag exists for <code>Option&lt;T&gt;</code> fields,
 where it forbids <code>null</code> on the wire.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(required)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "profiles")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(required)]
     pub bio: Option&lt;String&gt;,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Either remove <code>required</code> (the field’s non-<code>Option</code> type
 already requires a value) or change the field type to <code>Option&lt;T&gt;</code> if
 the wire form should be nullable but rejected on <code>null</code>.</p>
@@ -685,29 +629,23 @@ eight rules listed in
 <code>url</code>, <code>required</code>. When the unknown key’s Levenshtein distance to a
 recognised key is ≤ 2, the diagnostic carries a <code>did you mean &lt;closest&gt;?</code> help line.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_lenght = 1)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(min_length = 1)]
     pub title: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Apply the spelling the <code>did you mean</code> line suggests, or
 consult the closed <code>#[field(...)]</code> vocabulary above. If the key you
 wanted is on the deferred list (see
@@ -722,29 +660,23 @@ flags <code>email</code>, <code>url</code>, and <code>required</code> take no va
 purely on presence. Writing <code>#[field(email = "x")]</code> is a shape
 mismatch.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "contacts")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(email = "x")]
     pub contact_email: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "contacts")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[field(email)]
     pub contact_email: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Drop the <code>= …</code> part — write the flag bare. The rule fires on
 presence; there is nothing to configure.</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_214_value_shape_mismatch.rs"><code>crates/ferra-forge/tests/diagnostics/frg_214_value_shape_mismatch.rs</code></a></p>
@@ -756,25 +688,19 @@ be optional — an inserted <code>None</code> would be indistinguishable from a
 row whose key was never assigned, so the round-trip equality
 semantics a PK guarantees cannot hold.</p>
 <p><strong>Bad.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: Option&lt;Uuid&gt;,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Good.</strong></p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: Uuid,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><strong>Fix.</strong> Either drop the <code>Option&lt;...&gt;</code> from the field type (so the
 PK is always present) or remove <code>#[sea_orm(primary_key)]</code> from the
 tag (so the field becomes a nullable non-key UUID).</p>
@@ -789,6 +715,694 @@ diagnostic, that class is retired; the per-rule rejection above is
 the current diagnostic.</p>
 </blockquote>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_215_optional_primary_key.rs"><code>crates/ferra-forge/tests/diagnostics/frg_215_optional_primary_key.rs</code></a></p>
+<hr>
+<h2 id="compile-time-diagnostic-wrappers"><a class="header" href="#compile-time-diagnostic-wrappers">Compile-time diagnostic wrappers</a></h2>
+<p>Some Ferra attributes impose a trait bound on the field’s type — for
+example, <code>#[ferra(computed)]</code> requires the field’s type to implement
+<code>Default</code> (the framework supplies a compute-time placeholder by calling
+<code>T::default()</code>). When the bound is violated, rustc’s <em>default</em> message
+would be the language-level
+<code>error[E0277]: the trait bound \</code>T: Default` is not satisfied`. That
+phrasing is correct but tells the user nothing about <em>why</em> Ferra needs
+the bound or <em>how</em> to satisfy it in the Ferra-specific context.</p>
+<p>To close that gap, <code>ferra-core</code> ships a small set of <strong>wrapper traits</strong>
+in <a href="https://docs.rs/ferra/latest/ferra/diagnostics/index.html"><code>ferra_core::diagnostics</code></a>
+that re-export the underlying language traits under a framework-authored
+name and carry a <code>#[diagnostic::on_unimplemented]</code> annotation. The
+compiler reads the annotation and renders the framework’s <code>message</code> /
+<code>label</code> / <code>note</code> triple instead of its default <code>E0277</code> text. The user
+sees a Ferra-shaped diagnostic on the first line of compiler output.</p>
+<h3 id="the-shipped-wrappers"><a class="header" href="#the-shipped-wrappers">The shipped wrappers</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Wrapper trait</th><th>Wrapped language trait</th><th>Consumed by</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FerraComputedDefault</code></td><td><code>Default</code> (blanket-impl’d for <code>T: Default</code>)</td><td><code>ferra-forge</code>’s <code>compute_emit::emit_computed_bounds</code>, once per <code>#[ferra(computed)]</code> field.</td></tr>
+<tr><td><code>FerraSend</code></td><td><code>Send</code> (blanket-impl’d for <code>T: Send + ?Sized</code>)</td><td><code>ferra-forge</code>’s <code>emit_bounds_assertion</code> (the FR-027 class 15 “forgot derives / non-<code>Send</code> field” detector emitted on every <code>#[derive(FerraModel)]</code> struct).</td></tr>
+<tr><td><code>FerraSync</code></td><td><code>Sync</code> (blanket-impl’d for <code>T: Sync + ?Sized</code>)</td><td>Sibling of <code>FerraSend</code> on the same assertion — carries the framework-authored message for the <code>Sync</code> half of the bound.</td></tr>
+<tr><td><code>FerraAuthConfigured</code></td><td>none (placeholder) at 0.6.5</td><td>Forward-declared at 0.6.5 with no consumer; <code>Foundry::mount::&lt;M&gt;()</code> will require this bound from <strong>0.8.0 Forging I</strong> onward.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>FerraComputedDefault</code>, <code>FerraSend</code>, and <code>FerraSync</code> are the three
+wrappers that can fire on user code today. <code>FerraAuthConfigured</code> exists
+in 0.6.5 so the 0.8.0 release can emit the bound without a coupled
+<code>ferra-core</code> evolution — at 0.6.5 it has no blanket impl and no
+consumer.</p>
+<h3 id="the-canonical-diagnostic-shape"><a class="header" href="#the-canonical-diagnostic-shape">The canonical diagnostic shape</a></h3>
+<p>The compiler renders a <code>#[diagnostic::on_unimplemented]</code> failure as
+three lines anchored on the offending type. The <code>message</code> is the
+top-line <code>error: …</code>; the <code>label</code> is the inline span annotation pointing
+at the offending position; the <code>note</code> is the bottom-line fix hint. For
+<code>FerraComputedDefault</code>:</p>
+<pre><code class="language-text">error: `NotDefault` does not implement `Default`, but it is required for fields marked `#[ferra(computed)]`
+  --&gt; src/model.rs:LL:CC
+   |
+LL |     pub total: NotDefault,
+   |                ^^^^^^^^^^ this type must implement `Default` for ferra-forge to supply its compute-time placeholder
+   |
+   = note: add `#[derive(Default)]` on `NotDefault`, or provide an explicit `impl Default for NotDefault`.
+</code></pre>
+<p>The framing — <code>is required for fields marked \</code>#[ferra(…)]`<code>plus the explicit</code>ferra-forge<code>reference in the</code>label<code>— is how a consumer (human or AI) recognises a Ferra wrapper diagnostic versus a generic rustc message. Whenever you see one of these triples, the</code>note:<code>line names the fix verbatim; apply it on the offending type and re-run</code>cargo check`.</p>
+<h3 id="migration-when-an-upgrade-introduces-a-new-wrapper-trait-bound"><a class="header" href="#migration-when-an-upgrade-introduces-a-new-wrapper-trait-bound">Migration when an upgrade introduces a new wrapper-trait bound</a></h3>
+<p>Future Ferra releases land additional bounds (e.g. <code>FerraAuthConfigured</code>
+at 0.8.0). When an upgrade triggers a previously-passing compile to
+fail with a new wrapper-trait diagnostic:</p>
+<ol>
+<li><strong>Recognise the framing.</strong> The <code>message</code> line names a Ferra attribute
+or generation context (<code>required for fields marked \</code>#[ferra(…)]`<code>, </code>this model needs explicit authorization configuration`, …) rather
+than a bare language trait.</li>
+<li><strong>Read the <code>note:</code> line.</strong> It names the concrete fix — a missing
+<code>#[derive(...)]</code>, a missing impl, or a missing attribute on the model.</li>
+<li><strong>Apply the fix at the named site.</strong> The diagnostic’s <code>--&gt; path:LINE:COL</code>
+anchor points at the exact source position; the wrapper-trait
+substrate guarantees the fix is local to the type or the model under
+the cursor.</li>
+</ol>
+<p>The per-code FRG-3NN sections below cite individual diagnostics; the
+wrapper-trait substrate is shared by every emission that imposes a
+typed bound on user fields (the <code>FerraComputedDefault</code> consumer site is
+documented under <a href="#computed-field-default-value-diagnostic"><code>FRG-3NN — computed/projection codes that share the wrapper substrate</code></a>).</p>
+<hr>
+<h2 id="computed-field-default-value-diagnostic"><a class="header" href="#computed-field-default-value-diagnostic">Computed-field default-value diagnostic</a></h2>
+<p>A <code>#[ferra(computed)]</code> field is computed by the framework at serialise
+time. The default emission strategy substitutes <code>T::default()</code> for the
+field’s value when reading the entity off the database — so the field’s
+type must implement <code>Default</code>. The proc-macro emits a bound assertion
+through the <code>FerraComputedDefault</code> wrapper trait (see
+<a href="#compile-time-diagnostic-wrappers">Compile-time diagnostic wrappers</a>)
+so the diagnostic surfaces the framework-authored triple instead of
+rustc’s generic <code>E0277</code> text.</p>
+<p><strong>Bad — a user-named type that does not implement <code>Default</code>.</strong></p>
+<pre><code class="language-rust ignore">use ferra_core::compute::FerraComputed;
+use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use sea_orm::DeriveValueType;
+use serde::{Deserialize, Serialize};
+
+/// A user-defined newtype that deliberately omits `#[derive(Default)]`.
+/// Every other trait Ferra's substrate requires (`Clone`, `Debug`,
+/// `PartialEq`, sea-orm's `ValueType` family via `DeriveValueType`,
+/// serde derives) is in place — `Default` is the only missing piece.
+#[derive(
+    Clone, Debug, PartialEq, DeriveValueType, Serialize, Deserialize,
+)]
+pub struct NotDefault(pub i64);
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(computed)]
+    pub custom: NotDefault,
+}
+
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>impl FerraComputed for Model {}</code></pre>
+<p><strong>The diagnostic the developer sees</strong> — the framework-authored
+<code>FerraComputedDefault</code> <code>#[diagnostic::on_unimplemented]</code> triple,
+pinned verbatim by the trybuild golden
+<a href="../../crates/ferra-forge/tests/ui/computed_default_missing.rs"><code>crates/ferra-forge/tests/ui/computed_default_missing.{rs,stderr}</code></a>:</p>
+<pre><code class="language-text">error[E0277]: `NotDefault` is used as the type of a `#[ferra(computed)]` field, but it does not implement `Default`
+  --&gt; src/model.rs:LL:CC
+   |
+LL |     pub custom: NotDefault,
+   |                 ^^^^^^^^^^ this type needs `impl Default for NotDefault`
+   |
+   = note: Ferra calls `T::default()` when a computed field's compute trait is not implemented (FR-015 — missing implementations are a no-op, not a panic). The `Default` bound is required by the computed-field contract; see `docs/user-guide/ferra-forge.md#computed-fields`. Diagnostic emitted by `ferra_core::diagnostics::FerraComputedDefault`.
+   = note: required for `NotDefault` to implement `FerraComputedDefault`
+help: consider annotating `NotDefault` with `#[derive(Default)]`
+</code></pre>
+<p><strong>Fix.</strong> Add <code>#[derive(Default)]</code> (or an explicit <code>impl Default</code>) on
+the field’s underlying type:</p>
+<pre><code class="language-rust ignore">#[derive(
+    Default, Clone, Debug, PartialEq, DeriveValueType, Serialize, Deserialize,
+)]
+pub struct NotDefault(pub i64);</code></pre>
+<p>The build now succeeds and the wrapper-trait bound is satisfied via
+the blanket impl <code>impl&lt;T: Default&gt; FerraComputedDefault for T {}</code> on
+[<code>ferra_core::diagnostics::FerraComputedDefault</code>].</p>
+<p><strong>FR-043 — non-computed fields are unaffected.</strong> A user-named field
+type that does NOT carry <code>#[ferra(computed)]</code> is rejected by the
+classifier cascade (<code>type … is not supported by Ferra</code>). The
+classifier widening that admits <code>NotDefault</code> above lives behind the
+<code>#[ferra(computed)]</code> gate by design; the negative control fixture
+<a href="../../crates/ferra-forge/tests/ui/non_computed_user_named_rejected.rs"><code>crates/ferra-forge/tests/ui/non_computed_user_named_rejected.{rs,stderr}</code></a>
+pins this invariant.</p>
+<p><strong>Multi-segment paths (<code>module::MyType</code>) are not admitted at 0.7.0.</strong>
+Only single-ident user-named types pass the gate. A path-qualified
+type continues to be rejected by the classifier cascade even under
+the computed gate. Use a <code>use module::MyType as MyType;</code> at the
+declaration site to surface the bare ident if the wrapper-trait
+diagnostic is desired.</p>
+<hr>
+<h1 id="frg-3nn--projection-attribute-diagnostics-065-chasing"><a class="header" href="#frg-3nn--projection-attribute-diagnostics-065-chasing">FRG-3NN — projection-attribute diagnostics (0.6.5 Chasing)</a></h1>
+<p>The 0.6.5 Chasing release opens the <code>FRG-3NN</code> block for projection /
+computed / write-only attribute rejections. Codes FRG-301..FRG-312 and
+FRG-314 ship from the proc-macro parser (<code>#[derive(FerraModel)]</code>); codes
+FRG-312 and FRG-315 are runtime-detected at <code>Foundry::build()</code> and ship
+their full integration-test fixture when the corresponding API surface
+(cross-model collision check, nested-mounting) wires in. FRG-313 is
+<strong>intentionally unallocated</strong> — the slot is reserved for namespace
+stability; the framework will not recycle the identifier.</p>
+<p>See <a href="projections-and-routing.html">Projections and routing</a> for the
+user-facing contract; this page documents the compile-time enforcement.</p>
+<h2 id="frg-301--projection-references-an-unknown-field"><a class="header" href="#frg-301--projection-references-an-unknown-field">FRG-301 — projection references an unknown field</a></h2>
+<p><strong>Trigger.</strong> A <code>#[ferra(projection(... read = [...]))]</code> or
+<code>write = [...]</code> list contains an ident that does not match any field on
+the host struct. The check also fires when an ident references a
+field but in the wrong half (e.g. a <code>#[ferra(write_only)]</code> field
+listed in a <code>read = [...]</code>; see FRG-305 for that refinement).</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin", read = [ghost_field]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin", read = [id, title]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Fix.</strong> Replace the unknown ident with a field that exists on the
+struct, or add the field. Identifiers in <code>read</code>/<code>write</code> lists must
+match field names exactly (case-sensitive).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs"><code>crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs</code></a></p>
+<hr>
+<h2 id="frg-302--write_only-and-read_only-on-the-same-field"><a class="header" href="#frg-302--write_only-and-read_only-on-the-same-field">FRG-302 — <code>write_only</code> and <code>read_only</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field carries both <code>#[ferra(write_only)]</code> and
+<code>#[ferra(read_only)]</code>. The two flags are mutually exclusive: a
+write-only field is inbound-only (e.g. a password on registration),
+a read-only field is outbound-only (e.g. a server-set timestamp);
+combining them produces a field that can be neither read nor written —
+a field nobody can interact with. Diagnostic span on the
+second-encountered flag.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(read_only)]
+    #[ferra(write_only)]
+    pub title: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(read_only)]
+    pub title: String,
+}</code></pre>
+<p><strong>Fix.</strong> Decide which direction the field travels and keep exactly one
+flag. If the field genuinely flows in one direction only, drop the
+other attribute.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_302_write_only_and_read_only.rs"><code>crates/ferra-forge/tests/diagnostics/frg_302_write_only_and_read_only.rs</code></a></p>
+<hr>
+<h2 id="frg-303--write_only-and-computed-on-the-same-field"><a class="header" href="#frg-303--write_only-and-computed-on-the-same-field">FRG-303 — <code>write_only</code> and <code>computed</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field carries both <code>#[ferra(write_only)]</code> and
+<code>#[ferra(computed)]</code>. A computed field is server-produced — its value
+materialises at read time from other fields on the row — so it is
+strictly outbound. Tagging it <code>write_only</code> makes the field
+unreachable: the framework would never produce it on the read side
+and would reject inbound values on the write side. Diagnostic span on
+<code>write_only</code>.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub subtotal: f64,
+    #[ferra(write_only)]
+    #[ferra(computed)]
+    pub total: f64,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub subtotal: f64,
+    #[ferra(computed)]
+    pub total: f64,
+}</code></pre>
+<p><strong>Fix.</strong> Drop <code>#[ferra(write_only)]</code> — <code>computed</code> already implies
+“read shape only” (and also implies <code>read_only</code>; see FRG-309 for the
+redundancy-with-<code>read_only</code> check).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_303_write_only_and_computed.rs"><code>crates/ferra-forge/tests/diagnostics/frg_303_write_only_and_computed.rs</code></a></p>
+<hr>
+<h2 id="frg-304--write_only-on-a-primary-key-field"><a class="header" href="#frg-304--write_only-on-a-primary-key-field">FRG-304 — <code>write_only</code> on a primary-key field</a></h2>
+<p><strong>Trigger.</strong> <code>#[ferra(write_only)]</code> on a field that also carries
+<code>#[sea_orm(primary_key)]</code>. Primary-key columns surface in
+<code>_links.self.href</code> and as <code>/{resource}/{id}</code> URL segments — they
+must round-trip on the read side. A write-only PK column would
+leave the inserted row structurally unaddressable. Composite-key
+models fire FRG-304 independently per PK column, so the developer
+resolves the full graph in one round-trip.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "documents_composite")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    #[ferra(write_only)]
+    pub workspace_id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    #[ferra(write_only)]
+    pub document_id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "documents_composite")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub workspace_id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub document_id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Fix.</strong> Remove <code>#[ferra(write_only)]</code> from every PK column. If the
+column is genuinely sensitive on read, model it as a non-PK column
+and keep a separate synthetic primary key.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_304_write_only_on_primary_key.rs"><code>crates/ferra-forge/tests/diagnostics/frg_304_write_only_on_primary_key.rs</code></a></p>
+<hr>
+<h2 id="frg-305--write_only-field-appears-in-a-read-projection"><a class="header" href="#frg-305--write_only-field-appears-in-a-read-projection">FRG-305 — <code>write_only</code> field appears in a read projection</a></h2>
+<p><strong>Trigger.</strong> A field declared <code>#[ferra(write_only)]</code> is listed in some
+projection’s <code>read = [...]</code>. The structural exclusion of write-only
+fields from the read shape is the load-bearing security guarantee of
+US3 — there is no escape hatch via the projection attribute, even on
+an admin-scoped projection. Diagnostic span on the offending ident
+inside the <code>read</code> list.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+#[ferra(projection(name = "admin", read = [id, email, password_hash]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+#[ferra(projection(name = "admin", read = [id, email]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Fix.</strong> Remove the write-only field from the <code>read = [...]</code> list. If
+the field should genuinely appear on the read side, remove
+<code>#[ferra(write_only)]</code> from its declaration — but think hard first:
+the attribute exists to prevent precisely this leak.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_305_write_only_in_read_projection.rs"><code>crates/ferra-forge/tests/diagnostics/frg_305_write_only_in_read_projection.rs</code></a></p>
+<hr>
+<h2 id="frg-306--skip-and-non-empty-groups-on-the-same-field"><a class="header" href="#frg-306--skip-and-non-empty-groups-on-the-same-field">FRG-306 — <code>skip</code> and non-empty <code>groups</code> on the same field</a></h2>
+<p><strong>Trigger.</strong> A field carries both <code>#[ferra(skip)]</code> and a non-empty
+<code>#[ferra(groups = ["..."])]</code>. <code>skip</code> removes the field from every
+projection unconditionally; <code>groups = [...]</code> opts it into specific
+projections. The two cannot simultaneously hold. The “both empty”
+case (<code>groups = []</code> next to <code>skip</code>) is allowed — the empty group
+list is a no-op. Diagnostic span on the second-encountered attribute.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(skip)]
+    #[ferra(groups = ["admin"])]
+    pub internal_notes: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(groups = ["admin"])]
+    pub internal_notes: String,
+}</code></pre>
+<p><strong>Fix.</strong> Decide whether the field is universally hidden (keep <code>skip</code>,
+drop the non-empty <code>groups</code>) or scoped to specific projections (drop
+<code>skip</code>, keep the <code>groups</code> list).</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_306_skip_and_groups_contradict.rs"><code>crates/ferra-forge/tests/diagnostics/frg_306_skip_and_groups_contradict.rs</code></a></p>
+<hr>
+<h2 id="frg-307--legacy-fieldwrite_only-form"><a class="header" href="#frg-307--legacy-fieldwrite_only-form">FRG-307 — legacy <code>#[field(write_only)]</code> form</a></h2>
+<p><strong>Trigger.</strong> A field carries <code>#[field(write_only)]</code>. The
+<code>#[field(...)]</code> namespace is reserved for <strong>validation</strong> rules
+(FRG-201..FRG-215); <code>write_only</code> is a <strong>projection</strong> flag that lives
+under the <code>#[ferra(...)]</code> namespace per ADR-0006’s namespace
+harmonisation. The parser recognises the pre-ADR-0006 legacy spelling
+and emits FRG-307 with help pointing at the canonical
+<code>#[ferra(write_only)]</code> spelling.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Fix.</strong> Rename the attribute namespace from <code>#[field(write_only)]</code> to
+<code>#[ferra(write_only)]</code>. This is distinct from FRG-308 (typo within
+the <code>#[ferra(...)]</code> namespace): the mistake here is the namespace,
+not the spelling.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_307_legacy_field_write_only.rs"><code>crates/ferra-forge/tests/diagnostics/frg_307_legacy_field_write_only.rs</code></a>
+(See also the sibling release-blocker <code>tests/ui/fail_ferra_writeonly_password_hash.rs</code> fixture cited under FRG-308 — that one carries forward from 0.6.0 and now also exercises the FRG-308 typo path.)</p>
+<hr>
+<h2 id="frg-308--ferrawriteonly-typo-did-you-mean-write_only"><a class="header" href="#frg-308--ferrawriteonly-typo-did-you-mean-write_only">FRG-308 — <code>#[ferra(writeonly)]</code> typo (did you mean <code>write_only</code>?)</a></h2>
+<p><strong>Trigger.</strong> A field carries <code>#[ferra(writeonly)]</code> — the underscore is
+missing. The parser computes the Levenshtein distance to every known
+flag in the <code>#[ferra(...)]</code> vocabulary and, when the distance is ≤ 2,
+emits FRG-308 with a <code>did you mean</code> hint pointing at the closest
+known flag. This is the <strong>release-blocker</strong> test carried forward
+from 0.6.0 Welding — the canonical typo on a <code>password_hash</code> field is
+gated on every release.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(writeonly)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Fix.</strong> Apply the spelling the <code>did you mean</code> line suggests — for the
+<code>writeonly</code> typo, the canonical form is <code>write_only</code> with the
+underscore.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/ui/fail_ferra_writeonly_password_hash.rs"><code>crates/ferra-forge/tests/ui/fail_ferra_writeonly_password_hash.rs</code></a></p>
+<hr>
+<h2 id="frg-309--computed-and-read_only-redundant"><a class="header" href="#frg-309--computed-and-read_only-redundant">FRG-309 — <code>computed</code> and <code>read_only</code> redundant</a></h2>
+<p><strong>Trigger.</strong> A field carries both <code>#[ferra(computed)]</code> and
+<code>#[ferra(read_only)]</code>. The first attribute implies the second by
+construction — a computed field is server-produced and therefore
+appears only on the read shape — so the explicit <code>read_only</code> is
+redundant. Diagnostic span on the second-encountered flag with help
+suggesting the redundant attribute be dropped.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub subtotal: f64,
+    #[ferra(computed)]
+    #[ferra(read_only)]
+    pub total: f64,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub subtotal: f64,
+    #[ferra(computed)]
+    pub total: f64,
+}</code></pre>
+<p><strong>Fix.</strong> Drop <code>#[ferra(read_only)]</code>. <code>computed</code> already implies the
+read-only invariant.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_309_computed_and_read_only_redundant.rs"><code>crates/ferra-forge/tests/diagnostics/frg_309_computed_and_read_only_redundant.rs</code></a></p>
+<hr>
+<h2 id="frg-310--projection-url-prefix-collision"><a class="header" href="#frg-310--projection-url-prefix-collision">FRG-310 — projection URL prefix collision</a></h2>
+<p><strong>Trigger.</strong> Two projections on the same model produce the same URL
+prefix. Two failure shapes share this code:</p>
+<ul>
+<li><strong>Duplicate <code>path_prefix</code>.</strong> Two projections each declare the same
+literal <code>path_prefix = "..."</code>, so both route to the same URL.</li>
+<li><strong>Double <code>default = true</code>.</strong> Two projections each carry
+<code>default = true</code>; both target the bare resource path
+(<code>/{resource}/{id}</code>) and therefore collide. The second
+<code>default = true</code> is the offending span.</li>
+</ul>
+<p>The proc-macro detects single-model collisions at compile time; the
+framework’s <code>Foundry::build()</code> startup pass covers cross-model
+collisions as defense-in-depth (see FRG-312 for the
+projection-vs-resource case).</p>
+<p><strong>Bad (duplicate <code>path_prefix</code>).</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin",   path_prefix = "/staff", read = [id, title]))]
+#[ferra(projection(name = "manager", path_prefix = "/staff", read = [id, title]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Bad (double <code>default = true</code>).</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(
+    name = "v2", default = true,
+    promotes_from = "auto-derived", breaking_change_version = "2.0.0",
+))]
+#[ferra(projection(
+    name = "v3", default = true,
+    promotes_from = "named:v2", breaking_change_version = "3.0.0",
+))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Good.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin",   path_prefix = "/staff",   read = [id, title]))]
+#[ferra(projection(name = "manager", path_prefix = "/manager", read = [id, title]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Fix.</strong> Give each projection a distinct <code>path_prefix</code>, or rename one
+of the projections so the auto-derived prefix differs. For the
+<code>default = true</code> form, keep at most one default projection per
+model — to migrate the default shape, retire the previous
+<code>default = true</code> while landing the replacement (and pair the new
+default with the <code>promotes_from</code> + <code>breaking_change_version</code>
+attestations from FRG-316).</p>
+<p><strong>Fixture.</strong>
+<a href="../../crates/ferra-forge/tests/diagnostics/frg_310_projection_prefix_collision.rs"><code>crates/ferra-forge/tests/diagnostics/frg_310_projection_prefix_collision.rs</code></a>
+(duplicate <code>path_prefix</code> form);
+<a href="../../crates/ferra-forge/tests/diagnostics/frg_310_double_default_projection.rs"><code>crates/ferra-forge/tests/diagnostics/frg_310_double_default_projection.rs</code></a>
+(double <code>default = true</code> form).</p>
+<hr>
+<h2 id="frg-311--projection-name-is-not-a-url-safe-segment"><a class="header" href="#frg-311--projection-name-is-not-a-url-safe-segment">FRG-311 — projection name is not a URL-safe segment</a></h2>
+<p><strong>Trigger.</strong> A projection’s <code>name = "..."</code> cannot be normalised to a
+URL-safe segment (it contains characters outside <code>[a-z0-9_-]</code> after
+<code>to_lowercase()</code>) AND the projection does not supply an explicit
+<code>path_prefix = "..."</code> override. The framework needs a URL-safe segment
+to route the projection; when the <code>name</code> cannot produce one, the
+developer must either rename the projection or supply a path prefix
+verbatim.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin console"))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Good (rename).</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin-console"))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Good (explicit prefix).</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(projection(name = "admin console", path_prefix = "/admin-console"))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}</code></pre>
+<p><strong>Fix.</strong> Rename the projection to use only lowercase ASCII letters,
+digits, hyphens, and underscores; or supply an explicit
+<code>path_prefix = "/some-segment"</code> to bypass the auto-derive.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_311_projection_name_invalid_url_segment.rs"><code>crates/ferra-forge/tests/diagnostics/frg_311_projection_name_invalid_url_segment.rs</code></a></p>
+<hr>
+<h2 id="frg-312--projection-prefix-collides-with-a-resource-route"><a class="header" href="#frg-312--projection-prefix-collides-with-a-resource-route">FRG-312 — projection prefix collides with a resource route</a></h2>
+<p><strong>Trigger.</strong> A projection’s auto-derived URL prefix collides with an
+existing resource route mounted elsewhere on the same <code>Foundry</code>. For
+example: model A is mounted at <code>/admin</code>, and model B declares a
+projection named <code>admin</code> — the projection would shadow the
+top-level resource at the shared URL prefix.</p>
+<p><strong>Detection site.</strong> This collision spans two models, so the proc-macro
+cannot see it at compile time (it parses one struct at a time).
+Detection lives at <code>Foundry::build()</code>: the runtime walks every
+registered resource route plus every projection prefix and panics on
+overlap with a <code>FRG-312</code> error. The proc-macro emits no hint for this
+code.</p>
+<p><strong>Status at 0.6.5.</strong> The runtime collision check ships with the
+projection-routing wiring. A dedicated <code>tests/diagnostics/frg_312_*.rs</code>
+proc-macro fixture is intentionally absent — the diagnostic surface is
+runtime (a panic with the FRG-312 prefix), so the test lives as an
+integration assertion alongside other <code>Foundry::build()</code> checks rather
+than as a trybuild fixture.</p>
+<p><strong>Bad (illustrative — runtime).</strong></p>
+<pre><code class="language-rust ignore">// Two models on the same Foundry:
+//   - `Film` is mounted at the resource route `/admin`.
+//   - `User` declares a projection named `admin`, auto-deriving to `/users/admin`.
+//
+// If `Film`'s mount path were `/admin/...` and `User`'s `admin`
+// projection auto-derived to a route that overlaps with `Film`'s
+// nested URL surface, `Foundry::build()` would panic with FRG-312.
+#[derive(Clone, Debug, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+#[ferra(projection(name = "admin", read = [id, email]))]
+pub struct Model { /* ... */ }</code></pre>
+<p><strong>Fix.</strong> Rename one of the colliding sides — either pick a different
+projection name (auto-deriving a different prefix), or remount the
+conflicting resource under a different top-level path. The
+<code>Foundry::build()</code> panic message names both colliding routes so the
+rename is mechanical.</p>
+<p><strong>Fixture.</strong> Runtime-only at 0.6.5; no proc-macro <code>tests/diagnostics/</code>
+fixture in this release. The <code>Foundry::build()</code> integration test in
+<code>crates/ferra-http/tests/</code> (lands with the cross-model collision
+check) is the byte-shape contract.</p>
+<hr>
+<h2 id="frg-314--write_only-field-omitted-from-an-explicit-write-list"><a class="header" href="#frg-314--write_only-field-omitted-from-an-explicit-write-list">FRG-314 — <code>write_only</code> field omitted from an explicit <code>write</code> list</a></h2>
+<p><strong>Trigger.</strong> A named projection declares an explicit
+<code>write = [...]</code> list that omits a <code>#[ferra(write_only)]</code> field on the
+host model. The default-write projection (auto-derived when
+<code>write = [...]</code> is omitted) already includes every write-only field
+by construction; this rejection only applies to projections that opt
+into an explicit list. The help suggests adding the missing field or
+removing the <code>#[ferra(write_only)]</code> declaration. Diagnostic span on
+the projection’s <code>write</code> key.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+#[ferra(projection(name = "register", read = [id, email], write = [email]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Good (include <code>password_hash</code> in <code>write</code>).</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+#[ferra(projection(name = "register", read = [id, email], write = [email, password_hash]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Good (drop explicit <code>write</code> and rely on the auto-derived default).</strong></p>
+<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+#[ferra(projection(name = "register", read = [id, email]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p><strong>Fix.</strong> Add <code>&lt;missing_field&gt;</code> to the projection’s <code>write = [...]</code>
+list, OR remove <code>#[ferra(write_only)]</code> from the field’s declaration
+if the field genuinely should not be writable through this
+projection. If the projection is meant to accept <em>every</em> writable
+field, drop the explicit <code>write = [...]</code> and rely on the default.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_314_write_only_omitted_from_explicit_write.rs"><code>crates/ferra-forge/tests/diagnostics/frg_314_write_only_omitted_from_explicit_write.rs</code></a></p>
+<hr>
+<h2 id="frg-315--path_prefix-declared-on-a-sub-resource"><a class="header" href="#frg-315--path_prefix-declared-on-a-sub-resource">FRG-315 — <code>path_prefix</code> declared on a sub-resource</a></h2>
+<p><strong>Trigger.</strong> A model mounted as a sub-resource of another model (Foundry’s nested-mounting pattern) carries <code>path_prefix = "..."</code> on one of its <code>#[ferra(projection(...))]</code> declarations. The URL surface of a nested resource is governed exclusively by the root resource’s projection prefix (ADR-0030 §Nested resources); a sub-resource overriding the URL would break the one-prefix-per-request invariant.</p>
+<p><strong>Detection site.</strong> Primary detection lives at <code>Foundry::build()</code> time — the proc-macro cannot fully detect sub-resource context (it sees one struct at a time). The proc-macro carries a hint emit at the <code>path_prefix</code> attribute as defense-in-depth.</p>
+<p><strong>Status at 0.6.5.</strong> The framework’s nested-mounting API ships in a future release. The FRG-315 namespace slot and the parser hint are in place; the runtime fixture lands when nested-mounting becomes wireable.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">// Imagined nested-mounting flow (future API):
+// Foundry::new(conn).mount::&lt;Film&gt;().mount_nested::&lt;Review, Film&gt;().build()
+#[derive(Clone, Debug, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "reviews")]
+#[ferra(projection(
+    name = "detail",
+    path_prefix = "/v2",       // ← Review is mounted as a sub-resource of Film;
+    read = [id, content],      //   its URL surface MUST come from Film's prefix.
+))]
+pub struct Model { /* ... */ }</code></pre>
+<p><strong>Fix.</strong> Remove the <code>path_prefix</code> from the nested model’s projection. To version a sub-resource independently of its parent, version the root resource’s projection — the prefix propagates uniformly to every nested segment per ADR-0030 §Nested resources.</p>
+<pre><code class="language-rust ignore">#[ferra(projection(
+    name = "detail",
+    // path_prefix removed — the prefix inherits from Film's `detail` projection.
+    read = [id, content],
+))]</code></pre>
+<hr>
+<h2 id="frg-316--default--true-requires-promotes_from--breaking_change_version"><a class="header" href="#frg-316--default--true-requires-promotes_from--breaking_change_version">FRG-316 — <code>default = true</code> requires <code>promotes_from</code> + <code>breaking_change_version</code></a></h2>
+<p><strong>Trigger.</strong> A projection declares <code>default = true</code> without both <code>promotes_from = "..."</code> and <code>breaking_change_version = "..."</code> attestations on the same declaration. Setting <code>default = true</code> replaces the bare-path response shape — a silent breaking change to the public API contract (consumers continue requesting <code>/{resource}/{id}</code> and receive a different schema). The two attestations force the change to be visible in the source.</p>
+<p><strong>Why both are required.</strong> <code>promotes_from</code> is purely declarative — the macro does not validate it against repository history. Its purpose is to force the developer to <em>name</em> what is being replaced (<code>"auto-derived"</code> for the framework’s default, or <code>"named:&lt;other&gt;"</code> for a previous named-default projection). <code>breaking_change_version</code> surfaces in the OpenAPI document as the <code>x-ferra-promoted-in: "X.Y.Z"</code> vendor extension on every operation under the bare resource path, so SDK consumers and downstream tooling can detect the silent break.</p>
+<p>A future release adds a <code>.ferra/projection-defaults.lock</code> file with schema-hash drift detection (Layer 2); at 0.6.5 the Layer-1 attestation is the sole defence.</p>
+<p><strong>Bad.</strong></p>
+<pre><code class="language-rust ignore">#[ferra(projection(
+    name = "v2",
+    default = true,              // ← replaces the bare /films/{id} shape silently
+    read = [id, title],
+    write = [title],
+))]
+pub struct Model { /* ... */ }</code></pre>
+<p><strong>Fix.</strong></p>
+<pre><code class="language-rust ignore">#[ferra(projection(
+    name = "v2",
+    default = true,
+    promotes_from = "auto-derived",     // ← attestation of the previous default
+    breaking_change_version = "2.0.0",  // ← app version in which the promotion lands
+    read = [id, title],
+    write = [title],
+))]
+pub struct Model { /* ... */ }</code></pre>
+<p>If the previous default was itself a named projection (rather than the auto-derived shape), use <code>promotes_from = "named:&lt;other-projection-name&gt;"</code>.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_316_default_promotion_missing_attestation.rs"><code>crates/ferra-forge/tests/diagnostics/frg_316_default_promotion_missing_attestation.rs</code></a></p>
 
                     </main>
 

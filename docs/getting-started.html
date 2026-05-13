@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -241,10 +241,7 @@ facade’s cohabitation guarantees and is flagged by the framework’s
 example dep-shape gate.</p>
 <h3 id="the-one-line-opener"><a class="header" href="#the-one-line-opener">The one-line opener</a></h3>
 <p>Open every Ferra source file with a single glob over the prelude:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::prelude::*;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">use ferra::prelude::*;</code></pre>
 <p>That brings into scope, in one line:</p>
 <ul>
 <li>The <code>#[derive(FerraModel)]</code> derive — the model annotation.</li>
@@ -264,10 +261,7 @@ derive set with no extra imports.</li>
 <p>When you need Sea-ORM types directly — typically the
 <code>Database::connect(...)</code> constructor, or the <code>#[sea_orm(...)]</code>
 attribute namespace on a model struct — write <code>ferra::sea_orm::...</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;</code></pre>
 <p>The prelude glob already brings the <code>sea_orm</code> module name into scope,
 so the standard sibling-derive pair <code>#[derive(DeriveEntityModel, FerraModel)]</code> works with no extra <code>use sea_orm::entity::prelude::*;</code>
 line.</p>
@@ -276,7 +270,7 @@ line.</p>
 <p>The smallest meaningful Ferra application — one resource, full CRUD,
 auto-generated OpenAPI spec, Scalar docs UI, and HAL hypermedia
 responses — fits in this <code>src/main.rs</code>:</p>
-<pre class="playground"><code class="language-rust">use ferra::prelude::*;
+<pre><code class="language-rust ignore">use ferra::prelude::*;
 
 mod film {
     use ferra::prelude::*;

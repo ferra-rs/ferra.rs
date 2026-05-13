@@ -1,10 +1,13 @@
 MDBOOK := $(shell which mdbook 2>/dev/null || echo ~/.cargo/bin/mdbook)
 PORT   := 8765
 
-.PHONY: docs watch serve clean help
+.PHONY: docs test watch serve clean help
 
 docs:   ## Build the user-guide docs (src/ → docs/)
 	$(MDBOOK) build
+
+test:   ## Compile-check every rust fence in the user-guide (T145 gate)
+	$(MDBOOK) test
 
 watch:  ## Rebuild docs automatically on every .md change
 	$(MDBOOK) watch

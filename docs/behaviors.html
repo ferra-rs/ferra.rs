@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Architecture - Ferra.rs — User Guide</title>
+        <title>Behaviors - Ferra.rs — User Guide</title>
 
 
         <!-- Custom HTML head -->
@@ -147,7 +147,7 @@
                         <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/architecture.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/behaviors.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -181,213 +181,245 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="ferra-and-the-rust-ecosystem"><a class="header" href="#ferra-and-the-rust-ecosystem">Ferra and the Rust ecosystem</a></h1>
-<p>Ferra is a thin layer over a small set of upstream Rust crates that already
-solve specific concerns well. This page explains what is Ferra-defined and
-what is re-exported, so that you know <strong>where to look for documentation</strong> and
-<strong>which surface to import</strong> when you build an application.</p>
-<p>If you are looking for “five-minute zero-to-API,” see
-<a href="./getting-started.html">Getting started</a>. This page is about the long-term
-shape of the dependency graph you inherit when you depend on <code>ferra</code>.</p>
+                        <h1 id="behaviors"><a class="header" href="#behaviors">Behaviors</a></h1>
+<p><em>The 0.7.0 Pre-tempering deliverable. A <code>#[derive(FerraModel)]</code> struct can enrol cross-cutting <strong>behaviors</strong> that the framework injects in lockstep across the entire stack — fields, SQL, default projections, hypermedia links, and OpenAPI emission — from a single container-level attribute.</em></p>
+<p>This page is the <strong>authoritative user-guide</strong> for the behaviors surface. A reader with only this page plus standard Rust knowledge produces a working <code>#[behavior(...)]</code> declaration on the first attempt — no ADR and no framework source is required.</p>
 <hr>
-<h2 id="the-principle-cohabitation-not-encapsulation"><a class="header" href="#the-principle-cohabitation-not-encapsulation">The principle: cohabitation, not encapsulation</a></h2>
-<p>Ferra <strong>does not wrap</strong> the upstream crates it integrates. Instead, it does
-one of two things:</p>
-<ol>
-<li><strong>Direct re-export</strong> — when an upstream crate already offers a stable,
-namespaced surface, Ferra simply re-exports it under <code>ferra::*</code>. You import
-<code>ferra::sea_orm::DatabaseConnection</code>, <code>ferra::biscuit_quote::check</code>, and
-you call them with the API the upstream crate documents. There is no
-Ferra-renamed equivalent.</li>
-<li><strong>Default-locking + opt-in feature</strong> — when an upstream crate is correct
-for some applications but not all, Ferra locks the upstream-default
-configuration explicitly behind a Cargo feature, so the dependency weight
-only lands when you opt in.</li>
-</ol>
-<p>Ferra introduces a wrapper or a Ferra-defined trait <strong>only</strong> when one of
-three things is true:</p>
-<ul>
-<li>There is concrete behaviour to inject at the call site (logging,
-validation, span propagation).</li>
-<li>A typed Ferra newtype prevents misuse that the upstream type does not
-catch (<code>Email</code>, <code>UserId</code>).</li>
-<li>A Ferra trait abstracts over multiple backends with build-time or
-runtime swap-out (<code>FerraAuthProvider</code>, <code>RateLimitStore</code>).</li>
-</ul>
-<p>If none of those apply, the upstream surface is exposed verbatim and the
-upstream documentation is the canonical reference.</p>
-<hr>
-<h2 id="what-lives-under-ferra"><a class="header" href="#what-lives-under-ferra">What lives under <code>ferra::*</code></a></h2>
-<h3 id="ferra-defined-surface"><a class="header" href="#ferra-defined-surface">Ferra-defined surface</a></h3>
-<p>The <code>ferra::</code> namespace defines a small, stable user-facing API:</p>
+<h2 id="mental-model"><a class="header" href="#mental-model">Mental model</a></h2>
+<p>A behavior is a <strong>cohesive cohort of cross-cutting modifications</strong> the framework applies to a model: the fields it carries, the SQL the framework emits, the projections the framework derives, the hypermedia links the framework attaches, and the OpenAPI operations the framework documents — all at once, from one attribute line.</p>
+<p>The two behaviors that ship at this release:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Namespace</th><th>What it is</th></tr>
+<tr><th>Name</th><th>Effect</th></tr>
 </thead>
 <tbody>
-<tr><td><code>ferra::Foundry</code></td><td>The router builder — <code>Foundry::new(conn).mount::&lt;M&gt;().build()</code>.</td></tr>
-<tr><td><code>ferra::Id</code></td><td>The framework’s identifier type used by <code>#[id]</code> fields.</td></tr>
-<tr><td><code>ferra::Router</code></td><td>The composed Axum router returned by <code>Foundry::build()</code>.</td></tr>
-<tr><td><code>ferra::FerraError</code></td><td>The framework-wide error enum surfaced in HTTP responses.</td></tr>
-<tr><td><code>ferra::FerraLayer</code></td><td>The Tower layer composition entry point.</td></tr>
-<tr><td><code>#[derive(FerraModel)]</code></td><td>The proc-macro that turns a struct into a Ferra resource.</td></tr>
-<tr><td><code>#[ferra(...)]</code></td><td>The attribute namespace for Ferra-specific concerns.</td></tr>
-<tr><td><code>#[id]</code>, <code>#[field(...)]</code></td><td>Field-level attributes for primary keys and projection rules.</td></tr>
-<tr><td><code>#[authorize(...)]</code></td><td>Operation-level authorization rules.</td></tr>
+<tr><td><code>soft_delete</code></td><td>Adds a <code>deleted_at</code> column. Every framework-generated <code>SELECT</code> filters rows whose stamp is non-null. The standard <code>DELETE</code> rewrites to an <code>UPDATE deleted_at = NOW()</code>. A new <code>POST /{resource}/{id}/restore</code> action sets the stamp back to <code>NULL</code>.</td></tr>
+<tr><td><code>timestampable</code></td><td>Adds <code>created_at</code> and <code>updated_at</code> columns. Every framework-generated <code>INSERT</code> stamps both. Every framework-generated <code>UPDATE</code> advances <code>updated_at</code>. Submitted values for either field in a create/update body are silently ignored.</td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>Ingot</code>, <code>ferra-forge</code>, <code>ferra-anvil</code> thematic names belong to internal
-documentation. You will not see them in your application code.</p>
-<h3 id="re-exported-upstream-surface"><a class="header" href="#re-exported-upstream-surface">Re-exported upstream surface</a></h3>
-<p>The rest of <code>ferra::*</code> is re-exports. The biggest namespaces:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Namespace</th><th>Re-exports</th><th>Documentation</th></tr>
-</thead>
-<tbody>
-<tr><td><code>ferra::sea_orm</code></td><td>All of <code>sea_orm</code></td><td><a href="https://docs.rs/sea-orm"><code>sea_orm</code> docs.rs</a></td></tr>
-<tr><td><code>ferra::biscuit_quote</code></td><td>All of <code>biscuit-quote</code></td><td><a href="https://docs.rs/biscuit-quote"><code>biscuit-quote</code> docs.rs</a></td></tr>
-<tr><td><code>ferra::tracing</code></td><td>All of <code>tracing</code></td><td><a href="https://docs.rs/tracing"><code>tracing</code> docs.rs</a></td></tr>
-</tbody>
-</table>
-</div>
-<p>When you write:</p>
-<pre><code class="language-rust ignore">use ferra::sea_orm::Database;
-
-let conn = Database::connect("postgres://...").await?;</code></pre>
-<p>…you are calling <code>sea_orm::Database::connect</code>. The upstream documentation
-applies verbatim. There is no Ferra-side wrapping.</p>
-<h3 id="crate-graph-modules-pubcrate-items-glob-exported-at-root"><a class="header" href="#crate-graph-modules-pubcrate-items-glob-exported-at-root">Crate graph: modules <code>pub(crate)</code>, items glob-exported at root</a></h3>
-<p>Every framework implementation crate (<code>ferra-core</code>, <code>ferra-db</code>,
-<code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>) keeps its modules
-<code>pub(crate)</code> and re-exports its public items at its crate root. The
-facade then writes <code>pub use ferra_&lt;crate&gt;::*;</code> once per implementation
-crate. A consequence is that two implementation crates can share a
-module name (<code>emit</code>, <code>routes</code>, <code>schema</code>, …) without collisions: only
-the items at each crate’s root reach the facade, and the items
-themselves are uniquely named across the workspace.</p>
-<p>This rule is enforced mechanically. The <code>cargo clippy --workspace -- -D ambiguous_glob_reexports</code> lint fires the moment two glob
-re-exports in the facade name the same item from different sources;
-CI gates the lint as a release-blocker (FR-024). A future regression
-that exposes a sub-module from any implementation crate as <code>pub</code>
-would be caught the next time the facade picks up a sibling-crate
-item with the same name.</p>
-<p>If you are reading the source code: prefer the absence of <code>pub mod</code>
-on every implementation crate’s <code>lib.rs</code>. The single exception is
-<code>ferra::prelude</code> on the facade itself — the prelude is intended to be
-opened directly by consumers, so its module visibility is <code>pub</code> (FR-025).</p>
+<p>A model that declares zero <code>#[behavior(...)]</code> attributes observes <strong>byte-identical</strong> 0.6.5 behaviour. Adding a behavior is strictly additive to the model’s surface — the existing routes, the existing projections, and the existing OpenAPI emission all continue to exist; the behavior layers new structure on top.</p>
 <hr>
-<h2 id="cargo-feature-surface"><a class="header" href="#cargo-feature-surface">Cargo feature surface</a></h2>
-<p>Ferra’s default dependency graph is intentionally lean. Heavy or
-audience-partial features are opt-in.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Feature flag</th><th>What it enables</th><th>When you want it</th></tr>
-</thead>
-<tbody>
-<tr><td><em>(default)</em></td><td>Core framework + <code>tracing</code> + structured stderr JSON logging</td><td>Always.</td></tr>
-<tr><td><code>otel</code></td><td>OpenTelemetry SDK + OTLP/HTTP exporter (locked to upstream-default transport)</td><td>You run an OTel collector and want OTLP exports.</td></tr>
-<tr><td><code>otel-grpc</code></td><td><code>otel</code> + gRPC transport (instead of HTTP/protobuf)</td><td>Your collector requires gRPC and your ingress preserves HTTP/2.</td></tr>
-<tr><td><code>otel-fips</code></td><td><code>otel</code> + runtime-installed FIPS-compliant rustls <code>CryptoProvider</code></td><td>FIPS-compliant deployments.</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="activating-a-feature"><a class="header" href="#activating-a-feature">Activating a feature</a></h3>
-<pre><code class="language-toml">[dependencies]
-ferra = { package = "ferra-rs", version = "0.x", features = ["otel"] }
+<h2 id="the-attribute"><a class="header" href="#the-attribute">The attribute</a></h2>
+<pre><code>#[behavior(name1, name2, ...)]
 </code></pre>
-<blockquote>
-<p>The <code>package = "ferra-rs"</code> alias is required because the <code>ferra</code> name
-on crates.io is owned by an unrelated project; the framework’s facade
-is published as <code>ferra-rs</code>. See <a href="./getting-started.html#important-the-crate-is-published-as-ferra-rs">Getting Started</a>
-for full details.</p>
-</blockquote>
-<p>Adding the feature pulls the locked OTel SDK pin into your build; without
-the feature, none of those crates compile. There is no runtime check —
-the choice is at compile time.</p>
+<ul>
+<li><strong>Container-level</strong> — applied to the <code>struct</code> declaration, not to individual fields.</li>
+<li><strong>Closed vocabulary</strong> at this release: <code>soft_delete</code>, <code>timestampable</code>. An unknown name is a compile-time error.</li>
+<li><strong>Stackable</strong> — the attribute can appear multiple times on the same struct; the framework dedupes by set-union.</li>
+<li><strong>Order-irrelevant</strong> — <code>#[behavior(soft_delete, timestampable)]</code> and <code>#[behavior(timestampable, soft_delete)]</code> produce byte-identical <code>ModelMeta</code>.</li>
+<li><strong>No arguments</strong> at this release — each name is a bare identifier.</li>
+</ul>
 <hr>
-<h2 id="where-to-look-for-documentation"><a class="header" href="#where-to-look-for-documentation">Where to look for documentation</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Question</th><th>Source</th></tr>
-</thead>
-<tbody>
-<tr><td>How do I declare a model?</td><td>This user guide → <a href="./ferra-forge.html"><code>ferra-forge.md</code></a></td></tr>
-<tr><td>What does <code>Foundry::new(...)</code> do?</td><td>This user guide → <a href="./ferra-http.html"><code>ferra-http.md</code></a></td></tr>
-<tr><td>How do I run a database query?</td><td>Upstream — <code>sea_orm</code> docs.rs (Ferra re-exports verbatim)</td></tr>
-<tr><td>What are valid Datalog rules in <code>#[authorize]</code>?</td><td>Upstream — <code>biscuit</code> documentation + the rule grammar reference</td></tr>
-<tr><td>How do I configure tracing subscribers?</td><td>Upstream — <code>tracing-subscriber</code> docs.rs (Ferra re-exports verbatim)</td></tr>
-</tbody>
-</table>
-</div>
-<p>When you ask an AI coding assistant about a Ferra application, the
-assistant should reach for <strong>upstream documentation</strong> for re-exported
-surfaces and for <strong>this user guide</strong> for Ferra-defined surface. The
-distinction matters because upstream training corpora are large and
-Ferra-specific corpora are small — the cohabitation pattern is what
-makes a Ferra application legible to AI agents trained on the broader
-Rust ecosystem.</p>
-<hr>
-<h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
-<p>A complete Ferra application demonstrating both halves of the principle:</p>
-<pre><code class="language-rust ignore">// Cargo.toml:
-//   ferra = { package = "ferra-rs", version = "0.x", features = ["otel"] }
+<h2 id="behaviorsoft_delete"><a class="header" href="#behaviorsoft_delete"><code>#[behavior(soft_delete)]</code></a></h2>
+<h3 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h3>
+<pre><code class="language-rust ignore">use ferra::*;
+use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
 
-// Direct re-export (Half A): upstream `sea_orm` reached without renaming.
-use ferra::sea_orm::Database;
+#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
+)]
+#[sea_orm(table_name = "films")]
+#[behavior(soft_delete)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Uuid,
+    pub title: String,
+}</code></pre>
+<p>The framework’s <code>ModelMeta</code> for <code>Film</code> carries:</p>
+<ul>
+<li>A <code>behaviors</code> slice containing <code>BehaviorKind::SoftDelete</code>.</li>
+<li>An automatically injected <code>deleted_at: Option&lt;jiff::Timestamp&gt;</code> field at the end of the user’s field list, flagged <code>read_only: true</code> so the default-read projection includes it and the default-write projection excludes it.</li>
+<li>An auto-emitted <code>OperationMeta::new("restore", "POST", "restore")</code> on <code>operations</code>.</li>
+</ul>
+<h3 id="the-migration"><a class="header" href="#the-migration">The migration</a></h3>
+<p>The column shape is hand-written into your <code>sea-orm-migration</code> migration file at 0.7.0 (the <code>ferra-anvil migration create</code> scaffolder lands at 0.13.0 and emits the same shape automatically based on <code>M::meta().behaviors</code>):</p>
+<pre><code class="language-sql">ALTER TABLE films ADD COLUMN deleted_at TIMESTAMPTZ NULL;
+</code></pre>
+<p>That is the entire migration surface — the framework’s runtime SQL composes the predicate (<code>WHERE deleted_at IS NULL</code>) and the rewrites (<code>DELETE → UPDATE deleted_at = NOW()</code>) on top of this single column.</p>
+<h3 id="what-changes-on-the-wire"><a class="header" href="#what-changes-on-the-wire">What changes on the wire</a></h3>
+<ul>
+<li><code>DELETE /films/{id}</code> on a live row → <strong>204 No Content</strong>, no physical delete; the row’s <code>deleted_at</code> is set to <code>NOW()</code>.</li>
+<li><code>DELETE /films/{id}</code> on an already-soft-deleted row → <strong>404 Not Found</strong> (the framework’s <code>SELECT</code> predicate filters the row out before the handler reaches it).</li>
+<li><code>GET /films/{id}</code> on a soft-deleted row → <strong>404 Not Found</strong>.</li>
+<li><code>GET /films</code> → soft-deleted rows are absent from the collection.</li>
+<li>The 1-to-1 read response shape is <strong>unchanged</strong> — your existing JSON consumers see <code>deleted_at: null</code> on every live row (the field is in the default-read projection by construction).</li>
+</ul>
+<h3 id="restoring-a-row"><a class="header" href="#restoring-a-row">Restoring a row</a></h3>
+<pre><code class="language-text">POST /films/{id}/restore
+</code></pre>
+<ul>
+<li>On a soft-deleted row → <strong>200 OK</strong> with the row’s HAL <code>ItemResponse</code>. The <code>deleted_at</code> is set back to <code>NULL</code>.</li>
+<li>On a row that never existed → <strong>404 Not Found</strong>.</li>
+<li>On a row that is already live (<code>deleted_at IS NULL</code>) → <strong>404 Not Found</strong> (idempotent — re-restoring a live row is a no-op as far as the client is concerned).</li>
+<li>The route honours <code>Prefer: return=minimal</code> per the framework’s standard preference header rules: with the header → <strong>204 No Content</strong>, <code>Preference-Applied: return=minimal</code>, empty body.</li>
+</ul>
+<p>The restore action mounts under the standard Tower stack — CORS deny / body cap / mutation rate-limit / tracing — exactly like the standard CRUD mutation routes. It composes with per-projection URL prefixes by simple concatenation:</p>
+<pre><code class="language-text">POST /admin/films/{id}/restore   ← when the model has an `admin` projection
+</code></pre>
+<h3 id="_linksrestorehref"><a class="header" href="#_linksrestorehref"><code>_links.restore.href</code></a></h3>
+<p>Every live row’s HAL response carries:</p>
+<pre><code class="language-json">{
+  "data": { "id": "550e8400-...", "title": "Casablanca", "deleted_at": null },
+  "_links": {
+    "self":       { "href": "https://api.example/films/550e8400-..." },
+    "collection": { "href": "https://api.example/films" },
+    "restore":    { "href": "https://api.example/films/550e8400-.../restore" }
+  }
+}
+</code></pre>
+<p>The <code>_links.restore.href</code> is present <strong>only on live rows</strong> — soft-deleted rows are filtered before they ever reach the link-emission stage, so a client cannot observe a <code>_links.restore.href</code> on a row whose stamp is non-null. The URL composes through any configured <code>base_path</code> automatically (see <em>Foundry → Transport-layer overrides → base_path</em>).</p>
+<h3 id="the-allowsharddelete-opt-in-marker"><a class="header" href="#the-allowsharddelete-opt-in-marker">The <code>AllowsHardDelete</code> opt-in marker</a></h3>
+<p>The framework’s standard <code>DELETE /{r}/{id}</code> handler rewrites to <code>UPDATE deleted_at = NOW()</code> on every soft-delete model. A developer who registers a <strong>custom processor</strong> that bypasses this and issues <code>DELETE FROM films WHERE ...</code> directly is bypassing the soft-delete safety contract.</p>
+<p>The framework requires the bypass to be <strong>explicit</strong>:</p>
+<pre><code class="language-rust ignore">use ferra::AllowsHardDelete;
 
-// Direct re-export (Half A): upstream `biscuit-quote::check` for compile-time
-// Datalog. A typo here is a `cargo build` error, not a runtime panic.
-use ferra::biscuit_quote::check;
+pub struct PurgeProcessor;
 
-// Ferra-defined surface: the model derive, the router builder.
-use ferra::{Foundry, FerraModel, Id};
-
-#[derive(FerraModel)]
-struct Film {
-    #[id]
-    id: Id,
-    title: String,
+impl FerraProcessor&lt;Film&gt; for PurgeProcessor {
+    // ... developer's processor logic, including the physical DELETE ...
 }
 
-#[tokio::main]
-async fn main() -&gt; anyhow::Result&lt;()&gt; {
-    // Upstream API (sea_orm): no Ferra-side wrapper.
-    let conn = Database::connect("postgres://localhost/films").await?;
-
-    // Ferra-defined: the router composition surface.
-    let app = Foundry::new(conn).mount::&lt;Film&gt;().build();
-
-    // Upstream API (axum / hyper): Ferra returns a standard Axum Router.
-    axum::serve(tokio::net::TcpListener::bind("0.0.0.0:3000").await?, app).await?;
-    Ok(())
-}</code></pre>
-<p>The same application without the <code>otel</code> feature compiles to a smaller
-binary; the OTel SDK is not in the dependency graph at all.</p>
+// The opt-in:
+impl AllowsHardDelete for PurgeProcessor {}</code></pre>
+<p>Without the <code>impl AllowsHardDelete</code> line, <code>Foundry::build()</code> panics at boot with a verbatim message naming the model, the processor type, and the exact <code>impl</code> line the developer must add. The framework refuses to wire the application together until the bypass is acknowledged.</p>
+<p>A custom processor that does NOT issue a physical <code>DELETE</code> — for example, one that mutates <code>deleted_at</code> directly via <code>UPDATE films SET deleted_at = NOW() WHERE id = $1</code> — does <strong>NOT</strong> require the marker. The marker gates only the physical-delete path.</p>
+<p><strong>Tip:</strong> directly mutating <code>deleted_at</code> from a custom processor is permitted without the <code>AllowsHardDelete</code> marker, but it bypasses the framework’s <code>restore</code> action and the HAL link emission. The framework provides the <code>restore</code> operation as the supported way to flip the stamp back; direct mutation is your responsibility.</p>
+<h3 id="edge-case--identifier-collision-with-a-soft-deleted-row"><a class="header" href="#edge-case--identifier-collision-with-a-soft-deleted-row">Edge case — identifier collision with a soft-deleted row</a></h3>
+<p>A <code>POST /films</code> that supplies an <code>id</code> matching an existing soft-deleted row returns the framework’s standard 409 conflict response:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/conflict",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "..."
+}
+</code></pre>
+<p>This is the standard duplicate-key shape unchanged — the soft-deleted row continues to occupy the <code>UNIQUE (id)</code> index, and an <code>INSERT</code> colliding on it is a primary-key collision regardless of stamp state. The framework’s behaviour matches the database’s natural semantics.</p>
+<p>If your application needs identifier reuse across hard-deleted-and-restored cycles, apply a <strong>partial unique index</strong> in the same migration:</p>
+<pre><code class="language-sql">-- Allow re-use of soft-deleted identifiers:
+CREATE UNIQUE INDEX films_id_live_only ON films (id) WHERE deleted_at IS NULL;
+ALTER TABLE films DROP CONSTRAINT films_pkey;
+ALTER TABLE films ADD CONSTRAINT films_pkey PRIMARY KEY (id) DEFERRABLE INITIALLY IMMEDIATE;
+</code></pre>
+<p>The partial-unique-index pattern is an opt-in schema customisation; the framework does not emit it automatically.</p>
 <hr>
-<h2 id="when-you-need-a-ferra-wrapper-that-does-not-yet-exist"><a class="header" href="#when-you-need-a-ferra-wrapper-that-does-not-yet-exist">When you need a Ferra wrapper that does not yet exist</a></h2>
-<p>If you find yourself wanting a Ferra-side wrapper around an upstream
-type — a Ferra newtype, a Ferra trait abstracting multiple backends,
-or a Ferra macro that does something the upstream macro does not —
-the wrapper is a feature request worth filing. The maintainers will
-ask which of the three justifications applies (concrete behaviour to
-inject, type-narrowing, swap-out insurance) and ship the wrapper at
-that point. Until then, the upstream surface is the documented path.</p>
+<h2 id="behaviortimestampable"><a class="header" href="#behaviortimestampable"><code>#[behavior(timestampable)]</code></a></h2>
+<h3 id="worked-example-1"><a class="header" href="#worked-example-1">Worked example</a></h3>
+<pre><code class="language-rust ignore">use ferra::*;
+use ferra_forge::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
+)]
+#[sea_orm(table_name = "films")]
+#[behavior(timestampable)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Uuid,
+    pub title: String,
+}</code></pre>
+<p>The framework injects <code>created_at: jiff::Timestamp</code> and <code>updated_at: jiff::Timestamp</code> at the end of the field list, both flagged <code>read_only: true</code> (present in the default-read, absent from the default-write).</p>
+<h3 id="the-migration-1"><a class="header" href="#the-migration-1">The migration</a></h3>
+<pre><code class="language-sql">ALTER TABLE films ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE films ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+</code></pre>
+<p><code>NOT NULL DEFAULT NOW()</code> ensures that pre-existing rows in the table receive a value at migration time. The framework’s runtime SQL stamps both columns on every <code>INSERT</code> and advances <code>updated_at</code> on every <code>UPDATE</code>, so the <code>DEFAULT NOW()</code> only matters for the migration path.</p>
+<h3 id="what-changes-on-the-wire-1"><a class="header" href="#what-changes-on-the-wire-1">What changes on the wire</a></h3>
+<ul>
+<li><code>POST /films</code> → the response carries <code>created_at</code> and <code>updated_at</code> populated to the server’s current time. The request body cannot set them; values submitted in either field are <strong>silently ignored</strong>.</li>
+<li><code>PATCH /films/{id}</code> → the response carries the advanced <code>updated_at</code>; <code>created_at</code> is unchanged.</li>
+<li><code>GET /films/{id}</code> and <code>GET /films</code> → both fields appear on every row.</li>
+</ul>
+<p>The “silently ignored on submit” behaviour follows from the <code>read_only: true</code> flag: the default-write projection excludes both fields, and the deserialisation rejects unknown fields when strict-projection-write is on (the framework’s default). Submitting a body with an explicit <code>created_at</code> value either returns a 422 (strict mode) or silently drops it (lenient mode) — the persisted value is always the framework’s <code>NOW()</code> stamp.</p>
+<hr>
+<h2 id="combined-behaviors"><a class="header" href="#combined-behaviors">Combined behaviors</a></h2>
+<p><code>#[behavior(soft_delete, timestampable)]</code> enrols both. The framework injects all three fields and the restore action. The composition behaves as the union of the two individual behaviors:</p>
+<pre><code class="language-rust ignore">#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
+)]
+#[sea_orm(table_name = "films")]
+#[behavior(soft_delete, timestampable)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Uuid,
+    pub title: String,
+}</code></pre>
+<p>Composition rules:</p>
+<ul>
+<li><code>DELETE /films/{id}</code> rewrites to <code>UPDATE films SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL</code>. Soft-delete refreshes <code>updated_at</code> because the soft-delete is logically a write.</li>
+<li><code>POST /films/{id}/restore</code> emits <code>UPDATE films SET deleted_at = NULL, updated_at = NOW() WHERE id = $1 AND deleted_at IS NOT NULL</code>. Restore refreshes <code>updated_at</code>; <code>created_at</code> stays at the original creation time.</li>
+<li>The order of names is irrelevant — <code>#[behavior(timestampable, soft_delete)]</code> produces the same <code>ModelMeta</code> as <code>#[behavior(soft_delete, timestampable)]</code>.</li>
+</ul>
+<p>The combined migration:</p>
+<pre><code class="language-sql">ALTER TABLE films ADD COLUMN deleted_at TIMESTAMPTZ NULL;
+ALTER TABLE films ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE films ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+</code></pre>
+<hr>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common pitfalls</a></h2>
+<h3 id="manually-declaring-an-injected-column-on-the-struct"><a class="header" href="#manually-declaring-an-injected-column-on-the-struct">Manually declaring an injected column on the struct</a></h3>
+<pre><code class="language-rust ignore">#[behavior(soft_delete)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: Uuid,
+    pub title: String,
+    pub deleted_at: Option&lt;jiff::Timestamp&gt;,   // ← compile error
+}</code></pre>
+<p>The framework emits <strong>FRG-323</strong> at proc-macro time:</p>
+<pre><code class="language-text">error: field `deleted_at` conflicts with the soft_delete behavior's auto-injected field
+help: remove the field declaration; the behavior injects it automatically
+</code></pre>
+<p>The same diagnostic applies to <code>created_at</code> and <code>updated_at</code> under <code>#[behavior(timestampable)]</code>. Behaviors own their injected column shape; if you need a column whose name happens to match one of the framework’s reserved names but holds different data, choose a different column name.</p>
+<h3 id="forgetting-the-allowsharddelete-marker-on-a-custom-processor"><a class="header" href="#forgetting-the-allowsharddelete-marker-on-a-custom-processor">Forgetting the <code>AllowsHardDelete</code> marker on a custom processor</a></h3>
+<p>A <code>FerraProcessor</code> registered against a soft-delete model that issues a physical <code>DELETE</code> triggers a boot-time panic:</p>
+<pre><code class="language-text">the model `Film` is enrolled in the soft-delete behavior AND a custom processor
+`PurgeProcessor` is registered against it. The processor MUST opt in via
+`impl AllowsHardDelete for PurgeProcessor {}` to acknowledge that a physical
+delete bypasses the soft-delete safety contract. See
+https://ferra.rs/guide/behaviors#the-allowshard-delete-opt-in-marker.
+</code></pre>
+<p>Add the marker (<code>impl AllowsHardDelete for PurgeProcessor {}</code>) or rewrite the processor to soft-delete instead. The check runs at <code>Foundry::build()</code> — it does not require a request to surface.</p>
+<h3 id="submitting-a-timestamp-value-in-a-request-body"><a class="header" href="#submitting-a-timestamp-value-in-a-request-body">Submitting a timestamp value in a request body</a></h3>
+<p>A <code>POST /films</code> request whose body carries <code>created_at: "2020-01-01T00:00:00Z"</code> does NOT plant the past date — the framework silently ignores submitted values for behavior-injected timestamps. The persisted value is the server’s <code>NOW()</code> at the moment of the <code>INSERT</code>. This is by construction (the field is excluded from the default-write projection).</p>
+<p>If your application needs to record a different “as-of” date (e.g., for retroactive imports), declare a separate column with a non-reserved name (<code>recorded_at</code>, <code>effective_at</code>, …) and write it normally — the framework’s behaviors own only the names listed in the closed vocabulary above.</p>
+<h3 id="unknown-behavior-name"><a class="header" href="#unknown-behavior-name">Unknown behavior name</a></h3>
+<pre><code class="language-rust ignore">#[behavior(softdelete)]    // typo — missing underscore</code></pre>
+<p>The framework emits <strong>FRG-320</strong> at proc-macro time:</p>
+<pre><code class="language-text">error: unrecognised behavior name `softdelete`
+help: did you mean `soft_delete`?
+note: recognised behaviors: soft_delete, timestampable.
+      See docs/user-guide/behaviors.md.
+</code></pre>
+<p>The recognised vocabulary is closed; future releases add new names additively (the <code>#[non_exhaustive]</code> <code>BehaviorKind</code> enum makes the additions non-breaking by construction).</p>
+<h3 id="empty-behavior"><a class="header" href="#empty-behavior">Empty <code>#[behavior()]</code></a></h3>
+<pre><code class="language-rust ignore">#[behavior()]    // empty</code></pre>
+<p>The framework emits <strong>FRG-321</strong>:</p>
+<pre><code class="language-text">error: behavior attribute requires at least one name
+help: remove the attribute or supply at least one of: soft_delete, timestampable
+</code></pre>
+<p>An empty attribute is rejected because it has no effect and most likely indicates an editor template that was not filled in.</p>
+<h3 id="non-identifier-syntax-inside-the-attribute"><a class="header" href="#non-identifier-syntax-inside-the-attribute">Non-identifier syntax inside the attribute</a></h3>
+<pre><code class="language-rust ignore">#[behavior(soft_delete = true)]      // key/value — not the grammar
+#[behavior("soft_delete")]            // string literal — not the grammar</code></pre>
+<p>Both fire <strong>FRG-322</strong> at proc-macro time. The grammar is bare comma-separated identifiers; key/value pairs and string literals are reserved for future widening.</p>
+<hr>
+<h2 id="forward-compatibility"><a class="header" href="#forward-compatibility">Forward compatibility</a></h2>
+<p>The behaviors namespace is <code>#[non_exhaustive]</code> at the IR level — future releases add behaviors additively without breaking existing call sites. Future releases will likely add behaviors such as <code>audit_log</code>, <code>tenanted</code>, <code>versioned</code>, and other model-level concerns — the namespace is designed for additive growth and no specific shape is contracted at this release. Argument-bearing behaviors (e.g., <code>#[behavior(versioned(strategy = "snapshot"))]</code>) are explicitly not part of the 0.7.0 surface; the grammar widens additively when the first argument-bearing behavior lands.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="getting-started.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="projections-and-routing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="foundry.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="ferra-openapi.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -397,11 +429,11 @@ that point. Until then, the upstream surface is the documented path.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="getting-started.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="projections-and-routing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="foundry.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="ferra-openapi.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
