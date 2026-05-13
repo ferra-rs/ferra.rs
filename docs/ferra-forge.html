@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,9 +198,7 @@ neither replaces the other; both read the struct.</p>
 <h2 id="canonical-entity-shape-sibling-derive"><a class="header" href="#canonical-entity-shape-sibling-derive">Canonical entity shape (sibling-derive)</a></h2>
 <p>The canonical 0.2.0 entity is a plain Rust struct with six derives and
 two container attributes:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore">use ferra_forge::FerraModel;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -218,8 +216,7 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
-impl ActiveModelBehavior for ActiveModel {}
-<span class="boring">}</span></code></pre>
+impl ActiveModelBehavior for ActiveModel {}</code></pre>
 <p>Key facts:</p>
 <ul>
 <li><strong><code>DeriveEntityModel</code></strong> is the Sea-ORM half. It owns the
@@ -294,12 +291,9 @@ different handling:</p>
 </table>
 </div>
 <p>The asymmetry is load-bearing. Consider the worked example:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Security-critical typo. The user MEANT `write_only`.
+<pre><code class="language-rust ignore">// Security-critical typo. The user MEANT `write_only`.
 #[ferra(writeonly)]
-pub password_hash: String,
-<span class="boring">}</span></code></pre>
+pub password_hash: String,</code></pre>
 <p>Because <code>#[ferra(writeonly)]</code> is not recognised, the build <strong>fails</strong>:</p>
 <pre><code class="language-text">error: `#[ferra(writeonly)]` is not a recognized attribute
   --&gt; src/models/user.rs:12:13
@@ -334,6 +328,14 @@ vocabulary change.</p>
 if present, otherwise <code>snake_case(&lt;StructIdent&gt;)</code> with a simple
 English plural suffix (<code>Film → films</code>, <code>UserProfile → user_profiles</code>,
 <code>Category → categories</code>, <code>Box → boxes</code>).</p>
+<blockquote>
+<p>Declarative behaviors (<code>#[behavior(soft_delete)]</code>,
+<code>#[behavior(timestampable)]</code>, and the cross-cutting cohort surface
+they share) are documented separately in <a href="behaviors.html">behaviors.md</a>.
+Enrolling a model in a behavior is a container-level act —
+declaring the behavior on the struct opts every operation on that
+model into the cohort’s contract.</p>
+</blockquote>
 <h3 id="field-level"><a class="header" href="#field-level">Field-level</a></h3>
 <div class="table-wrapper">
 <table>
@@ -352,6 +354,261 @@ English plural suffix (<code>Film → films</code>, <code>UserProfile → user_p
 contradict — see class 10. <code>#[ferra(write_only)]</code> on a primary-key
 field contradicts the id’s always-readable invariant — see class 12.
 Repeated identical flags are idempotent.</p>
+<h3 id="ferrawrite_only-is-structurally-excluded-from-every-read"><a class="header" href="#ferrawrite_only-is-structurally-excluded-from-every-read"><code>#[ferra(write_only)]</code> is structurally excluded from every read</a></h3>
+<p><code>#[ferra(write_only)]</code> is the framework’s load-bearing primitive for
+fields that must be inbound-accepting but never outbound-leaking —
+canonically a password hash, an API-key plaintext, or any other
+write-side credential.</p>
+<pre><code class="language-rust ignore">#[derive(DeriveEntityModel, FerraModel, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    #[ferra(write_only)]
+    pub password_hash: String,
+}</code></pre>
+<p>What the framework guarantees:</p>
+<ul>
+<li><code>POST /users</code> and <code>PUT /users/{id}</code> <strong>accept</strong> <code>password_hash</code> in
+the request body, validate it, and persist it through the standard
+insert / update pipeline.</li>
+<li>Every read response — single-item <code>GET /users/{id}</code>, collection
+<code>GET /users</code>, and the create / update response envelopes — <strong>omits</strong>
+<code>password_hash</code>. There is no header, query parameter, or <code>Accept:</code>
+variant that flips the field on.</li>
+<li>The same exclusion applies to every named projection: the
+auto-derived <code>{Model}{Projection}ReadProjection</code> struct emitted by
+<code>ferra-forge</code> does not have the field as a member, so the type
+system itself blocks any future handler from re-introducing it.</li>
+</ul>
+<h3 id="structural-by-construction-not-runtime-filter"><a class="header" href="#structural-by-construction-not-runtime-filter">Structural-by-construction, not runtime-filter</a></h3>
+<p>The guarantee is enforced <strong>at the Rust type-system layer</strong>, not by a
+runtime serialiser flag. The <code>ferra-forge</code> proc-macro emits one
+<code>pub struct {Model}ReadProjection</code> per model whose field list does
+not contain any <code>#[ferra(write_only)]</code> field; mutation and read
+handlers serialise <em>through</em> that struct’s allowlist before the JSON
+leaves the framework. A future custom handler that hand-writes a
+response cannot inadvertently leak <code>password_hash</code> because the field
+does not exist on the type the response carries.</p>
+<p>Prior to 0.6.5 the exclusion lived only in the OpenAPI emitter and a
+runtime serialiser filter; the 0.6.5 promotion to a structural
+guarantee closes the OWASP API #3 mitigation gap.</p>
+<h3 id="there-is-no-opt-in--frg-305-rejects-the-obvious-workaround"><a class="header" href="#there-is-no-opt-in--frg-305-rejects-the-obvious-workaround">There is no “opt-in” — <code>FRG-305</code> rejects the obvious workaround</a></h3>
+<p>Listing a <code>#[ferra(write_only)]</code> field in any projection’s
+<code>read = [...]</code> is rejected at compile time with diagnostic <code>FRG-305</code>:</p>
+<pre><code class="language-text">error: FRG-305: projection `admin` lists field `password_hash` in `read`,
+       but the field is declared `#[ferra(write_only)]`
+  = help: remove the ident from `read = [...]`, or remove `#[ferra(write_only)]`
+          from the field declaration
+</code></pre>
+<p>If you genuinely need the field to appear in some read surface, the
+resolution is to drop <code>#[ferra(write_only)]</code> from the field
+declaration entirely. The field then appears in every read by
+default; use <code>#[ferra(skip)]</code> or a per-projection <code>read = [...]</code>
+allowlist to scope the surfaces that include it. See
+<a href="./projections-and-routing.html"><code>projections-and-routing.md</code></a> for the
+projection key set and the auto-derived URL prefix contract.</p>
+<p>The full FRG-3NN diagnostic family for write-only-related mistakes
+(<code>FRG-302</code> through <code>FRG-307</code>, <code>FRG-314</code>) is documented in
+<a href="./ferra-forge-diagnostics.html"><code>ferra-forge-diagnostics.md</code></a>.</p>
+<h2 id="computed-fields"><a class="header" href="#computed-fields">Computed fields</a></h2>
+<p>A computed field is <strong>server-derived</strong>: the framework runs the
+developer’s compute function after every fetch and before
+serialisation, then carries the produced value out through the read
+response. The field is excluded from <code>INSERT</code> / <code>UPDATE</code> SQL and
+from every write projection’s struct, so submitted values in request
+bodies are silently dropped — the only path to set the field is the
+compute hook the developer writes.</p>
+<p>The substrate ships at 0.6.5 Chasing per ADR-0031 and the
+<code>FerraComputed</code> trait surface contract.</p>
+<h3 id="the-ferracomputed-attribute"><a class="header" href="#the-ferracomputed-attribute">The <code>#[ferra(computed)]</code> attribute</a></h3>
+<p>Tag the field with <code>#[ferra(computed)]</code> and write an
+<code>impl FerraComputed for {Model}</code> block that overrides the method
+matching your computation kind:</p>
+<pre><code class="language-rust ignore">use ferra::*;
+use ferra::compute::{FerraComputed, RequestContext};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+pub struct Invoice {
+    #[sea_orm(primary_key)]
+    pub id: Id,
+    pub subtotal: f64,
+    pub tax: f64,
+    #[ferra(computed)]
+    pub total: f64,
+}
+
+impl FerraComputed for Invoice {
+    fn compute(&amp;mut self) {
+        self.total = self.subtotal + self.tax;
+    }
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}</code></pre>
+<p><code>#[ferra(computed)]</code> implies <code>writable = false</code> and <code>read_only = true</code>.
+The framework injects a <code>ferra_core::diagnostics::FerraComputedDefault</code>
+bound on the field’s type — see the <em>Compile-time rejections</em>
+sub-section below for the consequence when that bound fails.</p>
+<h3 id="the-three-tiers"><a class="header" href="#the-three-tiers">The three tiers</a></h3>
+<p><code>FerraComputed</code> exposes three default-implemented methods covering the
+spectrum from pure derivations to N+1-eliminating batched I/O. An
+implementer overrides only the method matching the computation kind.</p>
+<ul>
+<li><strong><code>fn compute(&amp;mut self)</code></strong> — synchronous, zero I/O. The right
+choice for <code>total = subtotal + tax</code> and other in-row derivations.
+Cost shape: one function call per row, no async overhead. Default:
+no-op.</li>
+<li><strong><code>fn compute_async(&amp;mut self, ctx: &amp;RequestContext)</code></strong> — per-row
+async with a request-context handle. The right choice for per-row
+I/O (currency-rate lookup, external HTTP enrichment). Cost shape:
+one I/O round-trip <em>per row</em> — invoke this tier only when the
+computation genuinely cannot be batched. At 0.6.5 <code>RequestContext</code>
+is an empty marker (see <code>compute_async_batch</code> below for the
+pool-threading limitation); it widens in 0.7.x. Default: returns
+<code>Ok(())</code>.</li>
+<li><strong><code>fn compute_async_batch(rows: &amp;mut [Self], ctx: &amp;RequestContext)</code></strong>
+— collection-level batch hook. Called once per read with the
+full slice. The default implementation iterates <code>compute_async</code>
+sequentially over every row; <strong>override this method</strong> to perform a
+single batched I/O call across the slice. This is the N+1
+elimination path.</li>
+</ul>
+<h3 id="read-pipeline"><a class="header" href="#read-pipeline">Read pipeline</a></h3>
+<p>For every read (item or collection) of a model with at least one
+<code>#[ferra(computed)]</code> field, the framework runs the pipeline in this
+order:</p>
+<ol>
+<li>The repository fetches the row(s) from the data source.</li>
+<li>The framework calls <code>compute(&amp;mut self)</code> on each row in sequence.</li>
+<li>The framework calls <code>Self::compute_async_batch(&amp;mut rows, ctx).await?</code>
+once with the full slice.</li>
+<li>The framework serialises each row through the projection’s read
+struct.</li>
+</ol>
+<p><strong>Uniform-invocation guarantee.</strong> Item reads (<code>GET /invoices/{id}</code>)
+pass a <strong>one-element slice</strong> to <code>compute_async_batch</code>. The developer
+writes one batch implementation; it covers both the item and
+collection surfaces without branching.</p>
+<h3 id="n1-elimination-pattern"><a class="header" href="#n1-elimination-pattern">N+1 elimination pattern</a></h3>
+<p>The batch hook is where you fold a per-row I/O into a single
+round-trip. The canonical shape is a <code>WHERE id = ANY($1)</code> query
+keyed on the slice’s identifiers:</p>
+<pre><code class="language-rust ignore">use ferra::*;
+use ferra::compute::{FerraComputed, FerraComputeError, RequestContext};
+use std::collections::HashMap;
+
+impl FerraComputed for FilmWithCommentCount {
+    fn compute(&amp;mut self) {
+        // No synchronous derivation; the batch hook supplies the value.
+    }
+
+    async fn compute_async_batch(
+        rows: &amp;mut [Self],
+        _ctx: &amp;RequestContext,
+    ) -&gt; Result&lt;(), FerraComputeError&gt; {
+        // Collect every row's id, then fetch the matching counts in
+        // a single SQL round-trip.
+        let ids: Vec&lt;Id&gt; = rows.iter().map(|r| r.id).collect();
+
+        // At 0.6.5 the pool is threaded through application state; at
+        // 0.7.x it will live on `RequestContext`. Replace `app_pool()`
+        // with the pool handle of your choice.
+        let counts: HashMap&lt;Id, i64&gt; = sqlx::query_as::&lt;_, (Id, i64)&gt;(
+            "SELECT film_id, COUNT(*) FROM comments \
+             WHERE film_id = ANY($1) GROUP BY film_id",
+        )
+        .bind(&amp;ids[..])
+        .fetch_all(app_pool())
+        .await
+        .map_err(|e| FerraComputeError::new(e.to_string()))?
+        .into_iter()
+        .collect();
+
+        for row in rows {
+            row.comment_count = counts.get(&amp;row.id).copied().unwrap_or(0);
+        }
+        Ok(())
+    }
+}</code></pre>
+<p><strong>0.6.5 limitation — explicit.</strong> <code>RequestContext</code> is an empty marker
+at this release. Until 0.7.x widens it, thread the database pool
+through your application state (a <code>tokio::sync::OnceCell&lt;PgPool&gt;</code>, a
+<code>Arc&lt;AppState&gt;</code> in your handlers, or the pattern of your choice) and
+reach it from inside the batch hook. The contract for the trait
+method does NOT change when <code>RequestContext</code> widens — the parameter
+shape is stable; only the values reachable through it grow.</p>
+<p><strong>Forward-pointer to the post-v1.0 DataLoader pattern.</strong> The
+<code>compute_async_batch</code> contract is forward-compatible with a future
+request-scoped loader registry on <code>RequestContext</code>: a <code>compute_async</code>
+implementation that calls <code>ctx.loader::&lt;L&gt;().load(key).await</code> will
+coalesce all loads in the request into one <code>batch_load(keys)</code> call.
+Override-based batch hooks and loader-based per-row hooks compose
+without conflict.</p>
+<h3 id="what-the-framework-does-for-you"><a class="header" href="#what-the-framework-does-for-you">What the framework does for you</a></h3>
+<p>Tagging a field <code>#[ferra(computed)]</code> is one declaration with effects
+on both ends of the wire:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Side</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Inbound</strong></td><td>The field is silently dropped from request bodies. <code>POST /invoices</code> and <code>PUT /invoices/{id}</code> accept <code>subtotal</code> + <code>tax</code> and ignore any client-supplied <code>total</code>.</td></tr>
+<tr><td><strong>SQL</strong></td><td><code>INSERT</code> and <code>UPDATE</code> statements skip the column. The database does not have to carry it — and even if your schema persists the column, the framework will not write to it; reads ignore the persisted value and replace it with the compute output.</td></tr>
+<tr><td><strong>Outbound</strong></td><td>The OpenAPI document marks the field <code>readOnly: true</code> on every read schema. SDK generators that consume the spec (orval, openapi-generator, kiota) surface the field as read-only on the client side.</td></tr>
+<tr><td><strong>Read response</strong></td><td>The response carries the value produced by the compute hook — <code>compute()</code> runs first, then <code>compute_async_batch</code> runs once across the slice, then serialisation walks the read projection.</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Missing-<code>impl</code> behaviour (FR-015).</strong> A model that declares
+<code>#[ferra(computed)]</code> on a field but does <strong>not</strong> provide an
+<code>impl FerraComputed for Model { ... }</code> block — or that provides an
+empty <code>impl FerraComputed for Model {}</code> block adopting every default
+— is <strong>not</strong> a compile error. The framework substitutes the trait’s
+default methods (no-op <code>compute</code>, <code>Ok(())</code> async hooks), and the
+field is serialised with its type’s <code>Default::default()</code> value. The
+framework never panics on this path.</p>
+<h3 id="compile-time-rejections"><a class="header" href="#compile-time-rejections">Compile-time rejections</a></h3>
+<p>The 0.6.5 FRG-3NN diagnostic family covers the contradictions; the
+full catalogue lives in
+<a href="./ferra-forge-diagnostics.html"><code>ferra-forge-diagnostics.md</code></a>. The
+codes that matter for computed fields:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Trigger</th><th>Fix</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FRG-303</code></td><td><code>#[ferra(write_only)]</code> + <code>#[ferra(computed)]</code> on the same field. A computed value is server-produced — it cannot also be inbound-only.</td><td>Drop one of the two flags. Keep <code>#[ferra(computed)]</code> if the value is derived; keep <code>#[ferra(write_only)]</code> if the value is client-supplied and write-only.</td></tr>
+<tr><td><code>FRG-309</code></td><td><code>#[ferra(computed)]</code> + explicit <code>#[ferra(read_only)]</code> on the same field. <code>computed</code> already implies <code>read_only</code>; the second flag is redundant.</td><td>Remove the redundant <code>#[ferra(read_only)]</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>The <code>FerraComputedDefault</code> <code>#[diagnostic::on_unimplemented]</code>
+triple.</strong> The framework injects a <code>FerraComputedDefault</code> bound on
+every <code>#[ferra(computed)]</code> field’s type. When the chosen type does
+not implement <code>Default</code>, rustc fails the bound and surfaces the
+framework-authored diagnostic verbatim:</p>
+<pre><code class="language-text">error[E0277]: `MyType` is used as the type of a `#[ferra(computed)]` field, but it does not implement `Default`
+  --&gt; src/models/invoice.rs:8:5
+   |
+ 8 |     pub total: MyType,
+   |     ^^^^^^^^^^^^^^^^^ this type needs `impl Default for MyType`
+   |
+   = note: Ferra calls `T::default()` when a computed field's compute trait is not implemented (FR-015 — missing implementations are a no-op, not a panic). The `Default` bound is required by the computed-field contract; see `docs/user-guide/ferra-forge.md#computed-fields`. Diagnostic emitted by `ferra_core::diagnostics::FerraComputedDefault`.
+</code></pre>
+<p>Every type in the recognised-field-types table above already
+implements <code>Default</code> (numbers default to zero, <code>String</code> to <code>""</code>,
+<code>Option&lt;T&gt;</code> to <code>None</code>, <code>Uuid</code> to nil, <code>Id</code> to a fresh v4 UUID). The
+diagnostic fires only on custom field types where you’ve forgotten
+the <code>#[derive(Default)]</code> line.</p>
 <h2 id="deferred-keys-and-when-they-land"><a class="header" href="#deferred-keys-and-when-they-land">Deferred keys and when they land</a></h2>
 <p>The following keys are <strong>rejected</strong> in 0.2.0 (hard <code>compile_error!</code>)
 and will arrive in a later roadmap phase. If you reach for any of
@@ -367,7 +624,6 @@ don’t silently compile code that looks correct but does nothing.</p>
 <tr><td><code>projection</code> / <code>projections</code></td><td>0.4.0 Refining</td><td>Typed projections (<code>ServerFields&lt;M&gt;</code>).</td></tr>
 <tr><td><code>exposure</code></td><td>0.4.0 Refining</td><td><code>Exposure::Strict</code> / <code>Exposure::Loose</code>.</td></tr>
 <tr><td><code>sortable</code> / <code>filterable</code> / <code>searchable</code></td><td>0.4.0+</td><td>Query DSL primitives.</td></tr>
-<tr><td><code>computed</code></td><td>0.5.0+</td><td>Computed fields with a <code>Default</code> bound.</td></tr>
 <tr><td><code>cascade</code></td><td>0.6.0+</td><td>Relation cascade rules.</td></tr>
 <tr><td><code>auth</code></td><td>0.8.5</td><td>Per-model auth scopes.</td></tr>
 <tr><td><code>rate_limit</code></td><td>0.8.5+</td><td>Tower rate-limit layer binding.</td></tr>
@@ -394,8 +650,8 @@ this section pins the model-side declaration grammar.</p>
 <tr><th>Rule</th><th>Compatible field types</th><th>Default English message on violation</th></tr>
 </thead>
 <tbody>
-<tr><td><code>min_length = N</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"must be at least N characters"</code></td></tr>
-<tr><td><code>max_length = N</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"must be at most N characters"</code></td></tr>
+<tr><td><code>min_length = N</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"must be at least N character(s)"</code> (singular when <code>N == 1</code>)</td></tr>
+<tr><td><code>max_length = N</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"must be at most N character(s)"</code> (singular when <code>N == 1</code>)</td></tr>
 <tr><td><code>min = N</code></td><td><code>i32</code>, <code>i64</code>, <code>f64</code>, and their <code>Option&lt;…&gt;</code></td><td><code>"must be at least N"</code></td></tr>
 <tr><td><code>max = N</code></td><td><code>i32</code>, <code>i64</code>, <code>f64</code>, and their <code>Option&lt;…&gt;</code></td><td><code>"must be at most N"</code></td></tr>
 <tr><td><code>pattern = "regex"</code></td><td><code>String</code>, <code>Option&lt;String&gt;</code></td><td><code>"does not match the required format"</code></td></tr>
@@ -420,9 +676,7 @@ round-trip rather than the first-and-stop pattern.</p>
 <p>The headline call site is a single <code>#[field(...)]</code> carrying
 multiple rules separated by commas, on a struct that already
 derives <code>FerraModel</code> and Sea-ORM’s <code>DeriveEntityModel</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore">use ferra_forge::FerraModel;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -454,8 +708,7 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
-impl ActiveModelBehavior for ActiveModel {}
-<span class="boring">}</span></code></pre>
+impl ActiveModelBehavior for ActiveModel {}</code></pre>
 <p>Two or more <code>#[field(...)]</code> attributes on the same field
 accumulate in source order — <code>#[field(min_length = 1)] #[field(max_length = 255)]</code> is identical to <code>#[field(min_length = 1, max_length = 255)]</code>. Two <code>#[field(...)]</code> attributes on
 two different fields are independent; each field’s rule list is
@@ -469,9 +722,7 @@ rule).</p>
 is a non-negative integer that fits in <code>u32</code>. On <code>Option&lt;String&gt;</code>
 the rule applies only when the value is <code>Some(..)</code> — a <code>None</code> is
 not a length violation (use <code>required</code> to forbid <code>None</code> outright).</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore"><span class="boring">use ferra_forge::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
@@ -484,11 +735,11 @@ pub struct Model {
 }
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
-</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}</span></code></pre>
 <p>A <code>POST /films</code> with <code>{"title": ""}</code> returns 422 with
-<code>errors.title = ["must be at least 1 characters"]</code>. A 300-char
-title returns 422 with <code>errors.title = ["must be at most 255 characters"]</code>.</p>
+<code>errors.title = ["must be at least 1 character"]</code> (singular —
+length rules pluralise only when <code>N != 1</code>). A 300-char title
+returns 422 with <code>errors.title = ["must be at most 255 characters"]</code>.</p>
 <blockquote>
 <p>Length rules count <em>Unicode scalar values</em>, not grapheme
 clusters or UTF-8 byte length — see § Unicode counting below.</p>
@@ -498,9 +749,7 @@ clusters or UTF-8 byte length — see § Unicode counting below.</p>
 literal type must match the field’s declared numeric type:
 <code>min = 1.5</code> on an <code>i32</code> field is <code>FRG-203</code>. Integer literals on
 <code>f64</code> fields are accepted (and coerce to <code>0.0</code>-style values).</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore"><span class="boring">use ferra_forge::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
@@ -513,8 +762,7 @@ pub struct Model {
 }
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
-</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}</span></code></pre>
 <p>A <code>POST /ratings</code> with <code>{"score": 99}</code> returns 422 with
 <code>errors.score = ["must be at most 10"]</code>.</p>
 <h4 id="pattern--regex"><a class="header" href="#pattern--regex"><code>pattern = "regex"</code></a></h4>
@@ -525,9 +773,7 @@ backreferences — the syntactic features that drive catastrophic
 backtracking in PCRE-style engines are <em>not even expressible</em>.
 A raw-string literal (<code>r"…"</code>) is the recommended shape so
 backslashes are not double-escaped.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore"><span class="boring">use ferra_forge::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
@@ -540,8 +786,7 @@ pub struct Model {
 }
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
-</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}</span></code></pre>
 <p>A <code>POST /posts</code> with <code>{"slug": "Bad Slug!"}</code> returns 422 with
 <code>errors.slug = ["does not match the required format"]</code>.</p>
 <blockquote>
@@ -559,9 +804,7 @@ can cause unbounded matching time.</p>
 <p>Bare flag on <code>String</code> and <code>Option&lt;String&gt;</code> fields — no value.
 Delegates to the upstream HTML5-compliant email validator.
 <code>#[field(email = "x")]</code> is <code>FRG-214</code>.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore"><span class="boring">use ferra_forge::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
@@ -574,17 +817,14 @@ pub struct Model {
 }
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
-</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}</span></code></pre>
 <p>A <code>POST /contacts</code> with <code>{"email": "not-an-email"}</code> returns
 422 with <code>errors.email = ["is not a valid email address"]</code>.</p>
 <h4 id="url"><a class="header" href="#url"><code>url</code></a></h4>
 <p>Bare flag on <code>String</code> and <code>Option&lt;String&gt;</code> fields — no value.
 Delegates to the upstream <code>url</code>-crate-backed validator.
 <code>#[field(url = "x")]</code> is <code>FRG-214</code>.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore"><span class="boring">use ferra_forge::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
@@ -597,8 +837,7 @@ pub struct Model {
 }
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
-</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}</span></code></pre>
 <p>A <code>POST /links</code> with <code>{"href": "not a url"}</code> returns 422 with
 <code>errors.href = ["is not a valid URL"]</code>.</p>
 <h4 id="required"><a class="header" href="#required"><code>required</code></a></h4>
@@ -612,9 +851,7 @@ existing partial-update semantics) and skips per-field rules,
 but an explicit <code>null</code> fails with <code>"is required"</code> — <code>null</code>
 on the wire is a positive declaration of “set to none”, which
 the rule rejects.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_forge::FerraModel;
+<pre><code class="language-rust ignore"><span class="boring">use ferra_forge::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
@@ -627,8 +864,7 @@ pub struct Model {
 }
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
-</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}</span></code></pre>
 <p>A <code>POST /profiles</code> with <code>{"bio": null}</code> (or <code>{}</code>) returns 422
 with <code>errors.bio = ["is required"]</code>.</p>
 <h3 id="propagation-to-the-openapi-document"><a class="header" href="#propagation-to-the-openapi-document">Propagation to the OpenAPI document</a></h3>
@@ -694,10 +930,13 @@ rules emits a spec byte-identical to its 0.5.x equivalent.
 Validation surfaces only when you opt in.</p>
 <h3 id="default-messages-and-localisation"><a class="header" href="#default-messages-and-localisation">Default messages and localisation</a></h3>
 <p>Every rule emits a hard-coded English message as its violation
-text — the literal strings shown in the table above. Ferra
-0.6.0 does <strong>not</strong> support per-field, per-rule message overrides
-or <code>Accept-Language</code>-driven locale negotiation; both are deferred
-to a later release.</p>
+text — the literal strings shown in the table above. Length rules
+pluralise “character” only when <code>N != 1</code>: <code>min_length = 1</code>
+produces <code>"must be at least 1 character"</code> (singular) while
+<code>min_length = 5</code> produces <code>"must be at least 5 characters"</code>
+(plural). Ferra 0.6.0 does <strong>not</strong> support per-field, per-rule
+message overrides or <code>Accept-Language</code>-driven locale negotiation;
+both are deferred to a later release.</p>
 <p>If you need localised error text on the consumer side, branch
 on the field name in the response’s <code>errors</code> map and rewrite
 the message client-side. The default English text is a stable
@@ -767,9 +1006,7 @@ multi-segment shape through the route, the <code>Location</code> header, the
 the <code>find_by_id(...)</code> lookup signature — without consumer-side
 glue.</p>
 <p>A worked example with <code>(tenant_id: Uuid, document_id: i64)</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -790,8 +1027,7 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
-impl ActiveModelBehavior for ActiveModel {}
-<span class="boring">}</span></code></pre>
+impl ActiveModelBehavior for ActiveModel {}</code></pre>
 <p><code>#[sea_orm(auto_increment = false)]</code> is required on every PK field
 in a composite key — PostgreSQL <code>SERIAL</code> only synthesises a value
 for one column per table, so the application supplies an explicit
@@ -812,10 +1048,7 @@ value on every insert.</p>
 </table>
 </div>
 <p>The repository call site is a typed tuple lookup:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let row = repo.find_by_id((tenant_id, document_id)).await?;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">let row = repo.find_by_id((tenant_id, document_id)).await?;</code></pre>
 <p>The tuple element order matches the <code>#[sea_orm(primary_key)]</code>
 declaration order in the struct — Sea-ORM resolves
 <code>PrimaryKeyTrait::ValueType</code> to <code>(Uuid, i64)</code> for the <code>Document</code>

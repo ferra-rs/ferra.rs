@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -211,14 +211,11 @@ enough for downstream crates to derive HTTP routes, SQL, OpenAPI, and
 hypermedia links from a single source of truth.</p>
 <h3 id="fieldtype"><a class="header" href="#fieldtype"><code>FieldType</code></a></h3>
 <p>A tag identifying the Rust type of a field.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum FieldType {
+<pre><code class="language-rust ignore">pub enum FieldType {
     String, I32, I64, F64, Bool, Uuid,
     OptionString, OptionI32, OptionI64, OptionF64, OptionBool,
     OptionUuid,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Option variants are spelled out so every field’s nullability is
 visible in the IR without indirection. <code>OptionUuid</code> joins the table
 in 0.6.0 Welding (User Story 4 — FR-014/FR-024); see the recognised
@@ -226,9 +223,7 @@ field types table in <a href="./ferra-forge.html"><code>ferra-forge.md</code></a
 end-user surface.</p>
 <p><code>FieldType</code> is <code>#[non_exhaustive]</code>. Pattern matches on it MUST
 include a <code>_ =&gt;</code> arm to stay forward-compatible:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_core::meta::FieldType;
+<pre><code class="language-rust ignore">use ferra_core::meta::FieldType;
 
 fn is_optional(ty: FieldType) -&gt; bool {
     matches!(
@@ -240,15 +235,12 @@ fn is_optional(ty: FieldType) -&gt; bool {
             | FieldType::OptionBool
             | FieldType::OptionUuid,
     )
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="fieldmeta"><a class="header" href="#fieldmeta"><code>FieldMeta</code></a></h3>
 <p>Description of a single field on a model. Seven named <code>pub</code> fields —
 no boolean-collapse tuples — so every flag is individually grep-able
 and readable in IDE hover output.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct FieldMeta {
+<pre><code class="language-rust ignore">pub struct FieldMeta {
     pub name:     &amp;'static str,
     pub ty:       FieldType,
     pub required: bool,
@@ -256,13 +248,10 @@ and readable in IDE hover output.</p>
     pub writable: bool,
     pub skip_api: bool,
     pub is_id:    bool,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>FieldMeta</code> is <code>#[non_exhaustive]</code>. Construction goes through the
 <code>const fn new</code> constructor:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_core::meta::{FieldMeta, FieldType};
+<pre><code class="language-rust ignore">use ferra_core::meta::{FieldMeta, FieldType};
 
 const TITLE_FIELD: FieldMeta = FieldMeta::new(
     "title",
@@ -272,19 +261,15 @@ const TITLE_FIELD: FieldMeta = FieldMeta::new(
     /*writable*/ true,
     /*skip_api*/ false,
     /*is_id*/   false,
-);
-<span class="boring">}</span></code></pre>
+);</code></pre>
 <h3 id="modelmeta"><a class="header" href="#modelmeta"><code>ModelMeta</code></a></h3>
 <p>Description of a single resource:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct ModelMeta {
+<pre><code class="language-rust ignore">pub struct ModelMeta {
     pub resource_name:      &amp;'static str,           // external name, e.g. "films"
     pub table_name:         &amp;'static str,           // SQL table name
     pub primary_key_fields: &amp;'static [&amp;'static str], // PK column names, declaration order
     pub fields:             &amp;'static [FieldMeta],
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>primary_key_fields</code> carries the primary-key column names in
 <strong>declaration order</strong>. Single-PK models hold a one-element slice
 (e.g. <code>&amp;["id"]</code>) — the <strong>single-PK fast path</strong>; downstream
@@ -307,9 +292,7 @@ whose <code>is_id = true</code>.</li>
 <p>In 0.1.0 every <code>ModelMeta</code> is hand-written. Starting in 0.2.0, the
 <code>#[model]</code> proc-macro (shipping in <code>ferra-forge</code>) emits the same
 types automatically.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_core::meta::{FieldMeta, FieldType, ModelMeta};
+<pre><code class="language-rust ignore">use ferra_core::meta::{FieldMeta, FieldType, ModelMeta};
 
 const FILM_FIELDS: &amp;[FieldMeta] = &amp;[
     FieldMeta::new("id",    FieldType::Uuid,   true, true, false, false, true),
@@ -320,21 +303,17 @@ const FILM_FIELDS: &amp;[FieldMeta] = &amp;[
 // declaration order. Composite-PK models pass a multi-element slice
 // (e.g. `&amp;["tenant_id", "document_id"]`).
 const FILM_META: ModelMeta =
-    ModelMeta::new("films", "films", &amp;["id"], FILM_FIELDS);
-<span class="boring">}</span></code></pre>
+    ModelMeta::new("films", "films", &amp;["id"], FILM_FIELDS);</code></pre>
 <hr>
 <h2 id="the-ferramodel-trait"><a class="header" href="#the-ferramodel-trait">The <code>FerraModel</code> trait</a></h2>
 <p><code>FerraModel</code> binds a Rust struct to its static <code>ModelMeta</code>
 description. It is the single piece of user code required to make a
 Rust struct a Ferra resource.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait FerraModel:
+<pre><code class="language-rust ignore">pub trait FerraModel:
     serde::Serialize + serde::de::DeserializeOwned + Send + Sync + 'static
 {
     fn meta() -&gt; &amp;'static ModelMeta;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>The supertrait set is part of the 0.1.0 contract. Every bound is
 load-bearing:</p>
 <div class="table-wrapper">
@@ -351,9 +330,7 @@ load-bearing:</p>
 </table>
 </div>
 <p>A hand-written implementation is four lines:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use ferra_core::{id::Id, meta::{FieldMeta, FieldType, ModelMeta}, model::FerraModel};
+<pre><code class="language-rust ignore"><span class="boring">use ferra_core::{id::Id, meta::{FieldMeta, FieldType, ModelMeta}, model::FerraModel};
 </span><span class="boring">use serde::{Deserialize, Serialize};
 </span><span class="boring">const FILM_FIELDS: &amp;[FieldMeta] = &amp;[
 </span><span class="boring">    FieldMeta::new("id",    FieldType::Uuid,   true, true, false, false, true),
@@ -365,8 +342,7 @@ struct Film { id: Id, title: String }
 
 impl FerraModel for Film {
     fn meta() -&gt; &amp;'static ModelMeta { &amp;FILM_META }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>In 0.1.0 this trait has no downstream consumer yet — <code>ferra-http</code>
 (0.3.0 Casting) is its first real reader. The trait ships early
 because narrowing supertraits later would be a breaking change.</p>
@@ -375,14 +351,11 @@ because narrowing supertraits later would be a breaking change.</p>
 <p><code>Id</code> is the identifier type every Ferra model uses. It is a 16-byte
 newtype wrapping <code>uuid::Uuid</code>.</p>
 <h3 id="construction"><a class="header" href="#construction">Construction</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra_core::id::Id;
+<pre><code class="language-rust ignore">use ferra_core::id::Id;
 
 let a = Id::new();        // fresh v4 UUID (collision-resistant)
 let b = Id::default();    // same as Id::new()
-let n = Id::nil();        // all-zero sentinel — TEST FIXTURE ONLY
-<span class="boring">}</span></code></pre>
+let n = Id::nil();        // all-zero sentinel — TEST FIXTURE ONLY</code></pre>
 <p><code>Id::nil()</code> is explicitly a test fixture: it is distinguishable from
 any <code>Id::new()</code> output, which makes it useful as a sentinel in unit
 tests. <strong>Do not store or return <code>Id::nil()</code> from production code.</strong></p>
@@ -399,9 +372,7 @@ across JSON, MessagePack, and every serde-backed format.</p>
 runs; the markdown fence below is a readable transcription, not the
 compiled source. The doctest is the ground-truth contract for how
 <code>Id</code> behaves.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::str::FromStr;
+<pre><code class="language-rust ignore">use std::str::FromStr;
 use ferra_core::id::Id;
 
 // Construction.
@@ -429,8 +400,7 @@ assert_eq!(err.to_string(), "failed to parse Id as a UUID");
 // Id is Copy — passing by value is free.
 fn takes_id(_x: Id) {}
 takes_id(id);
-takes_id(id);       // still valid, the previous call didn't move it.
-<span class="boring">}</span></code></pre>
+takes_id(id);       // still valid, the previous call didn't move it.</code></pre>
 <h3 id="why-a-newtype"><a class="header" href="#why-a-newtype">Why a newtype</a></h3>
 <p>Wrapping <code>uuid::Uuid</code> rather than exposing it directly lets Ferra
 swap the inner representation later (for example, to UUID v7
@@ -482,17 +452,14 @@ will <strong>not</strong> be added: <code>from_unix_timestamp</code>, <code>from
 out-of-range argument as the underlying time library’s error type.
 The methods are not <code>const fn</code> — call sites use the standard <code>?</code>
 operator, not <code>const</code>-context evaluation.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::DateTime;
+<pre><code class="language-rust ignore">use ferra::DateTime;
 
 fn epoch_seconds(seconds: i64) -&gt; Result&lt;DateTime, jiff::Error&gt; {
     DateTime::from_second(seconds)
 }
 
 let now = DateTime::now();
-let later = DateTime::from_second(1_700_000_000)?;
-<span class="boring">}</span></code></pre>
+let later = DateTime::from_second(1_700_000_000)?;</code></pre>
 <h3 id="date--calendar-date"><a class="header" href="#date--calendar-date"><code>Date</code> — calendar date</a></h3>
 <p><code>Date</code> represents a time-zone-free calendar date. Wire format: RFC
 3339 calendar date text (<code>"YYYY-MM-DD"</code>).</p>
@@ -508,24 +475,18 @@ let later = DateTime::from_second(1_700_000_000)?;
 </div>
 <p><code>Date::new</code> is <code>const fn</code> — an out-of-range <code>(year, month, day)</code>
 triple is rejected at <code>cargo build</code> time, not at runtime:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::Date;
+<pre><code class="language-rust ignore">use ferra::Date;
 
 const RELEASED: Date = Date::new(2027, 1, 1);
-// const INVALID: Date = Date::new(2027, 13, 1); // would not compile
-<span class="boring">}</span></code></pre>
+// const INVALID: Date = Date::new(2027, 13, 1); // would not compile</code></pre>
 <h3 id="date-macro--hyphen-literal-calendar-dates"><a class="header" href="#date-macro--hyphen-literal-calendar-dates"><code>date!</code> macro — hyphen-literal calendar dates</a></h3>
 <p><code>ferra::date!(YYYY-MM-DD)</code> re-tokenises a hyphen-literal into
 <code>Date::new(year, month, day)</code>. Same compile-time validation as
 <code>Date::new</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::{Date, date};
+<pre><code class="language-rust ignore">use ferra::{Date, date};
 
 const SUNSET: Date = date!(2027-01-01);
-// const INVALID: Date = date!(2027-13-01); // const-eval error
-<span class="boring">}</span></code></pre>
+// const INVALID: Date = date!(2027-13-01); // const-eval error</code></pre>
 <p>The macro is the recommended call site for fixed dates (release
 sunsets, scheduled migrations) because the literal form is most
 readable. Use <code>Date::new(...)</code> directly when the inputs are computed
@@ -534,9 +495,7 @@ or come from configuration.</p>
 <p>Both newtypes are accepted as field types on <code>#[derive(FerraModel)]</code>
 structs and emit the right OpenAPI schema (<code>format: date-time</code> and
 <code>format: date</code>):</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::{Date, DateTime, FerraModel};
+<pre><code class="language-rust ignore">use ferra::{Date, DateTime, FerraModel};
 
 #[derive(FerraModel)]
 pub struct Film {
@@ -545,22 +504,18 @@ pub struct Film {
     title: String,
     released: Date,
     indexed_at: DateTime,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="use-as-sunset-header-values"><a class="header" href="#use-as-sunset-header-values">Use as <code>Sunset:</code> header values</a></h3>
 <p><code>Foundry::deprecated(sunset)</code> accepts a <code>Date</code>. The framework
 serialises the value as the <code>Sunset:</code> HTTP header on every response
 under the deprecated version (RFC 8594):</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::{Foundry, date};
+<pre><code class="language-rust ignore">use ferra::{Foundry, date};
 
 let app = Foundry::new(conn)
     .api_version("v1")?
     .mount::&lt;Film&gt;()
     .deprecated(date!(2027-01-01))
-    .build();
-<span class="boring">}</span></code></pre>
+    .build();</code></pre>
 <h3 id="banned-imports"><a class="header" href="#banned-imports">Banned imports</a></h3>
 <p>The framework forbids direct use of legacy time libraries. Two
 gates enforce this:</p>
@@ -597,6 +552,22 @@ emit <code>{type: "string", format: "date-time"}</code> and
 <code>{type: "string", format: "date"}</code> respectively. Consumers and
 downstream crates never write the schema literal — the typed-newtype
 contract preserves the framework’s “single source of truth” rule.</p>
+<hr>
+<h2 id="public-surface"><a class="header" href="#public-surface">Public surface</a></h2>
+<h3 id="requestcontext"><a class="header" href="#requestcontext"><code>RequestContext</code></a></h3>
+<p><code>RequestContext</code> (canonical path: <code>ferra_core::request_context::RequestContext</code>)
+is the request-scoped handle the framework threads through the
+computed-field async pipeline. At 0.6.5 Chasing the type is an empty
+marker: the framework constructs it via <code>RequestContext::empty()</code> and
+passes it as the <code>ctx</code> parameter to <code>FerraComputed::compute_async</code> and
+<code>FerraComputed::compute_async_batch</code>. The shape is deliberate — the
+parameter pins the trait-method signatures so that 0.7.x can widen
+<code>RequestContext</code> with the authentication-principal handle, the
+database-pool handle, and the HTTP-request metadata without touching
+any existing <code>impl FerraComputed</code> block. The <code>#[non_exhaustive]</code>
+posture on the struct makes that widening non-breaking by construction.
+For the consumer-facing usage of the surrounding pipeline, see
+<a href="./ferra-forge.html#computed-fields"><code>ferra-forge.md</code> § Computed fields</a>.</p>
 
                     </main>
 

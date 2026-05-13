@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,14 +189,11 @@
 </blockquote>
 <hr>
 <h2 id="zero-to-crud-in-four-lines"><a class="header" href="#zero-to-crud-in-four-lines">Zero-to-CRUD in four lines</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::{DatabaseConnection, FerraRepository, PgRepository};
+<pre><code class="language-rust ignore">use ferra::{DatabaseConnection, FerraRepository, PgRepository};
 
 let conn: DatabaseConnection = sea_orm::Database::connect(&amp;database_url).await?;
 let repo = PgRepository::&lt;Film&gt;::new(conn);
-let film = repo.find_by_id(42).await?;
-<span class="boring">}</span></code></pre>
+let film = repo.find_by_id(42).await?;</code></pre>
 <p>(<code>Film</code> is the canonical sibling-derive entity shape from <code>ferra-forge</code> — see the worked example below. <code>database_url</code> is read from the <code>DATABASE_URL</code> environment variable in the usual way.)</p>
 <hr>
 <h2 id="the-ferrarepositorym-surface"><a class="header" href="#the-ferrarepositorym-surface">The <code>FerraRepository&lt;M&gt;</code> surface</a></h2>
@@ -224,23 +221,17 @@ let film = repo.find_by_id(42).await?;
 </ul>
 <h3 id="transaction-scoped-methods"><a class="header" href="#transaction-scoped-methods">Transaction-scoped methods</a></h3>
 <p>Each ambient method has a paired <code>_in_tx</code> variant with the same name + suffix, taking <code>&amp;DatabaseTransaction</code> as its first argument after <code>&amp;self</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn find_by_id_in_tx(&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;M, FerraDbError&gt;;
+<pre><code class="language-rust ignore">async fn find_by_id_in_tx(&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;M, FerraDbError&gt;;
 async fn find_page_in_tx (&amp;self, tx: &amp;DatabaseTransaction, page: u32, per_page: u32) -&gt; Result&lt;Page&lt;M&gt;, FerraDbError&gt;;
 async fn insert_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, data: M) -&gt; Result&lt;M, FerraDbError&gt;;
 async fn update_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;, data: M) -&gt; Result&lt;M, FerraDbError&gt;;
-async fn delete_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;(), FerraDbError&gt;;
-<span class="boring">}</span></code></pre>
+async fn delete_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;(), FerraDbError&gt;;</code></pre>
 <p>Semantics are identical to the ambient counterpart modulo the transaction handle. A bug fixed in one path is fixed in both — the two families share their inner implementation via a <code>ConnectionTrait</code>-generic helper.</p>
 <h3 id="object-safety-note"><a class="header" href="#object-safety-note">Object-safety note</a></h3>
 <p><code>FerraRepository&lt;M&gt;</code> is NOT object-safe — edition-2024 native async-in-trait does not support <code>dyn FerraRepository&lt;M&gt;</code>. Compose against it via generics: <code>fn handler&lt;R: FerraRepository&lt;Film&gt;&gt;(repo: R, ...)</code>. A runtime-heterogeneous-backend story is deferred to the post-v1 <code>ferra-db-*</code> sibling crates.</p>
 <hr>
 <h2 id="the-pgrepositorym-constructor"><a class="header" href="#the-pgrepositorym-constructor">The <code>PgRepository&lt;M&gt;</code> constructor</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let repo: PgRepository&lt;Film&gt; = PgRepository::new(conn);
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">let repo: PgRepository&lt;Film&gt; = PgRepository::new(conn);</code></pre>
 <ul>
 <li><code>conn</code> is a <code>sea_orm::DatabaseConnection</code> (re-exported from <code>ferra-db</code> so you do not need to add <code>sea-orm</code> as a direct dependency — <code>ferra</code> re-exports the name under <code>ferra::DatabaseConnection</code>).</li>
 <li>The struct derives <code>Clone</code> unconditionally. Sea-ORM’s <code>DatabaseConnection</code> wraps its pool in an <code>Arc</code>, so <code>repo.clone()</code> is cheap — pass <code>PgRepository&lt;M&gt;</code> by value or by clone rather than wrapping in <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>.</li>
@@ -273,32 +264,26 @@ async fn delete_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&l
 <p>Every variant’s <code>Display</code> is stable through 0.6.0 Welding — the 0.4.0 RFC 7807 layer serializes these templates verbatim into the <code>problem+json</code> response. No <code>Display</code> output contains any internal Rust path fragment (no <code>sea_orm::...</code>, no <code>sqlx::...</code>, no rustc error codes).</p>
 <h3 id="source--downcasting"><a class="header" href="#source--downcasting"><code>source()</code> + downcasting</a></h3>
 <p><code>FerraDbError::Db(_).source()</code> returns <code>Some(&amp;dyn Error)</code> pointing at the wrapped <code>sea_orm::DbErr</code>. You can downcast to inspect specific Sea-ORM failure modes:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::error::Error as _;
+<pre><code class="language-rust ignore">use std::error::Error as _;
 
 if let FerraDbError::Db(_) = &amp;err {
     if let Some(db_err) = err.source().and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;()) {
         // inspect db_err
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>source()</code> on <code>NotFound</code> and <code>Conflict</code> returns <code>None</code> — these variants carry their context in their fields.</p>
 <h3 id="construction-rules"><a class="header" href="#construction-rules">Construction rules</a></h3>
 <p>External consumers cannot directly construct <code>NotFound</code> or <code>Conflict</code> — those variants are produced exclusively by the repository itself at the single <code>from_sea_orm</code> mapping site. A raw <code>sea_orm::DbErr</code> that propagates through <code>?</code> becomes <code>FerraDbError::Db(_)</code> via the <code>From&lt;sea_orm::DbErr&gt;</code> derive; that is the only construction path available to user code.</p>
 <hr>
 <h2 id="the-pagem-shape"><a class="header" href="#the-pagem-shape">The <code>Page&lt;M&gt;</code> shape</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[non_exhaustive]
+<pre><code class="language-rust ignore">#[non_exhaustive]
 #[derive(Debug)]
 pub struct Page&lt;M&gt; {
     pub items: Vec&lt;M&gt;,
     pub total: u64,
     pub page: u32,
     pub per_page: u32,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <ul>
 <li><strong>1-indexed <code>page</code></strong> by framework convention. <code>page = 0</code> is treated identically to <code>page = 1</code> (the repository applies <code>saturating_sub(1)</code> internally to hand Sea-ORM its 0-indexed offset).</li>
 <li><strong><code>total: u64</code></strong> fits any Postgres <code>bigint</code> in the non-negative half — the full-table row count observed by the count query.</li>
@@ -310,28 +295,22 @@ pub struct Page&lt;M&gt; {
 <hr>
 <h2 id="transactions"><a class="header" href="#transactions">Transactions</a></h2>
 <p><code>ferra-db</code> re-exports <code>DatabaseConnection</code> and <code>DatabaseTransaction</code> from Sea-ORM under their original names, so you can type both handles without a direct <code>sea-orm</code> dependency. Obtaining a transaction requires importing Sea-ORM’s <code>TransactionTrait</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::{DatabaseConnection, DatabaseTransaction, FerraRepository, PgRepository};
+<pre><code class="language-rust ignore">use ferra::{DatabaseConnection, DatabaseTransaction, FerraRepository, PgRepository};
 use sea_orm::TransactionTrait; // import needed for .begin()
 
 let tx: DatabaseTransaction = conn.begin().await?;
 repo.insert_in_tx(&amp;tx, film_1).await?;
 repo.insert_in_tx(&amp;tx, film_2).await?;
-tx.commit().await?; // both rows persist atomically
-<span class="boring">}</span></code></pre>
+tx.commit().await?; // both rows persist atomically</code></pre>
 <h3 id="rollback-on-drop"><a class="header" href="#rollback-on-drop">Rollback on drop</a></h3>
 <p>Dropping a <code>DatabaseTransaction</code> without calling <code>.commit()</code> rolls it back. No cleanup call is required on the failure path:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let tx = conn.begin().await?;
+<pre><code class="language-rust ignore">let tx = conn.begin().await?;
 repo.insert_in_tx(&amp;tx, film_1).await?;
 if let Err(e) = repo.insert_in_tx(&amp;tx, film_2).await {
     // tx goes out of scope here → Sea-ORM rolls it back. film_1 is NOT persisted.
     return Err(e.into());
 }
-tx.commit().await?;
-<span class="boring">}</span></code></pre>
+tx.commit().await?;</code></pre>
 <h3 id="the-transactiontrait-import"><a class="header" href="#the-transactiontrait-import">The <code>TransactionTrait</code> import</a></h3>
 <p><code>ferra-db</code> deliberately does <strong>not</strong> re-export <code>sea_orm::TransactionTrait</code> under a Ferra-prefixed alias. Callers import it explicitly: <code>use sea_orm::TransactionTrait;</code>. This is a one-line acknowledgment that Sea-ORM owns the transaction mechanism; it is not a barrier to use, just intentional transparency.</p>
 <hr>
@@ -352,14 +331,11 @@ sea-orm = { version = "=2.0.0-rc.38", features = ["runtime-tokio-rustls", "sqlx-
 <hr>
 <h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
 <p>The <code>ferra</code> crate is the single user-facing dependency. At 0.3.0 it re-exports the public surface of <code>ferra-core</code> and <code>ferra-db</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::{
+<pre><code class="language-rust ignore">use ferra::{
     FerraDbError, FerraRepository, PgRepository, Page,
     DatabaseConnection, DatabaseTransaction,
     Id, FerraModel, ModelMeta, FieldMeta, FieldType,
-};
-<span class="boring">}</span></code></pre>
+};</code></pre>
 <p><strong><code>#[derive(FerraModel)]</code> is NOT re-exported at 0.3.0.</strong> Consumers who want the derive at 0.3.0 add <code>ferra-forge</code> as a second direct dependency:</p>
 <pre><code class="language-toml">[dependencies]
 ferra       = "0.3"
@@ -379,9 +355,7 @@ CREATE TABLE films (
 );
 </code></pre>
 <h3 id="2--the-entity-sibling-derive-shape"><a class="header" href="#2--the-entity-sibling-derive-shape">2 — the entity (sibling-derive shape)</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// src/film.rs
+<pre><code class="language-rust ignore">// src/film.rs
 use ferra_forge::FerraModel;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -402,10 +376,9 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-pub use Model as Film;
-<span class="boring">}</span></code></pre>
+pub use Model as Film;</code></pre>
 <h3 id="3--the-crud-round-trip"><a class="header" href="#3--the-crud-round-trip">3 — the CRUD round-trip</a></h3>
-<pre class="playground"><code class="language-rust">// src/main.rs
+<pre><code class="language-rust ignore">// src/main.rs
 use ferra::{FerraDbError, FerraRepository, PgRepository};
 use sea_orm::TransactionTrait;
 

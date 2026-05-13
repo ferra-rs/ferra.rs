@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,7 +199,7 @@
 <hr>
 <h2 id="the-worked-example-post-filmsidpublish"><a class="header" href="#the-worked-example-post-filmsidpublish">The worked example: <code>POST /films/{id}/publish</code></a></h2>
 <p>The complete shape of an action route — model declaration, handler signature, composition with <code>Foundry</code> — in one file. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical four-dep set (<code>ferra</code>, <code>tokio</code>, <code>axum</code>, <code>serde</code>) and it compiles.</p>
-<pre class="playground"><code class="language-rust">use ferra::prelude::*;
+<pre><code class="language-rust ignore">use ferra::prelude::*;
 use axum::{
     Json, Router,
     http::request::Parts,
@@ -358,15 +358,12 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <p><strong>The rule:</strong> at most one body-consuming extractor (<code>FromRequest</code>) per handler, and it MUST be the last argument. Every other extractor is body-agnostic (<code>FromRequestParts</code>) and goes earlier.</p>
 <p>This is a fundamental property of HTTP, not an Axum design quirk: a request body is a one-shot stream. Once you have read it, the bytes are gone.</p>
 <p>The handler in the worked example follows the rule:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn publish_film(
+<pre><code class="language-rust ignore">async fn publish_film(
     State(state): State&lt;FerraState&lt;Film&gt;&gt;,   // FromRequestParts
     FerraPath(id): FerraPath&lt;i32&gt;,            // FromRequestParts
     parts: Parts,                             // FromRequestParts
     FerraJson(body): FerraJson&lt;PublishRequest&gt;, // FromRequest — LAST
-) -&gt; Result&lt;...&gt; { ... }
-<span class="boring">}</span></code></pre>
+) -&gt; Result&lt;...&gt; { ... }</code></pre>
 <p>Reorder <code>FerraJson</code> ahead of <code>FerraPath</code> and the build fails. Without <code>#[axum::debug_handler]</code> the compiler reports the violation through a deep trait-bound chain on <code>Handler</code>. With <code>#[axum::debug_handler]</code> the diagnostic points directly at the offending argument.</p>
 <p><strong>Multiple body extractors.</strong> Axum allows exactly one body-consuming extractor per handler. If you legitimately need to look at the raw bytes <em>and</em> a typed JSON deserialization, do both inside a single <code>FromRequest</code>-implementing wrapper, or read <code>Bytes</code> and parse it explicitly with <code>serde_json::from_slice</code>. There is no <code>Json&lt;A&gt; + Json&lt;B&gt;</code> shape.</p>
 <hr>
@@ -396,11 +393,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <hr>
 <h2 id="friendlier-diagnostics-with-axumdebug_handler"><a class="header" href="#friendlier-diagnostics-with-axumdebug_handler">Friendlier diagnostics with <code>#[axum::debug_handler]</code></a></h2>
 <p>Axum’s <code>Handler</code> trait has a blanket impl that erases per-argument type information by the time the bound failure is reported. Without help, a single wrong extractor produces a multi-screen <code>not satisfied</code> chain.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[axum::debug_handler]
-async fn my_handler(/* … */) -&gt; Result&lt;…&gt; { … }
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">#[axum::debug_handler]
+async fn my_handler(/* … */) -&gt; Result&lt;…&gt; { … }</code></pre>
 <p>The proc-macro re-checks the arguments one by one and emits a single targeted error per offending argument:</p>
 <ul>
 <li><em>Json must be the last extractor</em></li>
@@ -413,11 +407,8 @@ async fn my_handler(/* … */) -&gt; Result&lt;…&gt; { … }
 <h2 id="ferrajsont-and-ferrapatht--rfc-7807-error-continuity"><a class="header" href="#ferrajsont-and-ferrapatht--rfc-7807-error-continuity"><code>FerraJson&lt;T&gt;</code> and <code>FerraPath&lt;T&gt;</code> — RFC 7807 error continuity</a></h2>
 <p>Axum’s stock <code>Json&lt;T&gt;</code> and <code>Path&lt;T&gt;</code> produce <code>text/plain</code> <code>400</code> bodies on rejection. A consumer that handles Ferra’s <code>application/problem+json</code> taxonomy elsewhere on the API gets a mixed wire format on the rejection path — two parsers, two error shapes, two test surfaces.</p>
 <p><code>FerraJson&lt;T&gt;</code> and <code>FerraPath&lt;T&gt;</code> are thin newtypes around the stock extractors that intercept the rejection and remap it to <code>FerraError::Validation</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct FerraJson&lt;T&gt;(pub T);   // wraps axum::Json&lt;T&gt;
-pub struct FerraPath&lt;T&gt;(pub T);   // wraps axum::extract::Path&lt;T&gt;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">pub struct FerraJson&lt;T&gt;(pub T);   // wraps axum::Json&lt;T&gt;
+pub struct FerraPath&lt;T&gt;(pub T);   // wraps axum::extract::Path&lt;T&gt;</code></pre>
 <p>The output on a malformed body looks like every other Ferra <code>400</code>:</p>
 <pre><code class="language-json">{
   "type":   "https://ferra.rs/errors/validation",
@@ -439,9 +430,7 @@ pub struct FerraPath&lt;T&gt;(pub T);   // wraps axum::extract::Path&lt;T&gt;
 <h2 id="composing-with-foundry-ferra_routerm-or-both"><a class="header" href="#composing-with-foundry-ferra_routerm-or-both">Composing with Foundry, <code>ferra_router::&lt;M&gt;</code>, or both</a></h2>
 <p>Three composition patterns, in order of how often you reach for them:</p>
 <h3 id="1-append-routes-on-top-of-foundrybuild"><a class="header" href="#1-append-routes-on-top-of-foundrybuild">1. Append routes on top of <code>Foundry::build()</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let api = Foundry::new(conn.clone())
+<pre><code class="language-rust ignore">let api = Foundry::new(conn.clone())
     .mount::&lt;Film&gt;()
     .with_docs()
     .build();
@@ -450,34 +439,25 @@ let custom = Router::new()
     .route("/films/{id}/publish", post(publish_film))
     .with_state(FerraState::&lt;Film&gt;::new(conn));
 
-let app: Router = api.merge(custom);
-<span class="boring">}</span></code></pre>
+let app: Router = api.merge(custom);</code></pre>
 <p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your action endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
 <h3 id="2-append-routes-on-top-of-a-single-resource-ferra_routerm"><a class="header" href="#2-append-routes-on-top-of-a-single-resource-ferra_routerm">2. Append routes on top of a single-resource <code>ferra_router::&lt;M&gt;</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let state = FerraState::&lt;Film&gt;::new(conn);
+<pre><code class="language-rust ignore">let state = FerraState::&lt;Film&gt;::new(conn);
 let app: Router = ferra_router::&lt;Film&gt;(state.clone())
     .route("/films/{id}/publish", post(publish_film))
-    .with_state(state);
-<span class="boring">}</span></code></pre>
+    .with_state(state);</code></pre>
 <p>Use this shape when you have exactly one resource and no <code>Foundry</code> chain — you skip docs but keep the per-resource Tower stack on the CRUD endpoints.</p>
 <h3 id="3-hand-rolled-router-with-no-ferra-crud-at-all"><a class="header" href="#3-hand-rolled-router-with-no-ferra-crud-at-all">3. Hand-rolled <code>Router</code> with no Ferra CRUD at all</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let app: Router = Router::new()
+<pre><code class="language-rust ignore">let app: Router = Router::new()
     .route("/healthz", get(|| async { "ok" }))
     .route("/films/{id}/publish", post(publish_film))
-    .with_state(FerraState::&lt;Film&gt;::new(conn));
-<span class="boring">}</span></code></pre>
+    .with_state(FerraState::&lt;Film&gt;::new(conn));</code></pre>
 <p>For apps that are <em>only</em> action routes, with no CRUD surface to derive. You retain <code>FerraJson</code> / <code>FerraPath</code> / <code>FerraError</code> and the response envelopes; you give up the auto-generated CRUD, the HAL <code>_links</code> builder pre-wired into the response, and the docs surface.</p>
 <p>In all three patterns, consumer-added <code>.layer(...)</code> calls on the final <code>Router</code> wrap the framework stack from the outside. Place observability and authentication layers there; place per-route policy where the policy belongs (a sub-router scoped to that route).</p>
 <hr>
 <h2 id="reaching-the-repository-directly"><a class="header" href="#reaching-the-repository-directly">Reaching the repository directly</a></h2>
 <p><code>FerraState&lt;M&gt;</code> exposes <code>pub repo: Arc&lt;PgRepository&lt;M&gt;&gt;</code>. A custom handler that only needs the database adapter (no other state) can extract just that:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::Arc;
+<pre><code class="language-rust ignore">use std::sync::Arc;
 use ferra::PgRepository;
 
 async fn count_films(
@@ -485,8 +465,7 @@ async fn count_films(
 ) -&gt; Result&lt;Json&lt;u64&gt;, FerraError&gt; {
     let page = repo.find_page(1, 1).await.map_err(FerraError::from)?;
     Ok(Json(page.total))
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>FerraState&lt;M&gt;: FromRef&lt;Arc&lt;PgRepository&lt;M&gt;&gt;&gt;</code> makes this swap zero-effort — Axum derives the inner extractor from the outer state. Use it when the handler genuinely does not need the rest of the state.</p>
 <hr>
 <h2 id="cross-references-for-the-curious-reader"><a class="header" href="#cross-references-for-the-curious-reader">Cross-references (for the curious reader)</a></h2>

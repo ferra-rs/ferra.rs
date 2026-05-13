@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb0927a9.js";
+            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6059d525.js"></script>
+        <script src="toc-a1ac9ff0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,27 +186,21 @@
 <p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-http</code>. A reader with only this page plus standard Rust knowledge produces a compiling <code>ferra_router::&lt;Film&gt;(state)</code> call site on the first attempt — no ADR, no constitution, and no framework source is required.</p>
 <hr>
 <h2 id="zero-to-api-in-five-lines"><a class="header" href="#zero-to-api-in-five-lines">Zero-to-API in five lines</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 
 let conn = sea_orm::Database::connect(&amp;database_url).await?;
 let state = FerraState::&lt;Film&gt;::new(conn);
 let app = ferra_router::&lt;Film&gt;(state);
 let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-axum::serve(listener, app).await?;
-<span class="boring">}</span></code></pre>
+axum::serve(listener, app).await?;</code></pre>
 <p>Drop one <code>#[derive(FerraModel, DeriveEntityModel, Serialize, Deserialize)]</code> on a struct whose PK is <code>i32</code> (or any <code>Display + DeserializeOwned + Send + Sync + 'static</code>) and you get the five CRUD endpoints (<code>GET /films</code> / <code>GET /films/:id</code> / <code>POST /films</code> / <code>PUT /films/:id</code> / <code>DELETE /films/:id</code>), a <code>Location</code> header on creation, a <code>Warning: 214</code> header on <code>per_page</code> clamp, and an <code>application/problem+json</code> body on every error — with no further code.</p>
 <p>See <a href="../../examples/hello-ferra/"><code>examples/hello-ferra/</code></a> for the full worked example with PostgreSQL container + Rust-coded migrations.</p>
 <hr>
 <h2 id="the-ferrastatem-constructor"><a class="header" href="#the-ferrastatem-constructor">The <code>FerraState&lt;M&gt;</code> constructor</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct FerraState&lt;M&gt; { pub repo: Arc&lt;PgRepository&lt;M&gt;&gt; }
+<pre><code class="language-rust ignore">pub struct FerraState&lt;M&gt; { pub repo: Arc&lt;PgRepository&lt;M&gt;&gt; }
 impl&lt;M&gt; FerraState&lt;M&gt; {
     pub fn new(pool: DatabaseConnection) -&gt; Self;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <ul>
 <li><code>#[non_exhaustive]</code> — construct via <code>FerraState::new(pool)</code>; struct-literal construction is not supported. Future phases add fields (tracing context, auth identity) without breaking this.</li>
 <li><code>#[derive(Clone)]</code> — cloning is a reference-count bump on <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>. Every request clones.</li>
@@ -231,6 +225,7 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
 </table>
 </div>
 <p>Path <code>id</code> is authoritative on update and delete — any <code>id</code> field in the request body is ignored for the <code>WHERE</code> clause. <code>{resource}</code> is <code>&lt;M as FerraModel&gt;::meta().resource_name</code> (e.g. <code>"films"</code>).</p>
+<p>A model that carries one or more <code>#[ferra(projection(...))]</code> declarations also mounts a parallel set of routes under each named projection’s URL prefix (e.g. <code>/detail/films/{id}</code>). The wire shape on those routes is filtered to the projection’s <code>read_fields</code> / <code>write_fields</code> allowlist. See <a href="projections-and-routing.html">Projections and routing</a> for the full URL contract, naming convention, and the <code>path_prefix</code> override.</p>
 <hr>
 <h2 id="rfc-7807-error-taxonomy"><a class="header" href="#rfc-7807-error-taxonomy">RFC 7807 error taxonomy</a></h2>
 <p>Every error from every handler is rendered as <code>application/problem+json</code> per RFC 7807 §3. Six variants, locked through 0.6.0 Welding:</p>
@@ -313,34 +308,26 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
 </code></pre>
 <p>On boundary pages, <code>next</code> or <code>prev</code> serialize as JSON <code>null</code> (never omitted). On <code>total == 0</code>, <code>last_page == 1</code> and <code>first == last == self</code>.</p>
 <h3 id="building-links-manually"><a class="header" href="#building-links-manually">Building links manually</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn build_item_links(meta: &amp;ModelMeta, id: &amp;str, base_url: &amp;str) -&gt; ItemLinks;
+<pre><code class="language-rust ignore">pub fn build_item_links(meta: &amp;ModelMeta, id: &amp;str, base_url: &amp;str) -&gt; ItemLinks;
 pub fn build_collection_links(
     meta: &amp;ModelMeta,
     page: u32,
     per_page: u32,
     total: u64,
     base_url: &amp;str,
-) -&gt; CollectionLinks;
-<span class="boring">}</span></code></pre>
+) -&gt; CollectionLinks;</code></pre>
 <p>Use these when writing a custom handler that returns an envelope-shaped body.</p>
 <hr>
 <h2 id="pagination"><a class="header" href="#pagination">Pagination</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct PaginationParams { pub page: Option&lt;u32&gt;, pub per_page: Option&lt;u32&gt; }
+<pre><code class="language-rust ignore">pub struct PaginationParams { pub page: Option&lt;u32&gt;, pub per_page: Option&lt;u32&gt; }
 impl PaginationParams {
     pub const fn with(page: Option&lt;u32&gt;, per_page: Option&lt;u32&gt;) -&gt; Self;
     pub fn resolved_page(&amp;self) -&gt; u32;          // default 1; 0 → 1
     pub fn resolved_per_page(&amp;self) -&gt; u32;      // default 20; clamp to [1, 100]
     pub fn clamped_per_page(&amp;self) -&gt; Option&lt;u32&gt;;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p><code>PaginationParams</code> is <code>#[non_exhaustive]</code> — external struct-literal construction is rejected. For code that needs to build a <code>PaginationParams</code> outside an Axum <code>Query&lt;_&gt;</code> extractor (integration tests, admin tools, batch jobs), use the stable <code>with(page, per_page)</code> constructor:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use ferra::PaginationParams;
+<pre><code class="language-rust ignore">use ferra::PaginationParams;
 
 let p = PaginationParams::with(Some(3), Some(50));
 assert_eq!(p.resolved_page(), 3);
@@ -352,8 +339,7 @@ assert_eq!(defaulted.resolved_per_page(), 20);
 
 let clamped = PaginationParams::with(None, Some(500));
 assert_eq!(clamped.resolved_per_page(), 100);
-assert_eq!(clamped.clamped_per_page(), Some(100));
-<span class="boring">}</span></code></pre>
+assert_eq!(clamped.clamped_per_page(), Some(100));</code></pre>
 <p>The constructor stores the raw <code>Option&lt;u32&gt;</code> inputs as-is and applies the clamp / default lazily through the <code>resolved_*</code> / <code>clamped_per_page</code> methods — values produced via <code>with(...)</code> are observationally identical to those that reach a handler through the HTTP extraction path.</p>
 <ul>
 <li>Default: <code>page=1</code>, <code>per_page=20</code>.</li>
@@ -361,7 +347,7 @@ assert_eq!(clamped.clamped_per_page(), Some(100));
 <li>The response body’s <code>per_page</code> field reports the clamped value (so clients can detect the clamp without parsing the <code>Warning</code> header).</li>
 </ul>
 <p>Worked <code>curl</code>:</p>
-<pre><code>$ curl -D - 'http://localhost:3000/films?per_page=500'
+<pre><code class="language-text">$ curl -D - 'http://localhost:3000/films?per_page=500'
 HTTP/1.1 200 OK
 warning: 214 - "per_page clamped to 100 (max 100)"
 content-type: application/json
@@ -370,10 +356,7 @@ content-type: application/json
 </code></pre>
 <hr>
 <h2 id="base-url-extractor"><a class="header" href="#base-url-extractor">Base-URL extractor</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn base_url_from_parts(parts: &amp;http::request::Parts) -&gt; String;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust ignore">pub fn base_url_from_parts(parts: &amp;http::request::Parts) -&gt; String;</code></pre>
 <p>Produces the <code>base_url</code> prefix used by <code>build_item_links</code> / <code>build_collection_links</code>. Behavior:</p>
 <ul>
 <li>Scheme: first comma-separated token of <code>X-Forwarded-Proto</code> if it matches the <code>{http, https}</code> allowlist; otherwise <code>"http"</code>.</li>
@@ -420,17 +403,15 @@ content-type: application/json
 </ul>
 <p>Request and response body content never appear in this event — only the three fields listed above. The schema is pinned minimal so the framework’s dedicated observability phase at 0.12.0 Sheen can absorb it into span-based telemetry (adding <code>trace_id</code>, <code>span_id</code>, and peer-IP once the trusted-proxy story lands) without breaking a consumer’s existing <code>EnvFilter</code> or custom <code>tracing::Layer</code>.</p>
 <p>Wire up a subscriber in your host binary’s <code>main</code> to surface these events:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>tracing_subscriber::fmt()
+<pre><code class="language-rust ignore">tracing_subscriber::fmt()
     .with_env_filter("ferra_http::rate_limit=warn")
-    .init();
-<span class="boring">}</span></code></pre>
+    .init();</code></pre>
 <p><strong>Layer placement (FR-006).</strong> The rate-limit mapper mounts as the <strong>outer</strong> layer of the mutation sub-router only, wrapping <code>tower_governor::GovernorLayer</code> from the outside (the last <code>.layer()</code> call on that sub-router). Consumer-added middleware appended to <code>ferra_router::&lt;M&gt;(state)</code> wraps the mapper from further outside — see §“Layer ordering — how <code>.layer()</code> composes” below for the full diagram.</p>
+<p><strong>Overriding the defaults.</strong> Every default in the table above is overridable via the <code>FerraLayer</code> builder applied to a <code>Foundry</code> chain — body cap, CORS, mutation rate-limit rule, tracing layer, and a <code>base_path</code> prefix on hypermedia links. The override surface is documented in <a href="foundry.html#transport-layer-overrides"><code>foundry.md</code> § “Transport-layer overrides”</a> with the full worked example and the REPLACE-not-merge rule for per-model overrides.</p>
 <h3 id="layer-ordering--how-layer-composes"><a class="header" href="#layer-ordering--how-layer-composes">Layer ordering — how <code>.layer()</code> composes</a></h3>
 <p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>ferra_router::&lt;M&gt;(state)</code> therefore wraps every Ferra-provided layer from the outside.</p>
 <p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>ferra_router::&lt;M&gt;(state)</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
-<pre><code>CONCEPTUAL stack (request top→bottom):        LITERAL call sequence (first→last in source):
+<pre><code class="language-text">CONCEPTUAL stack (request top→bottom):        LITERAL call sequence (first→last in source):
 
  outer → CorsLayer                              .layer(DefaultBodyLimit::disable())   ← first call (innermost)
          body_limit_mapper                      .layer(TraceLayer::new_for_http())
@@ -445,21 +426,80 @@ content-type: application/json
 <p><strong>Reading it:</strong> a request enters at <code>CorsLayer</code> (outermost), traverses down to the handler, and the response retraces the stack back out. In the source, the call order is <strong>inverted</strong> — the first <code>.layer()</code> call is the innermost layer on the merged router, and the last <code>.layer()</code> call is the outermost.</p>
 <p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a custom observability layer is a decision about which sub-router you wrap — consumers who want to observe only mutations attach to a sub-router; consumers who want to observe everything attach to the merged router returned by <code>ferra_router::&lt;M&gt;(state)</code>.</p>
 <p><strong>Worked consumer example.</strong> A consumer appending two custom layers on top of the framework stack:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let app = ferra_router::&lt;Film&gt;(state)
+<pre><code class="language-rust ignore">let app = ferra_router::&lt;Film&gt;(state)
     .layer(MyObservabilityLayer::new())   // outer: sees requests before the framework
-    .layer(MyShedLoadLayer::new());       // appended AFTER → now the TRUE outermost
-<span class="boring">}</span></code></pre>
+    .layer(MyShedLoadLayer::new());       // appended AFTER → now the TRUE outermost</code></pre>
 <p>On incoming requests: <code>MyShedLoadLayer</code> runs first, then <code>MyObservabilityLayer</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
 <p>See also §“RFC 7807 error taxonomy” for the 429 wire body the <code>rate_limit_mapper</code> produces.</p>
+<hr>
+<h2 id="content-negotiation--rfc-7240-prefer-header"><a class="header" href="#content-negotiation--rfc-7240-prefer-header">Content negotiation — RFC 7240 <code>Prefer:</code> header</a></h2>
+<p>Every mutation endpoint (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>) recognises the <a href="https://www.rfc-editor.org/rfc/rfc7240">RFC 7240</a> <code>Prefer:</code> request header and branches the response shape accordingly. Consumers that do not send the header observe <strong>no change</strong> — the wire shape stays byte-identical to the framework’s pre-0.6.5 emission.</p>
+<h3 id="recognised-tokens"><a class="header" href="#recognised-tokens">Recognised tokens</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>Prefer:</code> value</th><th>Effect</th><th>Resulting status</th><th>Response body</th></tr>
+</thead>
+<tbody>
+<tr><td>(header absent)</td><td>default mutation shape</td><td><code>POST → 201 Created</code>, <code>PUT → 200 OK</code>, <code>DELETE → 204</code></td><td>full resource body on <code>POST</code>/<code>PUT</code>; empty on <code>DELETE</code></td></tr>
+<tr><td><code>return=minimal</code></td><td>omit the response body</td><td><code>POST → 204 No Content</code> (Location preserved), <code>PUT → 204</code>, <code>DELETE → 204</code> unchanged</td><td>empty</td></tr>
+<tr><td><code>return=representation</code></td><td>explicit form of the default</td><td><code>POST → 201</code>, <code>PUT → 200</code>, <code>DELETE → 204</code> unchanged</td><td>full resource body</td></tr>
+<tr><td><code>respond-async</code></td><td><strong>parse-only at 0.6.5</strong> — recognised so clients can probe the header without being broken, but has no effect on the response shape. Reserved for a future async-jobs cohort.</td><td>unchanged</td><td>unchanged</td></tr>
+</tbody>
+</table>
+</div>
+<p>The parser is case-insensitive, whitespace-tolerant, and silently drops unrecognised tokens and <code>;</code>-delimited parameters per RFC 7240 §2 (“recipients SHOULD ignore preferences they do not understand”):</p>
+<pre><code class="language-http">Prefer: Return=Minimal, respond-async; wait=10
+</code></pre>
+<p>…parses as <code>return=minimal</code> + <code>respond-async</code> (the <code>; wait=10</code> parameter is dropped).</p>
+<h3 id="preference-applied-response-header"><a class="header" href="#preference-applied-response-header"><code>Preference-Applied:</code> response header</a></h3>
+<p>Per RFC 7240 §3, the framework echoes honoured preferences via the <code>Preference-Applied:</code> response header. The header is <strong>absent</strong> when no preference was honoured — including the no-header case (table row 1) and the unrecognised-token case.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request <code>Prefer:</code></th><th>Response <code>Preference-Applied:</code></th></tr>
+</thead>
+<tbody>
+<tr><td>(absent)</td><td>absent</td></tr>
+<tr><td><code>return=minimal</code></td><td><code>return=minimal</code></td></tr>
+<tr><td><code>return=representation</code></td><td><code>return=representation</code> (echoed even though the body is unchanged — the standard binds the echo to “preferences that were honoured”, not to “preferences that changed the response”)</td></tr>
+<tr><td><code>respond-async</code></td><td>absent (parse-only — no observable change)</td></tr>
+<tr><td><code>return=minimal, respond-async</code></td><td><code>return=minimal</code> (only the honoured preference is echoed)</td></tr>
+<tr><td><code>handling=lenient</code> (unrecognised)</td><td>absent</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="interaction-with-the-422-validation-path"><a class="header" href="#interaction-with-the-422-validation-path">Interaction with the 422 validation path</a></h3>
+<p>When a mutation request fails declarative validation (the 0.6.0 Welding <code>application/problem+json</code> 422 path), the <code>Prefer:</code> header is recognised but does <strong>not</strong> change the response. The 422 body is mandated by the framework’s closed-namespace contract; <code>Preference-Applied:</code> is <strong>not</strong> emitted on the 422 path (no preference was honoured that changed observable behaviour).</p>
+<h3 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h3>
+<pre><code class="language-bash"># Default — full body returned.
+curl -i -X POST https://api.example.com/films \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "Inception", "director": "Christopher Nolan", "year": 2010}'
+
+# HTTP/1.1 201 Created
+# Content-Type: application/json
+# Location: /films/42
+# { "id": 42, "title": "Inception", ... }
+
+# `return=minimal` — body omitted, Location preserved.
+curl -i -X POST https://api.example.com/films \
+  -H 'Content-Type: application/json' \
+  -H 'Prefer: return=minimal' \
+  -d '{"title": "Inception", "director": "Christopher Nolan", "year": 2010}'
+
+# HTTP/1.1 204 No Content
+# Location: /films/43
+# Preference-Applied: return=minimal
+</code></pre>
+<p>Batch-processing consumers gain bandwidth and JSON-parse savings on every mutation; consumers that do not opt in observe the same response shape they did before 0.6.5.</p>
 <hr>
 <h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
 <p><code>[dependencies] ferra = { package = "ferra-rs", version = "0.5" }</code> + <code>use ferra::*;</code> is the canonical entry point at 0.4.0. The <code>package = "ferra-rs"</code> alias is required because the <code>ferra</code> name on crates.io is owned by an unrelated project; the framework ships as <code>ferra-rs</code> and Cargo’s package alias keeps <code>ferra::*</code> working in your Rust code (see <a href="./getting-started.html#important-the-crate-is-published-as-ferra-rs">Getting Started</a>). Every item on this page — <code>FerraState</code>, <code>FerraError</code>, <code>FerraJson</code>, <code>FerraPath</code>, <code>PaginationParams</code>, <code>Link</code>, <code>ItemLinks</code>, <code>CollectionLinks</code>, <code>ItemResponse</code>, <code>CollectionResponse</code>, <code>build_item_links</code>, <code>build_collection_links</code>, <code>base_url_from_parts</code>, the five handlers, and <code>ferra_router</code> — is reached from this single import, alongside the <code>#[derive(FerraModel)]</code> macro and the <code>ferra-core</code> / <code>ferra-db</code> public surface.</p>
 <p>Consumers do not depend on <code>ferra-core</code>, <code>ferra-db</code>, <code>ferra-forge</code>, or <code>ferra-http</code> directly. The 0.4.0 compile-fail trybuild fixture also pins <code>ferra::Statement</code>, <code>ferra::execute_unprepared</code>, <code>ferra::raw_sql</code>, and <code>ferra::sea_orm::Statement</code> as unreachable — there is no raw-SQL entry point on the facade.</p>
 <hr>
 <h2 id="worked-end-to-end-example"><a class="header" href="#worked-end-to-end-example">Worked end-to-end example</a></h2>
-<pre class="playground"><code class="language-rust">use ferra::*;
+<pre><code class="language-rust ignore">use ferra::*;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -536,7 +576,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="ferra-openapi.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="projections-and-routing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -550,7 +590,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="ferra-openapi.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="projections-and-routing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
