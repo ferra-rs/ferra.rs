@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>invalid_cursor (400) — Ferra Error Types</title>
+  <meta name="description" content="Ferra RFC 7807 error type: invalid_cursor. Returned when a `?cursor=…` query parameter cannot be decoded into a valid keyset pagination token." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css" />
+  <link rel="stylesheet" href="../errors.css" />
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header>
+<nav class="nav" id="nav">
+  <div class="nav__brand">
+    <a href="/" style="display:flex;align-items:baseline;gap:10px;text-decoration:none">
+      <span class="mark">Ferra<span style="color:var(--ember)">.</span>rs</span>
+    </a>
+  </div>
+  <button class="nav__hamburger" aria-label="Toggle menu"
+          onclick="document.getElementById('nav').classList.toggle('nav--open')">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav__links">
+    <a href="/#why">Why Ferra</a>
+    <a href="/#install">Install</a>
+    <a href="/#roadmap">Roadmap</a>
+    <a href="/errors/" class="doc-nav-active">Docs</a>
+    <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" class="pill">
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">★ GitHub</span>
+    </a>
+  </div>
+</nav>
+</header>
+
+<main id="main">
+
+<div class="bleed bleed--ink">
+  <div class="wrap errpage-hero">
+    <p class="errpage-hero__breadcrumb">
+      <a href="/">Ferra.rs</a> / <a href="/errors/">Error Types</a> / invalid_cursor
+    </p>
+    <p class="errpage-hero__slug">invalid_cursor</p>
+    <h1 class="errpage-hero__h1" id="invalid_cursor">Invalid Cursor</h1>
+    <span class="errpage-hero__http errpage-hero__http--4xx">400 Bad Request</span>
+  </div>
+</div>
+
+<div class="bleed bleed--white">
+  <div class="wrap errpage-body">
+    <p class="errpage-body__desc">
+      Returned when a <code>?cursor=…</code> query parameter cannot be
+      decoded into a valid keyset-pagination token. New in v0.7.5 — the
+      first addition to the closed <code>ERROR_TYPES</code> namespace since
+      the soft-delete release (0.7.0).
+    </p>
+    <p class="errpage-body__desc" style="margin-top:-16px">
+      <strong>Recovery</strong>: drop the <code>cursor</code> query
+      parameter and restart pagination from the first page. The
+      <code>detail</code> field is the constant literal shown below — the
+      framework <em>never</em> echoes the bytes of the malformed cursor
+      back to the client (no <code>detail</code>, no <code>instance</code>,
+      no extension field carries them). This is deliberate: a cursor that
+      survives a copy/paste corruption — or a probe carrying adversarial
+      bytes — must not function as a reflection oracle.
+    </p>
+    <p class="errpage-body__desc" style="margin-top:-16px">
+      The same fixed <code>detail</code> string is emitted across all four
+      rejection axes the framework recognises:
+    </p>
+    <ol class="errpage-body__desc" style="margin-top:-8px;padding-left:24px">
+      <li>URL-safe base64 decode failure.</li>
+      <li>JSON parse failure on the decoded bytes.</li>
+      <li>JSON shape mismatch (parses, but is not
+        <code>{"k": …, "v": &lt;byte&gt;}</code>).</li>
+      <li>Unknown version byte (<code>v</code> is not a value this
+        framework version recognises).</li>
+    </ol>
+    <p class="errpage-body__label">Example RFC 7807 body</p>
+    <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/invalid_cursor"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Invalid Cursor"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the supplied cursor token is invalid; drop the `cursor` query parameter and restart pagination"</span>
+}</pre>
+    <a href="/errors/" class="errpage-back">← All error types</a>
+  </div>
+</div>
+
+</main>
+
+<footer class="bleed bleed--iron">
+  <div class="wrap" style="padding-top:40px;padding-bottom:40px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+    <div style="font:500 13px/1 var(--mono);color:rgba(255,255,255,0.4)">&copy; 2026 Ferra contributors &middot; Apache-2.0 / MIT</div>
+    <div style="display:flex;gap:24px;font:500 13px/1 var(--sans)">
+      <a href="/" style="color:rgba(255,255,255,0.5)">Home</a>
+      <a href="/errors/" style="color:rgba(255,255,255,0.5)">Error types</a>
+      <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.5)">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav__links a').forEach(function(a) {
+    a.addEventListener('click', function() { document.getElementById('nav').classList.remove('nav--open'); });
+  });
+</script>
+</body>
+</html>

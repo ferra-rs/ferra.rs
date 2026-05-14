@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Error Type URIs — Ferra.rs Docs</title>
-  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these seven URIs." />
+  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these nine URIs." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +51,7 @@
     <h1 class="doc-hero__title">Error type URIs</h1>
     <p class="doc-hero__lead">
       Every Ferra error response carries an RFC&nbsp;7807 body whose
-      <code>type</code> field is one of these eight URIs. The set is closed
+      <code>type</code> field is one of these nine URIs. The set is closed
       — no URI outside this table will ever appear on the wire.
     </p>
   </div>
@@ -119,6 +119,12 @@
           <td class="status-cell status-4xx">401 Unauthorized</td>
           <td class="title-cell">Unauthorized</td>
           <td><code>Foundry::with_docs_protected(…)</code></td>
+        </tr>
+        <tr>
+          <td class="slug-cell"><a href="/errors/invalid_cursor">invalid_cursor</a></td>
+          <td class="status-cell status-4xx">400 Bad Request</td>
+          <td class="title-cell">Invalid Cursor</td>
+          <td><code>FerraError::InvalidCursor</code></td>
         </tr>
       </tbody>
     </table>
@@ -278,6 +284,27 @@
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"authentication required"</span>
 }</pre>
       <a href="/errors/unauthorized" class="variant__link">Full documentation →</a>
+    </div>
+
+    <div class="variant" id="invalid_cursor">
+      <p class="variant__slug">invalid_cursor</p>
+      <h2 class="variant__h2">Invalid Cursor</h2>
+      <span class="variant__http variant__http--4xx">400 Bad Request</span>
+      <p class="variant__desc">
+        Returned when a <code>?cursor=…</code> query parameter cannot be
+        decoded into a valid keyset-pagination token. The
+        <code>detail</code> field is a fixed literal — the framework never
+        echoes the bytes of the malformed cursor back to the client (no
+        reflection oracle). Recovery: drop <code>cursor</code> and restart
+        pagination. New in v0.7.5.
+      </p>
+      <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/invalid_cursor"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Invalid Cursor"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the supplied cursor token is invalid; drop the `cursor` query parameter and restart pagination"</span>
+}</pre>
+      <a href="/errors/invalid_cursor" class="variant__link">Full documentation →</a>
     </div>
 
   </div>
