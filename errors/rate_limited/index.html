@@ -50,9 +50,10 @@
   <div class="wrap errpage-body">
     <p class="errpage-body__desc">
       Emitted by the framework's default rate-limiter on mutation routes
-      (POST / PUT / DELETE). When the limiter can compute a sensible delay,
-      the response also carries a <code>Retry-After</code> header (seconds
-      until the next accepted request). Emitted by middleware, not through
+      (POST / PUT / DELETE), keyed on the peer IP. The response always
+      carries a <code>Retry-After</code> header (whole seconds until the next
+      accepted request, never less than 1), and <code>detail</code> repeats
+      that delay. Emitted by middleware, not through
       <code>FerraError</code>.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
@@ -60,7 +61,7 @@
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/rate_limited"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Too Many Requests"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">429</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"rate limit exceeded"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"rate limit exceeded; retry after 3 seconds"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

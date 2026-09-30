@@ -49,17 +49,18 @@
 <div class="bleed bleed--white">
   <div class="wrap errpage-body">
     <p class="errpage-body__desc">
-      Emitted when an inbound request body exceeds the framework's default
-      1&nbsp;MiB cap. This is a DoS-protection measure enforced by the
-      request-body-limit middleware — it is emitted independently of
-      <code>FerraError</code>.
+      Emitted when an inbound request body exceeds the configured cap
+      (1&nbsp;MiB by default). This is a DoS-protection measure enforced by
+      the request-body-limit middleware, including for bodies sent in chunks
+      — it is emitted independently of <code>FerraError</code>. The
+      <code>detail</code> field states the cap in bytes.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/payload_too_large"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Payload Too Large"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">413</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"request body too large"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"request body exceeds 1048576 bytes"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

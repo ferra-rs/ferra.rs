@@ -82,7 +82,7 @@
           <td class="slug-cell"><a href="/errors/validation">validation</a></td>
           <td class="status-cell status-4xx">400 Bad Request</td>
           <td class="title-cell">Validation Error</td>
-          <td><code>FerraError::Validation</code></td>
+          <td><code>FerraError::Validation</code>, <code>FerraError::BadRequest</code></td>
         </tr>
         <tr>
           <td class="slug-cell"><a href="/errors/validation_failed">validation_failed</a></td>
@@ -118,7 +118,7 @@
           <td class="slug-cell"><a href="/errors/unauthorized">unauthorized</a></td>
           <td class="status-cell status-4xx">401 Unauthorized</td>
           <td class="title-cell">Unauthorized</td>
-          <td><code>Foundry::with_docs_protected(…)</code></td>
+          <td>JWT layer, <code>FerraError::Unauthorized</code>, <code>Foundry::with_docs_protected(…)</code></td>
         </tr>
         <tr>
           <td class="slug-cell"><a href="/errors/invalid_cursor">invalid_cursor</a></td>
@@ -148,7 +148,8 @@
       <span class="variant__http variant__http--4xx">404 Not Found</span>
       <p class="variant__desc">
         Returned by every read, update, or delete operation that resolves
-        to zero matching rows.
+        to zero matching rows — including a soft-deleted row, and a row that
+        belongs to someone else under an <code>IsOwner</code> rule.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/not_found"</span><span class="tok-pun">,</span>
@@ -165,9 +166,10 @@
       <span class="variant__http variant__http--4xx">400 Bad Request</span>
       <p class="variant__desc">
         Returned when an inbound JSON body fails to parse or a path
-        parameter cannot be deserialised. The <code>errors</code> map
-        contains a single entry keyed by <code>"body"</code> or
-        <code>"id"</code>. For <code>#[field(…)]</code> rule failures on a
+        parameter cannot be deserialised. The <code>errors.errors</code>
+        list holds one entry whose <code>field</code> is <code>"body"</code>
+        or <code>"id"</code>; a rejected collection query answers the same
+        type with a <code>detail</code> and no <code>errors</code>. For <code>#[field(…)]</code> rule failures on a
         valid body, see
         <a href="/errors/validation_failed"><code>validation_failed</code> (422)</a>.
       </p>
@@ -177,7 +179,9 @@
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
   <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"body"</span><span class="tok-pun">:</span> [<span class="tok-str">"invalid character '}' at line 1 column 12"</span>]
+    <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
+      { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"body"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"invalid_json"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"expected `,` or `}` at line 1 column 14"</span> }
+    ]
   }
 }</pre>
       <a href="/errors/validation" class="variant__link">Full documentation →</a>
@@ -249,15 +253,15 @@
       <h2 class="variant__h2">Payload Too Large</h2>
       <span class="variant__http variant__http--4xx">413 Payload Too Large</span>
       <p class="variant__desc">
-        Emitted when an inbound request body exceeds the framework's default
-        1&nbsp;MiB cap (DoS protection). Emitted by the request-body-limit
+        Emitted when an inbound request body exceeds the configured cap
+        (1&nbsp;MiB by default; DoS protection). Emitted by the request-body-limit
         middleware, not through <code>FerraError</code>.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/payload_too_large"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Payload Too Large"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">413</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"request body too large"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"request body exceeds 1048576 bytes"</span>
 }</pre>
       <a href="/errors/payload_too_large" class="variant__link">Full documentation →</a>
     </div>
@@ -268,15 +272,15 @@
       <span class="variant__http variant__http--4xx">429 Too Many Requests</span>
       <p class="variant__desc">
         Emitted by the framework's default rate-limiter on mutation routes
-        (POST / PUT / DELETE). The response carries a
-        <code>Retry-After</code> header when the limiter can compute a
-        sensible delay.
+        (POST / PUT / DELETE). The response always carries a
+        <code>Retry-After</code> header (whole seconds, at least 1), repeated
+        in <code>detail</code>.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/rate_limited"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Too Many Requests"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">429</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"rate limit exceeded"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"rate limit exceeded; retry after 3 seconds"</span>
 }</pre>
       <a href="/errors/rate_limited" class="variant__link">Full documentation →</a>
     </div>
@@ -286,14 +290,18 @@
       <h2 class="variant__h2">Unauthorized</h2>
       <span class="variant__http variant__http--4xx">401 Unauthorized</span>
       <p class="variant__desc">
-        Emitted by <code>Foundry::with_docs_protected(verifier)</code> when
-        an unauthenticated request reaches the docs surface. New in v0.5.0.
+        Returned when a route requires an identity and the request carries
+        none that is valid: a missing, malformed, expired or refused bearer
+        token. The response carries <code>WWW-Authenticate: Bearer</code> and
+        a fixed <code>detail</code>. Also emitted by
+        <code>Foundry::with_docs_protected(verifier)</code> for the docs
+        surface.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/unauthorized"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Unauthorized"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">401</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"authentication required"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"a valid `Authorization: Bearer` token is required to access this resource"</span>
 }</pre>
       <a href="/errors/unauthorized" class="variant__link">Full documentation →</a>
     </div>
@@ -304,7 +312,8 @@
       <span class="variant__http variant__http--4xx">400 Bad Request</span>
       <p class="variant__desc">
         Returned when a <code>?cursor=…</code> query parameter cannot be
-        decoded into a valid keyset-pagination token. The
+        decoded into a valid keyset-pagination token, or the token does not
+        fit the collection's cursor key. The
         <code>detail</code> field is a fixed literal — the framework never
         echoes the bytes of the malformed cursor back to the client (no
         reflection oracle). Recovery: drop <code>cursor</code> and restart

@@ -56,9 +56,15 @@
     <p class="errpage-body__desc">
       Returned when an inbound JSON body fails to parse, or when a path
       parameter (e.g. an <code>Id</code>) cannot be deserialised. The
-      <code>errors</code> map contains a single entry keyed by
-      <code>"body"</code> or <code>"id"</code> depending on which
-      extractor rejected the request.
+      <code>errors.errors</code> list holds one entry with
+      <code>field</code> <code>"body"</code> (code <code>invalid_json</code>)
+      or <code>"id"</code> (code <code>invalid_path_param</code>), depending
+      on which extractor rejected the request. The same type is also returned
+      for a rejected collection query — a filter or sort on a field that does
+      not allow it, a descending sort combined with a cursor, or
+      <code>cursor</code> together with <code>page</code> — with a
+      <code>detail</code> that names the problem and no
+      <code>errors</code> member.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
       For rule-constraint failures on a valid body (e.g.
@@ -72,7 +78,9 @@
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
   <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"body"</span><span class="tok-pun">:</span> [<span class="tok-str">"invalid character '}' at line 1 column 12"</span>]
+    <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
+      { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"body"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"invalid_json"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"expected `,` or `}` at line 1 column 14"</span> }
+    ]
   }
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>

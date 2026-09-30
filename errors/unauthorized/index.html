@@ -49,16 +49,29 @@
 <div class="bleed bleed--white">
   <div class="wrap errpage-body">
     <p class="errpage-body__desc">
-      Emitted by <code>Foundry::with_docs_protected(verifier)</code> when
-      an unauthenticated request reaches the docs surface. New in v0.5.0.
-      Emitted by middleware, not through <code>FerraError</code>.
+      Returned when a route requires an identity and the request carries
+      none that is valid: no <code>Authorization: Bearer</code> header, or a
+      token that is malformed, expired, signed with another key, or refused
+      by the configured issuer and audience checks. The response carries
+      <code>WWW-Authenticate: Bearer</code>, and <code>detail</code> is the
+      same constant literal for every reason, so it cannot be used to probe
+      which check failed. Emitted by the JWT layer and by the authorization
+      checkpoint (<code>FerraError::Unauthorized</code>).
+    </p>
+    <p class="errpage-body__desc" style="margin-top:-16px">
+      An authenticated caller who is not allowed to perform the operation
+      receives <a href="/errors/forbidden/"><code>403 forbidden</code></a>
+      instead. The docs surface protected with
+      <code>Foundry::with_docs_protected(verifier)</code> also answers this
+      type, with <code>"authentication required"</code> as its
+      <code>detail</code>.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/unauthorized"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Unauthorized"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">401</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"authentication required"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"a valid `Authorization: Bearer` token is required to access this resource"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

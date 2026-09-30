@@ -56,7 +56,10 @@
     <p class="errpage-body__desc">
       Returned by every read, update, or delete operation that resolves
       to zero matching rows. The <code>detail</code> field carries the
-      resource path and the ID that was not found.
+      resource path and the ID that was not found. A row that is
+      soft-deleted, or that belongs to someone else under an
+      <code>IsOwner</code> rule, answers the same 404, so the response never
+      reveals that the row exists.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{

@@ -82,8 +82,11 @@
 
     <p class="errpage-body__label" style="margin-top:40px">errors map</p>
     <p class="errpage-body__desc" style="font-size:16px">
-      Keys are wire-side field names (the JSON key the client submitted, respecting
-      any <code>serde rename</code> attributes). Values are non-empty arrays of
+      Keys are wire-side field names (the JSON key the client submitted: the
+      Rust field name, or its camelCase form on a model declared with
+      <code>#[ferra(rename_all = "camelCase")]</code>). A key outside the
+      model's declared fields is reported too, as
+      <code>"unknown field `x`"</code>. Values are non-empty arrays of
       human-readable English messages, one per failed rule. The shape is
       <code>Map&lt;String, Vec&lt;String&gt;&gt;</code> and is stable across
       <code>POST</code> (create) and <code>PUT</code> (update) endpoints.
