@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>forbidden (403) — Ferra Error Types</title>
-  <meta name="description" content="Ferra RFC 7807 error type: forbidden. Returned when an authenticated caller fails a per-operation #[authorize] check." />
+  <title>unsupported_media_type (415) — Ferra Error Types</title>
+  <meta name="description" content="Ferra RFC 7807 error type: unsupported_media_type. Returned when a write request body is not declared as application/json." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
@@ -43,53 +43,45 @@
 <div class="bleed bleed--ink">
   <div class="wrap errpage-hero">
     <p class="errpage-hero__breadcrumb">
-      <a href="/">Ferra.rs</a> / <a href="/errors/">Error Types</a> / forbidden
+      <a href="/">Ferra.rs</a> / <a href="/errors/">Error Types</a> / unsupported_media_type
     </p>
-    <p class="errpage-hero__slug">forbidden</p>
-    <h1 class="errpage-hero__h1" id="forbidden">Forbidden</h1>
-    <span class="errpage-hero__http errpage-hero__http--4xx">403 Forbidden</span>
+    <p class="errpage-hero__slug">unsupported_media_type</p>
+    <h1 class="errpage-hero__h1" id="unsupported_media_type">Unsupported Media Type</h1>
+    <span class="errpage-hero__http errpage-hero__http--4xx">415 Unsupported Media Type</span>
   </div>
 </div>
 
 <div class="bleed bleed--white">
   <div class="wrap errpage-body">
     <p class="errpage-body__desc">
-      Returned when an <strong>authenticated</strong> caller fails a
-      per-operation <code>#[authorize]</code> check — the request carried a
-      valid bearer token, but the operation's authorization rule evaluated
-      <em>false</em> (a missing role, or a rule the owner of the row does
-      not fully satisfy). Since v0.9.0 a row that belongs to someone else
-      is not a 403: under an <code>IsOwner</code> rule it answers
-      <a href="/errors/not_found/"><code>404 not_found</code></a>, exactly
-      like a row that does not exist, so the response never reveals that
-      the row exists. New in v0.8.0 — the only addition to the closed
-      <code>ERROR_TYPES</code> namespace since the cursor-pagination
-      release (0.7.5).
+      Returned when a write request (<code>POST</code> or <code>PUT</code>)
+      carries a body that is not declared as JSON — a missing
+      <code>Content-Type</code> header, or a media type other than
+      <code>application/json</code> (for example <code>text/plain</code> or
+      <code>application/x-www-form-urlencoded</code>). Nothing is written.
+      New in v0.9.0.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
-      <strong>403 vs 401.</strong> A <code>403 forbidden</code> means the
-      caller <em>is</em> authenticated but the operation is not permitted
-      for them — retrying with credentials will not help (RFC 9110
-      §15.5.4). An absent or invalid credential is a
-      <a href="/errors/unauthorized/"><code>401 unauthorized</code></a>
-      instead (§15.5.2). A consumer's typed-union — and an AI agent — can
-      branch on the two without guessing.
+      <strong>415 vs 400 and 422.</strong> A <code>415</code> is about the
+      <em>declared type</em> of the body, decided from the
+      <code>Content-Type</code> header alone. A body declared as JSON that
+      does not parse is a <code>400</code>, and a JSON body with an unknown
+      field or a failed validation rule is a
+      <a href="/errors/validation_failed/"><code>422 validation_failed</code></a>.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
-      <strong>No-echo.</strong> The <code>detail</code> field is the
-      constant literal shown below. The framework <em>never</em> echoes the
-      caller's identity claims, the row's <code>#[field(owner)]</code>
-      value, or the failed rule's textual representation back to the
-      client — every authorization-denial reason produces a
-      byte-identical body, so the response cannot function as a probing
-      oracle.
+      <strong>After authorization.</strong> The media type is checked after
+      the authorization checkpoint: a caller who is not allowed to perform
+      the operation receives <code>401</code>, <code>403</code> or
+      <code>404</code> without learning which body type the route expects.
+      The <code>detail</code> field is the constant literal shown below.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
-  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/forbidden"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Forbidden"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">403</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"you do not have permission to perform this operation on this resource"</span>
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/unsupported_media_type"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Unsupported Media Type"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">415</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the request body must be JSON: send `Content-Type: application/json`"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

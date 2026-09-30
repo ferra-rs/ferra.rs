@@ -51,15 +51,17 @@
     <p class="errpage-body__desc">
       Returned when a write operation would violate a unique constraint —
       a duplicate slug, primary-key collision, or any database-level
-      uniqueness rule. The <code>detail</code> field identifies the
-      conflicting value.
+      uniqueness rule. Since v0.9.0 the <code>detail</code> field is the
+      constant literal shown below: the response names neither the
+      constraint, nor the table, nor the conflicting value. The database
+      message is logged on the server.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/conflict"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Conflict"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">409</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"title 'Casablanca' is already in use"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the request conflicts with an existing resource"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Error Type URIs — Ferra.rs Docs</title>
-  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these nine URIs." />
+  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these eleven URIs." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +51,7 @@
     <h1 class="doc-hero__title">Error type URIs</h1>
     <p class="doc-hero__lead">
       Every Ferra error response carries an RFC&nbsp;7807 body whose
-      <code>type</code> field is one of these nine URIs. The set is closed
+      <code>type</code> field is one of these eleven URIs. The set is closed
       — no URI outside this table will ever appear on the wire.
     </p>
   </div>
@@ -131,6 +131,12 @@
           <td class="status-cell status-4xx">403 Forbidden</td>
           <td class="title-cell">Forbidden</td>
           <td><code>FerraError::Forbidden</code></td>
+        </tr>
+        <tr>
+          <td class="slug-cell"><a href="/errors/unsupported_media_type">unsupported_media_type</a></td>
+          <td class="status-cell status-4xx">415 Unsupported Media Type</td>
+          <td class="title-cell">Unsupported Media Type</td>
+          <td><code>FerraError::UnsupportedMediaType</code></td>
         </tr>
       </tbody>
     </table>
@@ -214,7 +220,7 @@
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/conflict"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Conflict"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">409</span><span class="tok-pun">,</span>
-  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"title 'Casablanca' is already in use"</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the request conflicts with an existing resource"</span>
 }</pre>
       <a href="/errors/conflict" class="variant__link">Full documentation →</a>
     </div>
@@ -332,6 +338,25 @@
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"you do not have permission to perform this operation on this resource"</span>
 }</pre>
       <a href="/errors/forbidden" class="variant__link">Full documentation →</a>
+    </div>
+
+    <div class="variant" id="unsupported_media_type">
+      <p class="variant__slug">unsupported_media_type</p>
+      <h2 class="variant__h2">Unsupported Media Type</h2>
+      <span class="variant__http variant__http--4xx">415 Unsupported Media Type</span>
+      <p class="variant__desc">
+        Returned when a write request carries a body that is not declared
+        as <code>application/json</code>. Checked after the authorization
+        checkpoint; nothing is written. The <code>detail</code> field is a
+        fixed literal. New in v0.9.0.
+      </p>
+      <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/unsupported_media_type"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Unsupported Media Type"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">415</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the request body must be JSON: send `Content-Type: application/json`"</span>
+}</pre>
+      <a href="/errors/unsupported_media_type" class="variant__link">Full documentation →</a>
     </div>
 
   </div>
