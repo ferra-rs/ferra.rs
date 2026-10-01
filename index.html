@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ferra.rs — The API Framework Forged in Rust</title>
-  <meta name="description" content="One #[model]. Five things derived. Production-ready APIs in Rust — without writing the same struct five times." />
+  <meta name="description" content="One Sea-ORM entity. Five things derived. Production-ready APIs in Rust — without writing the same struct five times." />
   <meta property="og:title" content="Ferra.rs — The API Framework Forged in Rust" />
-  <meta property="og:description" content="One #[model]. Five things derived. Production-ready APIs in Rust." />
+  <meta property="og:description" content="One Sea-ORM entity. Five things derived. Production-ready APIs in Rust." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://ferra.rs" />
 
@@ -27,7 +27,7 @@
 <nav class="nav" id="nav">
   <a href="/" class="nav__brand" id="brand-home">
     <span class="mark">Ferra<span style="color:var(--ember)">.</span>rs</span>
-    <span class="ver">v0.5 · beta</span>
+    <span class="ver">v0.9 · in preparation</span>
   </a>
   <button class="nav__hamburger" aria-label="Toggle menu"
           onclick="document.getElementById('nav').classList.toggle('nav--open')">
@@ -38,8 +38,8 @@
     <a href="#install">Install</a>
     <a href="#roadmap">Roadmap</a>
     <a href="/docs/" target="_blank" rel="noopener">Docs</a>
-    <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" class="pill">
-      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">★ GitHub</span>
+    <a href="#roadmap" class="pill">
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">Source opens with 0.9</span>
     </a>
   </div>
 </nav>
@@ -55,13 +55,13 @@
       <div class="heroA__grid">
         <div>
           <div class="eyebrow" style="color:var(--ember);margin-bottom:18px">
-            Beta &middot; June 2026 &mdash; The API framework forged in Rust
+            Preparing 0.9 &middot; October 2026 &mdash; The API framework forged in Rust
           </div>
           <h1 class="heroA__mark">
             Ferra<span class="dot">.</span>rs
           </h1>
           <p class="heroA__tag">
-            One <code style="font-family:var(--mono);background:var(--cream);padding:2px 6px">#[model]</code>.
+            One <code style="font-family:var(--mono);background:var(--cream);padding:2px 6px">FerraModel</code> derive.
             Five things derived. Production-ready APIs in Rust &mdash; without
             writing the same struct five times.
           </p>
@@ -69,16 +69,17 @@
             <a class="btn btn--amber" href="#roadmap">
               See the Roadmap <span class="arrow">&#8594;</span>
             </a>
-            <a class="version-link" href="#roadmap">v0.5 · Rolling</a>
+            <a class="version-link" href="#roadmap">v0.9 · in preparation</a>
           </div>
           <div class="herometa" id="install">
             <div class="install-snippet">
               <div class="install-snippet__toml"><span class="tok-mu">[dependencies]</span>
-<span class="tok-kw">ferra</span> = { <span class="tok-fn">package</span> = <span class="tok-str">"ferra-rs"</span>, <span class="tok-fn">version</span> = <span class="tok-str">"0.5"</span> }</div>
-              <div class="install-snippet__use"><span class="tok-kw">use</span> <span class="tok-ty">ferra</span>::*;</div>
+<span class="tok-mu"># Ferra 0.9 is in preparation.</span>
+<span class="tok-mu"># The source opens with the release.</span></div>
+              <div class="install-snippet__use"><span class="tok-kw">use</span> <span class="tok-ty">ferra</span>::prelude::*;</div>
             </div>
-            <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" class="watch-link">
-              <span class="watch-icon">★</span> Watch for RC
+            <a href="#roadmap" class="watch-link">
+              <span class="watch-icon">★</span> Follow the roadmap
             </a>
           </div>
         </div>
@@ -91,22 +92,27 @@
               <span class="codeblock__dot"></span>
               <span class="codeblock__file">src/main.rs</span>
             </div>
-            <pre><span class="tok-at">#[model]</span>
-<span class="tok-kw">struct</span> <span class="tok-ty">Film</span> {
-    <span class="tok-at">#[id]</span>
-    id: <span class="tok-ty">Id</span>,
-    title: <span class="tok-ty">String</span>,
+            <pre><span class="tok-at">#[sea_orm::model]</span>
+<span class="tok-at">#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel,
+         FerraModel, Serialize, Deserialize)]</span>
+<span class="tok-at">#[sea_orm(table_name = <span class="tok-str">"films"</span>)]</span>
+<span class="tok-at">#[ferra(auth = <span class="tok-str">"bearer"</span>)]</span>
+<span class="tok-kw">pub struct</span> <span class="tok-ty">Model</span> {
+    <span class="tok-at">#[sea_orm(primary_key)]</span>
+    <span class="tok-kw">pub</span> id: <span class="tok-ty">i32</span>,
+    <span class="tok-kw">pub</span> title: <span class="tok-ty">String</span>,
 }
 
-<span class="tok-kw">let</span> app = <span class="tok-ty">Foundry</span>::<span class="tok-fn">new</span>()
-    .<span class="tok-fn">mount</span>::&lt;<span class="tok-ty">Film</span>&gt;(state)
+<span class="tok-kw">let</span> app = <span class="tok-ty">Foundry</span>::<span class="tok-fn">new</span>(conn)
+    .<span class="tok-fn">with_auth</span>::&lt;<span class="tok-ty">MyClaims</span>&gt;(jwt)
+    .<span class="tok-fn">mount</span>::&lt;<span class="tok-ty">Film</span>&gt;()
     .<span class="tok-fn">build</span>();
-<span class="tok-mu">// 5 routes · HAL · OpenAPI · typed SQL — from 8 lines.</span></pre>
+<span class="tok-mu">// 5 routes · HAL · OpenAPI · typed SQL — from one entity.</span></pre>
           </div>
           <div style="margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;font:500 12px/1 var(--mono);color:var(--ink-mute);letter-spacing:0.04em">
             <span><span style="color:var(--ember)">&#8594;</span> 5 routes</span>
             <span><span style="color:var(--ember)">&#8594;</span> HAL <code>_links</code></span>
-            <span><span style="color:var(--ember)">&#8594;</span> OpenAPI 3.1</span>
+            <span><span style="color:var(--ember)">&#8594;</span> OpenAPI 3.2</span>
             <span><span style="color:var(--ember)">&#8594;</span> typed SQL</span>
           </div>
         </div>
@@ -161,7 +167,7 @@
           <ul class="pillar__list">
             <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>SQL parameterized at the type level</li>
             <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>#![forbid(unsafe_code)] on every crate</li>
-            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>Missing auth = startup panic, not silent gap</li>
+            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>Missing auth = compile error, not silent gap</li>
           </ul>
         </div>
 
@@ -177,7 +183,7 @@
           <ul class="pillar__list">
             <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>Errors tell you what / where / how to fix</li>
             <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>Generated code readable via cargo expand</li>
-            <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>ferra-anvil scaffolds, never lectures</li>
+            <li><span class="pillar__bullet" style="color:var(--amber)">&#9632;</span>Every refusal carries a documented FRG code</li>
           </ul>
         </div>
 
@@ -193,7 +199,7 @@
           </p>
           <ul class="pillar__list">
             <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>HAL _links in every response</li>
-            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>OpenAPI 3.1 at /docs/openapi.json</li>
+            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>OpenAPI 3.2 at /docs/openapi.json</li>
             <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>Native MCP tools in v5.0 &mdash; Precision Steel</li>
           </ul>
         </div>
@@ -204,8 +210,8 @@
         <span class="principles-kicker__text">
           Three forces. One source of truth.
           <span style="color:rgba(255,255,255,0.55)">One
-            <code style="font:700 0.92em/1 var(--mono);color:var(--amber)">#[model]</code>
-            struct &mdash; everything else follows.
+            <code style="font:700 0.92em/1 var(--mono);color:var(--amber)">FerraModel</code>
+            entity &mdash; everything else follows.
           </span>
         </span>
         <a href="#why" class="principles-kicker__link">
@@ -247,7 +253,7 @@
           <div class="why__col-head why__col-head--mid"></div>
           <div class="why__col-head">What you get</div>
 
-          <div class="why__cell why__cell--source">#[model] struct Film</div>
+          <div class="why__cell why__cell--source">#[derive(FerraModel)] Film</div>
           <div class="why__cell why__cell--arrow">&#8594;</div>
           <div class="why__cell why__cell--get">REST routes &mdash; GET, POST, PUT, DELETE</div>
 
@@ -257,7 +263,7 @@
 
           <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
           <div class="why__cell why__cell--arrow">&#8594;</div>
-          <div class="why__cell why__cell--get">OpenAPI 3.1 spec at /docs/openapi.json</div>
+          <div class="why__cell why__cell--get">OpenAPI 3.2 spec at /docs/openapi.json</div>
 
           <div class="why__cell why__cell--source"><span style="opacity:0.25">&middot;</span></div>
           <div class="why__cell why__cell--arrow">&#8594;</div>
@@ -338,7 +344,7 @@
           <div class="eyebrow" style="color:var(--ember);margin-bottom:14px">Targets</div>
           <h2 class="h-1 targets-h"><span class="h-underline">Runs wherever</span> Rust runs.</h2>
           <p style="margin:20px 0 0;font:400 17px/1.55 var(--sans);color:var(--ink-soft);max-width:480px">
-            One <code>#[model]</code>, every target. Plug Ferra into any
+            One <code>FerraModel</code> entity, every target. Plug Ferra into any
             Tower-compatible HTTP runtime, ship it to a long-running server,
             a serverless function, or the edge &mdash; the API you wrote stays
             the API you deploy.
@@ -355,11 +361,11 @@
           </div>
           <div class="target-tile">
             <div class="target-tile__k">Lambda &middot; Cloud Run</div>
-            <div class="target-tile__v">Serverless from v0.14</div>
+            <div class="target-tile__v">Serverless, planned</div>
           </div>
           <div class="target-tile">
             <div class="target-tile__k">Workers &middot; Edge</div>
-            <div class="target-tile__v">Same #[model], any target</div>
+            <div class="target-tile__v">Same model, any target</div>
           </div>
         </div>
       </div>
@@ -420,8 +426,8 @@
         </div>
         <p class="roadmap__intro">
           Five eras, each named for a step in the iron lifecycle. The
-          foundations are shipped; we&rsquo;re rolling out beta capabilities one
-          version at a time on the way to a stable 1.0.
+          foundations are shipped; we&rsquo;re preparing 0.9, a security-first
+          recovery release, on the way to a stable 1.0.
         </p>
       </div>
       <div class="phases">
@@ -432,18 +438,18 @@
           <p class="phase__desc">Foundations are in place. You can already write a working CRUD API in under 25 lines.</p>
           <ul class="phase__list">
             <li>Excavation &middot; workspace + IR</li>
-            <li>Smelting &middot; #[model] macro</li>
+            <li>Smelting &middot; model derive</li>
             <li>Casting &middot; typed SQL</li>
             <li>Refining &middot; CRUD + HAL</li>
           </ul>
         </div>
         <div class="phase phase--building">
           <div class="phase__status"><span class="phase__dot"></span>Building</div>
-          <div class="phase__ver">v0.5 &#8594; v0.14</div>
+          <div class="phase__ver">v0.5 &#8594; v0.9</div>
           <h3 class="phase__name">Cast Iron</h3>
-          <p class="phase__desc">APIs usable but not yet stable. Each version adds one major capability.</p>
+          <p class="phase__desc">APIs usable but not yet stable. 0.9, in preparation, puts security first and freezes the public contract.</p>
           <ul class="phase__list">
-            <li>Rolling &middot; OpenAPI + Scalar (now)</li>
+            <li>Rolling &middot; OpenAPI + Scalar</li>
             <li>Welding &middot; validation + RFC 7807</li>
             <li>Forging &middot; auth + JWT + roles</li>
             <li>Polishing &middot; relations + embeds</li>
@@ -451,9 +457,9 @@
         </div>
         <div class="phase phase--planned">
           <div class="phase__status"><span class="phase__dot"></span>Next</div>
-          <div class="phase__ver">v0.15 &mdash; 1.0</div>
+          <div class="phase__ver">&rarr; 1.0</div>
           <h3 class="phase__name">Hardened Steel</h3>
-          <p class="phase__desc">Security audit, benchmarks, OSS launch prep. crates.io publication. SemVer guaranteed.</p>
+          <p class="phase__desc">Security audit, benchmarks, OSS launch prep. Public release. SemVer guaranteed.</p>
           <ul class="phase__list">
             <li>Audit &amp; benchmarks</li>
             <li>Public 1.0 release</li>
@@ -486,7 +492,7 @@
       <div class="invariant">
         <div class="invariant__label">Invariant</div>
         <div class="invariant__text">
-          A <code>#[model]</code> written for v1.0 compiles without modification
+          A model written for v1.0 compiles without modification
           in v2, v3, v4, and v5. Stability is not a feature &mdash; it&rsquo;s the contract.
         </div>
       </div>
@@ -534,7 +540,7 @@
         <div class="metric">
           <div class="metric__label">OpenAPI spec &#8596; deployed code</div>
           <div class="metric__value">1 : 1</div>
-          <div class="metric__guard">Guaranteed &mdash; impossible to compile otherwise.</div>
+          <div class="metric__guard">Checked by a contract test on every change.</div>
         </div>
       </div>
     </div>
@@ -566,7 +572,7 @@
         <div class="footer__col">
           <h4>Project</h4>
           <ul>
-            <li><a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener">GitHub</a></li>
+            <li>Source opening with 0.9</li>
             <li><a href="#roadmap">Roadmap</a></li>
           </ul>
         </div>
@@ -575,7 +581,7 @@
       <div class="footer__bottom">
         <div>&copy; 2026 Ferra contributors &middot; Apache-2.0 / MIT</div>
         <div class="legal">
-          <span style="font-family:var(--mono)">v0.5 &middot; beta</span>
+          <span style="font-family:var(--mono)">v0.9 &middot; in preparation</span>
         </div>
       </div>
     </div>

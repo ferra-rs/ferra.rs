@@ -23,3 +23,21 @@
 
   sb.insertBefore(back, sb.firstChild);
 })();
+
+(function () {
+  /* Notice: this published guide describes Ferra 0.7. */
+  var host = document.getElementById('mdbook-content') || document.querySelector('.content');
+  if (!host) return;
+  var note = document.createElement('div');
+  note.className = 'ferra-outdated-note';
+  note.setAttribute('role', 'note');
+  note.textContent = 'This guide describes Ferra 0.7 and is out of date; the 0.9 guide is published with the release.';
+  note.style.cssText = [
+    'margin:0 0 20px',
+    'padding:10px 14px',
+    'border-left:3px solid #f6c016',
+    'background:rgba(246,192,22,0.12)',
+    'font:600 13px/1.5 var(--mono,monospace)',
+  ].join(';');
+  host.insertBefore(note, host.firstChild);
+})();
