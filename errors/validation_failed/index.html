@@ -74,27 +74,30 @@
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Failed"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">422</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"title"</span><span class="tok-pun">:</span>  [<span class="tok-str">"must be at least 1 character"</span>]<span class="tok-pun">,</span>
-    <span class="tok-key">"rating"</span><span class="tok-pun">:</span> [<span class="tok-str">"must be at most 10"</span>]
-  }
+  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
+    { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"title"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"min_length"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"must be at least 1 character"</span> }<span class="tok-pun">,</span>
+    { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"rating"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"max"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"must be at most 10"</span> }
+  ]
 }</pre>
 
-    <p class="errpage-body__label" style="margin-top:40px">errors map</p>
+    <p class="errpage-body__label" style="margin-top:40px">errors array</p>
     <p class="errpage-body__desc" style="font-size:16px">
-      Keys are wire-side field names (the JSON key the client submitted: the
+      Each entry is <code>{field, code, message}</code>. <code>field</code> is
+      the wire-side field name (the JSON key the client submitted: the
       Rust field name, or its camelCase form on a model declared with
       <code>#[ferra(rename_all = "camelCase")]</code>). A key outside the
-      model's declared fields is reported too, as
-      <code>"unknown field `x`"</code>. Values are non-empty arrays of
-      human-readable English messages, one per failed rule. The shape is
-      <code>Map&lt;String, Vec&lt;String&gt;&gt;</code> and is stable across
+      model's declared fields is reported too, with the code
+      <code>unknown_field</code>. <code>code</code> is the failed rule
+      (<code>required</code>, <code>min_length</code>, <code>max_length</code>,
+      <code>min</code>, <code>max</code>, <code>pattern</code>,
+      <code>email</code>, <code>url</code>); <code>message</code> is
+      human-readable English, one entry per failed rule. The shape is stable across
       <code>POST</code> (create) and <code>PUT</code> (update) endpoints.
     </p>
 
     <p class="errpage-body__label" style="margin-top:0">how to handle</p>
     <p class="errpage-body__desc" style="font-size:16px">
-      Iterate <code>errors</code>, surface each message next to the relevant
+      Iterate <code>errors</code>, branch on <code>code</code>, surface each message next to the relevant
       form field, and let the user correct the values. No re-serialisation of
       the request envelope is needed — the structure was accepted; only the
       values were rejected.

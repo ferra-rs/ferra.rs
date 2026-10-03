@@ -56,15 +56,18 @@
     <p class="errpage-body__desc">
       Returned when an inbound JSON body fails to parse, or when a path
       parameter (e.g. an <code>Id</code>) cannot be deserialised. The
-      <code>errors.errors</code> list holds one entry with
+      <code>errors</code> array holds one entry with
       <code>field</code> <code>"body"</code> (code <code>invalid_json</code>)
       or <code>"id"</code> (code <code>invalid_path_param</code>), depending
       on which extractor rejected the request. The same type is also returned
       for a rejected collection query — a filter or sort on a field that does
       not allow it, a descending sort combined with a cursor, or
       <code>cursor</code> together with <code>page</code> — with a
-      <code>detail</code> that names the problem and no
-      <code>errors</code> member.
+      <code>detail</code> that names the problem and one <code>errors</code>
+      entry whose <code>field</code> is the parameter (for example
+      <code>filter[title]</code>) and whose <code>code</code> is one of
+      <code>not_filterable</code>, <code>not_sortable</code>,
+      <code>invalid_filter_value</code> or <code>invalid_pagination</code>.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
       For rule-constraint failures on a valid body (e.g.
@@ -77,11 +80,9 @@
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Error"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
-      { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"body"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"invalid_json"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"expected `,` or `}` at line 1 column 14"</span> }
-    ]
-  }
+  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
+    { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"body"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"invalid_json"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"expected `,` or `}` at line 1 column 14"</span> }
+  ]
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

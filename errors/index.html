@@ -166,10 +166,11 @@
       <span class="variant__http variant__http--4xx">400 Bad Request</span>
       <p class="variant__desc">
         Returned when an inbound JSON body fails to parse or a path
-        parameter cannot be deserialised. The <code>errors.errors</code>
-        list holds one entry whose <code>field</code> is <code>"body"</code>
+        parameter cannot be deserialised. The <code>errors</code>
+        array holds one entry whose <code>field</code> is <code>"body"</code>
         or <code>"id"</code>; a rejected collection query answers the same
-        type with a <code>detail</code> and no <code>errors</code>. For <code>#[field(…)]</code> rule failures on a
+        type with a <code>detail</code> and an <code>errors</code> entry
+        naming the parameter. For <code>#[field(…)]</code> rule failures on a
         valid body, see
         <a href="/errors/validation_failed"><code>validation_failed</code> (422)</a>.
       </p>
@@ -178,11 +179,9 @@
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Error"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">400</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
-      { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"body"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"invalid_json"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"expected `,` or `}` at line 1 column 14"</span> }
-    ]
-  }
+  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
+    { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"body"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"invalid_json"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"expected `,` or `}` at line 1 column 14"</span> }
+  ]
 }</pre>
       <a href="/errors/validation" class="variant__link">Full documentation →</a>
     </div>
@@ -204,10 +203,10 @@
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Validation Failed"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">422</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"validation failed"</span><span class="tok-pun">,</span>
-  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> {
-    <span class="tok-key">"title"</span><span class="tok-pun">:</span>  [<span class="tok-str">"must be at least 1 character"</span>]<span class="tok-pun">,</span>
-    <span class="tok-key">"rating"</span><span class="tok-pun">:</span> [<span class="tok-str">"must be at most 10"</span>]
-  }
+  <span class="tok-key">"errors"</span><span class="tok-pun">:</span> [
+    { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"title"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"min_length"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"must be at least 1 character"</span> }<span class="tok-pun">,</span>
+    { <span class="tok-key">"field"</span><span class="tok-pun">:</span> <span class="tok-str">"rating"</span><span class="tok-pun">,</span> <span class="tok-key">"code"</span><span class="tok-pun">:</span> <span class="tok-str">"max"</span><span class="tok-pun">,</span> <span class="tok-key">"message"</span><span class="tok-pun">:</span> <span class="tok-str">"must be at most 10"</span> }
+  ]
 }</pre>
       <a href="/errors/validation_failed" class="variant__link">Full documentation →</a>
     </div>
