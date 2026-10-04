@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Error Type URIs — Ferra.rs Docs</title>
-  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these eleven URIs." />
+  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these twelve URIs." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +51,7 @@
     <h1 class="doc-hero__title">Error type URIs</h1>
     <p class="doc-hero__lead">
       Every Ferra error response carries an RFC&nbsp;7807 body whose
-      <code>type</code> field is one of these eleven URIs. The set is closed
+      <code>type</code> field is one of these twelve URIs. The set is closed
       — no URI outside this table will ever appear on the wire.
     </p>
   </div>
@@ -138,7 +138,8 @@
           <td class="title-cell">Unsupported Media Type</td>
           <td><code>FerraError::UnsupportedMediaType</code></td>
         </tr>
-      </tbody>
+      <tr><td class="slug-cell"><a href="/errors/timeout">timeout</a></td><td class="status-cell status-5xx">503 Service Unavailable</td><td class="title-cell">Request Timeout Budget Exceeded</td><td><code>FerraError::Timeout</code></td></tr>
+</tbody>
     </table>
 
     <!-- Variant detail sections -->
@@ -370,6 +371,7 @@
   </div>
 </div>
 
+<div class="variant" id="timeout"><p class="variant__slug">timeout</p><h2 class="variant__h2">Request Timeout Budget Exceeded</h2><span class="variant__http variant__http--5xx">503 Service Unavailable</span><p class="variant__desc">The request exceeded its configured budget before a Ferra repository commit started. No change was committed; no Retry-After is sent. A started commit finishes without a cut. New in v0.11.0.</p><pre class="doc-codeblock">{"type":"https://ferra.rs/errors/timeout","title":"Request Timeout Budget Exceeded","status":503,"detail":"the request exceeded its time budget; no change was committed"}</pre><a href="/errors/timeout" class="variant__link">Full documentation →</a></div>
 </main>
 
 <footer class="bleed bleed--iron">
