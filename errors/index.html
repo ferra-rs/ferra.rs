@@ -338,9 +338,13 @@
         Returned when an <strong>authenticated</strong> caller fails a
         per-operation <code>#[authorize]</code> check — distinct from a
         <code>401 unauthorized</code>, which signals an absent or invalid
-        credential. The <code>detail</code> field is a fixed literal — the
-        framework never echoes the caller's claims, the row's owner value,
-        or the failed rule back to the client. New in v0.8.0.
+        credential. Since v0.12.0 it is also the answer to a write
+        authenticated by a cookie that does not come from an allowed
+        origin. The <code>detail</code> field is one of two fixed literals
+        (the authorization one below, and "a write authenticated by a cookie
+        must come from an allowed origin") — the framework never echoes the
+        caller's claims, the row's owner value, the failed rule or the
+        received <code>Origin</code> back to the client. New in v0.8.0.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/forbidden"</span><span class="tok-pun">,</span>

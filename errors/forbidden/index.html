@@ -76,13 +76,23 @@
       branch on the two without guessing.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
-      <strong>No-echo.</strong> The <code>detail</code> field is the
-      constant literal shown below. The framework <em>never</em> echoes the
+      <strong>No-echo.</strong> The <code>detail</code> field is one of two
+      constant literals, shown below. The framework <em>never</em> echoes the
       caller's identity claims, the row's <code>#[field(owner)]</code>
       value, or the failed rule's textual representation back to the
       client — every authorization-denial reason produces a
       byte-identical body, so the response cannot function as a probing
       oracle.
+    </p>
+    <p class="errpage-body__desc" style="margin-top:-16px">
+      <strong>Cookie writes (v0.12.0).</strong> When the token arrives in a
+      cookie, a request whose method is not <code>GET</code>,
+      <code>HEAD</code> or <code>OPTIONS</code> is also a
+      <code>403 forbidden</code> unless it carries exactly one
+      <code>Origin</code> header equal to an origin the application listed
+      (a CSRF guard). A missing, <code>null</code>, repeated or unlisted
+      <code>Origin</code> gets the second literal below, which never repeats
+      the <code>Origin</code> it received, and the row is left unchanged.
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
@@ -90,6 +100,13 @@
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Forbidden"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">403</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"you do not have permission to perform this operation on this resource"</span>
+}</pre>
+    <p class="errpage-body__label">Example RFC 7807 body, cookie write from an unlisted origin</p>
+    <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/forbidden"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Forbidden"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">403</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"a write authenticated by a cookie must come from an allowed origin"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>
