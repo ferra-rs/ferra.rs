@@ -202,7 +202,9 @@
         constraints fail. Every violation is reported — the framework never
         short-circuits on the first error. Distinct from
         <a href="/errors/validation"><code>validation</code> (400)</a>,
-        which fires when the body cannot be parsed at all.
+        which fires when the body cannot be parsed at all. A foreign key whose
+        parent is absent or not usable by the caller answers the code
+        <code>reference_not_found</code>.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/validation_failed"</span><span class="tok-pun">,</span>
