@@ -76,7 +76,7 @@
           <td class="slug-cell"><a href="/errors/not_found">not_found</a></td>
           <td class="status-cell status-4xx">404 Not Found</td>
           <td class="title-cell">Resource Not Found</td>
-          <td><code>FerraError::NotFound</code></td>
+          <td><code>FerraError::NotFound</code>, <code>FerraError::CollectionNotFound</code></td>
         </tr>
         <tr>
           <td class="slug-cell"><a href="/errors/validation">validation</a></td>
@@ -152,7 +152,10 @@
       <p class="variant__desc">
         Returned by every read, update, or delete operation that resolves
         to zero matching rows — including a soft-deleted row, and a row that
-        belongs to someone else under an <code>IsOwner</code> rule.
+        belongs to someone else under an <code>IsOwner</code> rule. A
+        collection the caller may not use (a <code>list</code> or a
+        <code>create</code> refused by a projection rule) answers the same 404
+        with the detail <code>films not found</code>, no ID.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/not_found"</span><span class="tok-pun">,</span>

@@ -61,12 +61,27 @@
       <code>IsOwner</code> rule, answers the same 404, so the response never
       reveals that the row exists.
     </p>
+    <p class="errpage-body__desc">
+      A collection the caller may not use (a <code>list</code> or a
+      <code>create</code> under a projection whose rule refuses them) answers
+      the same 404 without an ID: the <code>detail</code> is the resource name
+      followed by <code>not found</code> (<code>films not found</code>), the
+      same text for every refused caller, whatever the query string or the
+      body.
+    </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/not_found"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Resource Not Found"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">404</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"films/c2bb1f10-72b8-486a-9f2b-c92e4a2cdf41 not found"</span>
+}</pre>
+    <p class="errpage-body__label">The collection form</p>
+    <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/not_found"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Resource Not Found"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">404</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"films not found"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>
