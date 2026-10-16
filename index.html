@@ -102,10 +102,12 @@
     <span class="tok-kw">pub</span> id: <span class="tok-ty">i32</span>,
     <span class="tok-kw">pub</span> title: <span class="tok-ty">String</span>,
 }
+<span class="tok-kw">impl</span> <span class="tok-ty">ActiveModelBehavior</span> <span class="tok-kw">for</span> <span class="tok-ty">ActiveModel</span> {}
 
 <span class="tok-kw">let</span> app = <span class="tok-ty">Foundry</span>::<span class="tok-fn">new</span>(conn)
-    .<span class="tok-fn">with_auth</span>::&lt;<span class="tok-ty">MyClaims</span>&gt;(jwt)
-    .<span class="tok-fn">mount</span>::&lt;<span class="tok-ty">Film</span>&gt;()
+    .<span class="tok-fn">with_auth</span>::&lt;<span class="tok-ty">Claims</span>&gt;(jwt)
+    .<span class="tok-fn">mount</span>::&lt;<span class="tok-ty">Model</span>&gt;()
+    .<span class="tok-fn">with_docs</span>()
     .<span class="tok-fn">build</span>();
 <span class="tok-mu">// From one entity: 5 routes, HAL, OpenAPI, typed SQL.</span></pre>
           </div>
@@ -164,7 +166,7 @@
           </p>
           <ul class="pillar__list">
             <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>SQL parameterized at the type level</li>
-            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>#![forbid(unsafe_code)] on every crate</li>
+            <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>unsafe code forbidden on every crate</li>
             <li><span class="pillar__bullet" style="color:var(--ember)">&#9632;</span>Missing auth is a compile error</li>
           </ul>
         </div>
