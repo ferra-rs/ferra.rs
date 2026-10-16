@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,53 +182,164 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="ferra-http--the-axum-crud-handler-layer"><a class="header" href="#ferra-http--the-axum-crud-handler-layer"><code>ferra-http</code> — the Axum CRUD handler layer</a></h1>
-<p><em>The 0.4.0 Refining deliverable. Turns a <code>#[derive(FerraModel, DeriveEntityModel)]</code> entity into a fully-wired Axum router with RFC 7807 errors, HAL-lite hypermedia, pagination, and constitutional security defaults — zero hand-written routes, zero hand-written error mapping.</em></p>
-<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-http</code>. A reader with only this page plus standard Rust knowledge produces a compiling <code>ferra_router::&lt;Film&gt;(state)</code> call site on the first attempt — no ADR, no constitution, and no framework source is required.</p>
+<p>The HTTP layer: what <code>Foundry</code> mounts for a model, the wire contracts of the routes
+(RFC 7807 errors, flat and HAL representations, pagination, <code>Prefer:</code>), and the default layer stack.
+An application reaches it through the <code>ferra</code> facade and does not declare
+<code>ferra-http</code>; what is public is the list of <a href="stability.html"><code>stability.md</code></a>, and the
+signatures are the snapshot <code>api/ferra-http.txt</code>. The response envelopes
+(<code>ItemResponse</code>, <code>CollectionResponse</code>), the link builders and <code>PaginationParams</code> are
+not public in 0.9: a route of your own answers with a struct of its own
+(<a href="custom-handlers.html">Custom Handlers</a>).</p>
+<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-http</code>. A reader with only this page plus standard Rust knowledge produces a compiling <code>Foundry::new(conn).mount::&lt;Film&gt;().build()</code> call site on the first attempt — no ADR, no constitution, and no framework source is required.</p>
+<hr>
+<h2 id="dependencies-and-urls"><a class="header" href="#dependencies-and-urls">Dependencies and URLs</a></h2>
+<p>The examples on this page assume the dependencies of <a href="getting-started.html">Getting started</a>:</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
+<p>A model’s URL segment (<code>{resource}</code> below) is its table name: <code>table_name = "films"</code> is
+served at <code>/films</code>. To serve a table under another name, put <code>#[ferra(resource = "movies")]</code>
+on the model. A model’s table is its own to create (a migration, or
+<code>Schema::create_table_from_entity</code> in development): Ferra never creates one.</p>
 <hr>
 <h2 id="zero-to-api-in-five-lines"><a class="header" href="#zero-to-api-in-five-lines">Zero-to-API in five lines</a></h2>
-<pre><code class="language-rust ignore">use ferra::*;
-
-let conn = sea_orm::Database::connect(&amp;database_url).await?;
-let state = FerraState::&lt;Film&gt;::new(conn);
-let app = ferra_router::&lt;Film&gt;(state);
+<pre class="playground"><code class="language-rust">use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let conn = sea_orm::Database::connect(&amp;database_url).await?;
+let app = Foundry::new(conn).mount::&lt;Film&gt;().build();
 let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-axum::serve(listener, app).await?;</code></pre>
-<p>Drop one <code>#[derive(FerraModel, DeriveEntityModel, Serialize, Deserialize)]</code> on a struct whose PK is <code>i32</code> (or any <code>Display + DeserializeOwned + Send + Sync + 'static</code>) and you get the five CRUD endpoints (<code>GET /films</code> / <code>GET /films/:id</code> / <code>POST /films</code> / <code>PUT /films/:id</code> / <code>DELETE /films/:id</code>), a <code>Location</code> header on creation, a <code>Warning: 214</code> header on <code>per_page</code> clamp, and an <code>application/problem+json</code> body on every error — with no further code.</p>
+axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
+<span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><code>Film</code> here is declared <code>#[ferra(auth = "none")]</code>. A model that needs an identity
+(<code>auth = "bearer"</code>, or <code>#[authorize]</code> rules other than <code>Anyone</code>) must be mounted on
+a chain with <code>.with_auth::&lt;YourClaims&gt;(jwt)</code> — see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>.
+<code>Foundry</code> is the only way to mount a model: it is what applies the model’s
+authorization rules. There is no lower-level router constructor.</p>
+<p>You get <code>GET /films</code>, <code>GET /films/{id}</code>, <code>POST /films</code>, <code>PUT /films/{id}</code> and
+<code>DELETE /films/{id}</code>, a <code>Location</code> header on creation, and an <code>application/problem+json</code> body on every error. The
+primary key may be single or composite. Serve with
+<code>into_make_service_with_connect_info</code>: the rate limiter keys on the peer address.</p>
 <p>See <a href="../../examples/hello-ferra/"><code>examples/hello-ferra/</code></a> for the full worked example with PostgreSQL container + Rust-coded migrations.</p>
 <hr>
-<h2 id="the-ferrastatem-constructor"><a class="header" href="#the-ferrastatem-constructor">The <code>FerraState&lt;M&gt;</code> constructor</a></h2>
-<pre><code class="language-rust ignore">pub struct FerraState&lt;M&gt; { pub repo: Arc&lt;PgRepository&lt;M&gt;&gt; }
-impl&lt;M&gt; FerraState&lt;M&gt; {
-    pub fn new(pool: DatabaseConnection) -&gt; Self;
-}</code></pre>
-<ul>
-<li><code>#[non_exhaustive]</code> — construct via <code>FerraState::new(pool)</code>; struct-literal construction is not supported. Future phases add fields (tracing context, auth identity) without breaking this.</li>
-<li><code>#[derive(Clone)]</code> — cloning is a reference-count bump on <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>. Every request clones.</li>
-<li>Implements <code>axum::extract::FromRef&lt;FerraState&lt;M&gt;&gt; for Arc&lt;PgRepository&lt;M&gt;&gt;</code>. Custom handlers that only need the repository write <code>State(repo): State&lt;Arc&lt;PgRepository&lt;M&gt;&gt;&gt;</code>; the Ferra handlers all take <code>State(state): State&lt;FerraState&lt;M&gt;&gt;</code>.</li>
-</ul>
-<p>Instantiate one <code>FerraState&lt;M&gt;</code> per model per database; cheaply share the same <code>DatabaseConnection</code> across models by calling <code>FerraState::new(conn.clone())</code> multiple times.</p>
-<hr>
-<h2 id="the-five-crud-handlers"><a class="header" href="#the-five-crud-handlers">The five CRUD handlers</a></h2>
-<p>All five handlers are generic over <code>M: FerraModel + &lt;Sea-ORM bounds&gt;</code>. You rarely name them directly — <a href="#the-ferra_routerm-constructor"><code>ferra_router&lt;M&gt;</code></a> mounts them for you. When you do, the HTTP contracts are:</p>
+<h2 id="the-routes-a-model-gets"><a class="header" href="#the-routes-a-model-gets">The routes a model gets</a></h2>
+<p><code>Foundry</code> mounts these routes for every model; the handlers behind them are internal. The HTTP contracts are:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Handler</th><th>Method</th><th>Path</th><th>Request</th><th>Success</th><th>Error surfaces</th></tr>
+<tr><th>Operation</th><th>Method</th><th>Path</th><th>Request</th><th>Success</th><th>Error surfaces</th></tr>
 </thead>
 <tbody>
-<tr><td><code>get_item&lt;M&gt;</code></td><td><code>GET</code></td><td><code>/{resource}/:id</code></td><td>—</td><td><code>200 OK</code> + <code>Json&lt;ItemResponse&lt;M&gt;&gt;</code></td><td>400 on path-extractor rejection · 404 on missing row · 500 on DB error</td></tr>
-<tr><td><code>get_collection&lt;M&gt;</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + optional <code>Warning: 214 …</code> + <code>Json&lt;CollectionResponse&lt;M&gt;&gt;</code></td><td>500 on DB error</td></tr>
-<tr><td><code>create_item&lt;M&gt;</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td><code>Json&lt;M&gt;</code> body</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + <code>Json&lt;ItemResponse&lt;M&gt;&gt;</code></td><td>400 on body parse · 409 on unique violation · 413 on oversized body · 429 on rate limit · 500</td></tr>
-<tr><td><code>update_item&lt;M&gt;</code></td><td><code>PUT</code></td><td><code>/{resource}/:id</code></td><td><code>Json&lt;M&gt;</code> body</td><td><code>200 OK</code> + <code>Json&lt;ItemResponse&lt;M&gt;&gt;</code></td><td>400 · 404 · 409 · 413 · 429 · 500</td></tr>
-<tr><td><code>delete_item&lt;M&gt;</code></td><td><code>DELETE</code></td><td><code>/{resource}/:id</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 404 · 429 · 500</td></tr>
+<tr><td><code>get</code></td><td><code>GET</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>)</td><td>400 on path-extractor rejection · 404 on missing row · 500 on DB error</td></tr>
+<tr><td><code>list</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + the collection as JSON (HAL: with <code>_links</code>)</td><td>500 on DB error</td></tr>
+<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row</td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500</td></tr>
+<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 413 · 422 · 429 · 500</td></tr>
+<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 404 · 429 · 500</td></tr>
 </tbody>
 </table>
 </div>
-<p>Path <code>id</code> is authoritative on update and delete — any <code>id</code> field in the request body is ignored for the <code>WHERE</code> clause. <code>{resource}</code> is <code>&lt;M as FerraModel&gt;::meta().resource_name</code> (e.g. <code>"films"</code>).</p>
-<p>A model that carries one or more <code>#[ferra(projection(...))]</code> declarations also mounts a parallel set of routes under each named projection’s URL prefix (e.g. <code>/detail/films/{id}</code>). The wire shape on those routes is filtered to the projection’s <code>read_fields</code> / <code>write_fields</code> allowlist. See <a href="projections-and-routing.html">Projections and routing</a> for the full URL contract, naming convention, and the <code>path_prefix</code> override.</p>
+<p>The path names the row on update and delete; a key in the body is refused (422).
+The rule is checked before the body is read. See
+<a href="projections-and-routing.html">Projections and routing</a> § Writes for what a write body
+may contain.</p>
+<h3 id="public-reads-protected-writes"><a class="header" href="#public-reads-protected-writes">Public reads, protected writes</a></h3>
+<p>A model that must be readable without a token but writable only with one says so per operation, and the
+chain names the claims type. A field is sortable (<code>?sort=-price_cents</code>) or filterable
+(<code>?filter[name]=…</code>) only if it says so with <code>#[field(sortable)]</code> / <code>#[field(filterable)]</code>
+(<a href="pagination.html">Pagination</a>). The table is <code>shop_products</code> and the URL is <code>/products</code>:
+<code>#[ferra(resource = "products")]</code> sets the URL segment; without it, the segment is the
+table name (<code>/shop_products</code>):</p>
+<pre class="playground"><code class="language-rust">use ferra::{ClaimCheck, FerraIdentity, FerraModel, Foundry, HmacAlgorithm, JwtConfig};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+mod product {
+    use super::*;
+
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "shop_products")]
+    #[ferra(auth = "bearer", resource = "products")]
+    #[authorize(
+        list = Anyone,
+        get = Anyone,
+        create = Authenticated,
+        update = Authenticated,
+        delete = Authenticated
+    )]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[field(filterable)]
+        pub name: String,
+        #[field(sortable)]
+        pub price_cents: i64,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct Claims {
+    sub: String,
+}
+
+impl FerraIdentity for Claims {
+    fn id(&amp;self) -&gt; &amp;str {
+        &amp;self.sub
+    }
+    fn has_role(&amp;self, _role: &amp;str) -&gt; bool {
+        false
+    }
+}
+
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let jwt = JwtConfig::single_secret(
+    "key-1",                                        // `kid`: every token must carry it
+    std::env::var("JWT_SECRET")?,                   // the HMAC secret, from the environment
+    HmacAlgorithm::Hs256,
+    ClaimCheck::expect("https://auth.example.com/"), // `iss` the token must carry
+    ClaimCheck::expect("products-api"),              // `aud` the token must carry
+)?;
+let app = Foundry::new(conn)
+    .with_auth::&lt;Claims&gt;(jwt)
+    .mount::&lt;product::Model&gt;()
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>(<a href="ferra-auth.html">Authentication and Authorization</a> has the rest of the JWT configuration.)</p>
+<p>A model that carries one or more <code>#[ferra(projection(...))]</code> declarations also mounts a parallel set of routes under each named projection’s URL prefix (e.g. <code>/detail/films/{id}</code>). The wire shape on those routes is the projection’s own: a response is serialized from its read struct, and a body is parsed into its write struct. See <a href="projections-and-routing.html">Projections and routing</a> for the full URL contract, naming convention, and the <code>path_prefix</code> override.</p>
 <hr>
 <h2 id="rfc-7807-error-taxonomy"><a class="header" href="#rfc-7807-error-taxonomy">RFC 7807 error taxonomy</a></h2>
-<p>Every error from every handler is rendered as <code>application/problem+json</code> per RFC 7807 §3. Six variants, locked through 0.6.0 Welding:</p>
+<p>Every error from every handler is rendered as <code>application/problem+json</code> per RFC 7807 §3. <code>FerraError</code> has fourteen variants (the enum is <code>#[non_exhaustive]</code>, so a <code>match</code> outside the crate needs a wildcard arm; <code>FerraError::error_type()</code> names the wire type of any variant). They map onto twelve of the fourteen <code>type</code> URIs (the others, <code>payload_too_large</code> and <code>rate_limited</code>, come from middleware layers, see <a href="ferra-error-handling.html">Error handling</a>):</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -236,9 +347,20 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
 </thead>
 <tbody>
 <tr><td><code>FerraError::NotFound { resource, id }</code></td><td>404</td><td><code>https://ferra.rs/errors/not_found</code></td><td><code>Resource Not Found</code></td></tr>
+<tr><td><code>FerraError::CollectionNotFound { resource }</code></td><td>404</td><td><code>https://ferra.rs/errors/not_found</code></td><td><code>Resource Not Found</code> (detail <code>&lt;resource&gt; not found</code>, no id; 0.13.0)</td></tr>
 <tr><td><code>FerraError::Validation(ValidationErrors)</code></td><td>400</td><td><code>https://ferra.rs/errors/validation</code></td><td><code>Validation Error</code></td></tr>
+<tr><td><code>FerraError::BadRequest { detail, field, code }</code></td><td>400</td><td><code>https://ferra.rs/errors/validation</code></td><td><code>Validation Error</code></td></tr>
+<tr><td><code>FerraError::Unprocessable(ValidationErrors)</code></td><td>422</td><td><code>https://ferra.rs/errors/validation_failed</code></td><td><code>Validation Failed</code></td></tr>
+<tr><td><code>FerraError::InvalidCursor</code></td><td>400</td><td><code>https://ferra.rs/errors/invalid_cursor</code></td><td><code>Invalid Cursor</code></td></tr>
+<tr><td><code>FerraError::Unauthorized</code></td><td>401</td><td><code>https://ferra.rs/errors/unauthorized</code></td><td><code>Unauthorized</code> (with <code>WWW-Authenticate: Bearer</code>)</td></tr>
+<tr><td><code>FerraError::Forbidden</code></td><td>403</td><td><code>https://ferra.rs/errors/forbidden</code></td><td><code>Forbidden</code></td></tr>
 <tr><td><code>FerraError::Conflict(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code></td></tr>
+<tr><td><code>FerraError::ConflictWith(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code> (your hook’s <code>HookError::conflict</code>; the detail is yours, served as given; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
+<tr><td><code>FerraError::UnsupportedMediaType</code></td><td>415</td><td><code>https://ferra.rs/errors/unsupported_media_type</code></td><td><code>Unsupported Media Type</code></td></tr>
 <tr><td><code>FerraError::Internal(String)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code></td></tr>
+<tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
+<tr><td><code>FerraError::IdentityUnavailable</code></td><td>503</td><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td><code>Identity Unavailable</code> (a key set out of reach with no fresh key cached; no <code>Retry-After</code>; see <code>ferra-auth.md</code> § Key set)</td></tr>
+<tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>; the detail is yours; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
 <tr><td><em>(middleware)</em></td><td>413</td><td><code>https://ferra.rs/errors/payload_too_large</code></td><td><code>Payload Too Large</code> <sup class="footnote-reference" id="fr-middleware-1"><a href="#footnote-middleware">1</a></sup></td></tr>
 <tr><td><em>(middleware)</em></td><td>429</td><td><code>https://ferra.rs/errors/rate_limited</code></td><td><code>Too Many Requests</code> <sup class="footnote-reference" id="fr-middleware-2"><a href="#footnote-middleware">1</a></sup></td></tr>
 </tbody>
@@ -258,11 +380,9 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
   "title":  "Validation Error",
   "status": 400,
   "detail": "validation failed",
-  "errors": {
-    "errors": [
-      { "field": "body", "code": "invalid_json", "message": "expected `,` or `}` at line 1 column 14" }
-    ]
-  }
+  "errors": [
+    { "field": "body", "code": "invalid_json", "message": "expected `,` or `}` at line 1 column 14" }
+  ]
 }
 </code></pre>
 <p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the inner <code>sea_orm::DbErr</code> is dropped before reaching the HTTP body. The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
@@ -274,11 +394,87 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
   "detail": "rate limit exceeded; retry after 3 seconds"
 }
 </code></pre>
-<p>The response also carries the <code>Retry-After</code> header from the underlying rate-limit component verbatim (integer seconds). When the component does not emit a <code>Retry-After</code> header, <code>detail</code> degrades gracefully to the literal string <code>"rate limit exceeded"</code> and the header is absent from the response. The rate-limit mapper mounts only alongside the framework’s default rate-limit component — consumer-provided rate-limiters produce their own error shape (see ADR-0015 for rationale).</p>
+<p>The response also carries the <code>Retry-After</code> header (integer seconds, at least 1). A refill shorter than a second is answered as <code>Retry-After: 1</code>, never <code>0</code>, which would invite an immediate retry that is refused again. If the component ever emitted no <code>Retry-After</code> header, <code>detail</code> would degrade to the literal string <code>"rate limit exceeded"</code> and the header would be absent from the response; the default rule always emits it. The rate-limit mapper mounts only alongside the framework’s default rate-limit component — consumer-provided rate-limiters produce their own error shape (see ADR-0015 for rationale).</p>
 <hr>
-<h2 id="the-hal-lite-envelope"><a class="header" href="#the-hal-lite-envelope">The HAL-lite envelope</a></h2>
-<p>Every successful body carries <code>_links</code> so an AI agent can navigate the API without prior URL knowledge.</p>
-<h3 id="itemresponsem--single-item-envelope"><a class="header" href="#itemresponsem--single-item-envelope"><code>ItemResponse&lt;M&gt;</code> — single-item envelope</a></h3>
+<h2 id="response-representations"><a class="header" href="#response-representations">Response representations</a></h2>
+<p>A successful response comes in two shapes, and the client chooses with <code>Accept</code>:
+<strong>flat</strong> (<code>application/json</code>) is the row, or the collection envelope, as plain JSON;
+<strong>HAL</strong> (<code>application/hal+json</code>) is the same body plus <code>_links</code>, so an AI agent can
+navigate the API without prior URL knowledge. Both go through the same query and the
+same read projection: they show the same rows, the same <code>total</code> and the same keys.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>Accept</code></th><th>Representation</th></tr>
+</thead>
+<tbody>
+<tr><td>absent, empty, <code>*/*</code>, <code>application/*</code>, only other types, unparseable</td><td>the <code>Foundry</code> default: HAL unless you set it</td></tr>
+<tr><td><code>application/json</code></td><td>flat</td></tr>
+<tr><td><code>application/hal+json</code></td><td>HAL</td></tr>
+<tr><td>both, with different <code>q</code></td><td>the higher <code>q</code></td></tr>
+<tr><td>both, with equal <code>q</code> (or both <code>q=0</code>)</td><td>the <code>Foundry</code> default</td></tr>
+<tr><td>one of the two at <code>q=0</code>, the other absent</td><td>the other</td></tr>
+</tbody>
+</table>
+</div>
+<p>Ferra never answers 406: an <code>Accept</code> it cannot satisfy gets the default. An error is
+<code>application/problem+json</code> and the same body in both modes.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>On a 2xx</th><th>Flat</th><th>HAL</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Content-Type</code></td><td><code>application/json</code></td><td><code>application/hal+json</code></td></tr>
+<tr><td><code>Vary</code></td><td><code>Accept</code></td><td><code>Accept</code></td></tr>
+<tr><td><code>Location</code> (201)</td><td>yes</td><td>yes</td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>201</code> to a caller who may create the row but not <code>GET</code> it is the exception: no body, so no <code>Content-Type</code>, and no <code>Location</code> (0.13.0).</p>
+<p>| <code>Link</code>, <code>X-Total-Count</code> | never | never |</p>
+<p><code>Vary: Accept</code> is on every negotiated 2xx, <code>204</code> included: configure a cache in front
+of the API to honor it. Pagination state is in the body only, never in a header.</p>
+<p>To serve flat to a client that states no preference, set the default before the first
+mount:</p>
+<pre class="playground"><code class="language-rust">use ferra::{Foundry, Representation};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let app = Foundry::new(conn)
+    .default_representation(Representation::Flat)
+    .mount::&lt;Film&gt;()
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>Before 0.11.0 the HAL body was served as <code>application/json</code>. A client that sends
+<code>Accept: application/json</code> now gets the flat body: it no longer has <code>_links</code>. A client
+that sends no <code>Accept</code> still gets HAL, with the <code>Content-Type</code> <code>application/hal+json</code>.</p>
+<h3 id="flat-bodies"><a class="header" href="#flat-bodies">Flat bodies</a></h3>
+<pre><code class="language-json">{ "id": 1, "title": "Rust en pratique", "director": "Alice", "year": 2025 }
+</code></pre>
+<p>A page list is <code>{"items": [...], "total": 25, "page": 2, "per_page": 10}</code>; a cursor
+list is <code>{"items": [...], "per_page": 10, "next_cursor": "&lt;token&gt;"}</code>, and <code>next_cursor</code>
+is <code>null</code> on the last page (the key is always there). Pass <code>next_cursor</code> back as
+<code>?cursor=</code> with the same <code>filter[...]</code> and <code>sort</code>.</p>
+<h3 id="hal-single-item-body"><a class="header" href="#hal-single-item-body">HAL single-item body</a></h3>
 <p>Model fields are flattened at the top level via <code>#[serde(flatten)]</code>. A <code>Film { id: 1, title: "Rust en pratique", director: "Alice", year: Some(2025) }</code> serializes as:</p>
 <pre><code class="language-json">{
   "id": 1,
@@ -291,9 +487,9 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
   }
 }
 </code></pre>
-<h3 id="collectionresponsem--paginated-envelope"><a class="header" href="#collectionresponsem--paginated-envelope"><code>CollectionResponse&lt;M&gt;</code> — paginated envelope</a></h3>
+<h3 id="hal-paginated-collection-body"><a class="header" href="#hal-paginated-collection-body">HAL paginated collection body</a></h3>
 <pre><code class="language-json">{
-  "items": [ /* array of ItemResponse&lt;M&gt; */ ],
+  "items": [ /* array of items, each with its own _links */ ],
   "total": 25,
   "page": 2,
   "per_page": 10,
@@ -306,88 +502,191 @@ impl&lt;M&gt; FerraState&lt;M&gt; {
   }
 }
 </code></pre>
+<p>An item’s <code>_links.self</code> is present only if the caller may <code>GET</code> that row, and <code>_links.collection</code> only if the caller may <code>list</code> the collection: a caller who may list but not read a row gets the row without <code>self</code>, so following a link as the same caller always answers 2xx (0.13.0). Under a projection prefix every link carries it: a page served at <code>/admin/films</code> links to <code>/admin/films?page=…</code>, and its items to <code>/admin/films/{id}</code>. A served row has no <code>restore</code> link (a served row is live).</p>
 <p>On boundary pages, <code>next</code> or <code>prev</code> serialize as JSON <code>null</code> (never omitted). On <code>total == 0</code>, <code>last_page == 1</code> and <code>first == last == self</code>.</p>
-<h3 id="building-links-manually"><a class="header" href="#building-links-manually">Building links manually</a></h3>
-<pre><code class="language-rust ignore">pub fn build_item_links(meta: &amp;ModelMeta, id: &amp;str, base_url: &amp;str) -&gt; ItemLinks;
-pub fn build_collection_links(
-    meta: &amp;ModelMeta,
-    page: u32,
-    per_page: u32,
-    total: u64,
-    base_url: &amp;str,
-) -&gt; CollectionLinks;</code></pre>
-<p>Use these when writing a custom handler that returns an envelope-shaped body.</p>
+<p>Every link repeats the request’s <code>filter[...]</code> and <code>sort</code> (percent-encoded), so following
+<code>next</code> stays on the same list. A cursor list in HAL also carries <code>next_cursor</code>, the
+cursor of <code>_links.next</code>.</p>
+<h3 id="links-in-a-route-of-your-own"><a class="header" href="#links-in-a-route-of-your-own">Links in a route of your own</a></h3>
+<p>The link builders are not public in 0.9.0: they know neither the base path, the
+version prefix nor the configured origin that <code>Foundry</code> applies. A route of your
+own that returns a resource with links writes the <code>_links</code> object itself — see
+<a href="custom-handlers.html"><code>custom-handlers.md</code></a>.</p>
 <hr>
 <h2 id="pagination"><a class="header" href="#pagination">Pagination</a></h2>
-<pre><code class="language-rust ignore">pub struct PaginationParams { pub page: Option&lt;u32&gt;, pub per_page: Option&lt;u32&gt; }
-impl PaginationParams {
-    pub const fn with(page: Option&lt;u32&gt;, per_page: Option&lt;u32&gt;) -&gt; Self;
-    pub fn resolved_page(&amp;self) -&gt; u32;          // default 1; 0 → 1
-    pub fn resolved_per_page(&amp;self) -&gt; u32;      // default 20; clamp to [1, 100]
-    pub fn clamped_per_page(&amp;self) -&gt; Option&lt;u32&gt;;
-}</code></pre>
-<p><code>PaginationParams</code> is <code>#[non_exhaustive]</code> — external struct-literal construction is rejected. For code that needs to build a <code>PaginationParams</code> outside an Axum <code>Query&lt;_&gt;</code> extractor (integration tests, admin tools, batch jobs), use the stable <code>with(page, per_page)</code> constructor:</p>
-<pre><code class="language-rust ignore">use ferra::PaginationParams;
-
-let p = PaginationParams::with(Some(3), Some(50));
-assert_eq!(p.resolved_page(), 3);
-assert_eq!(p.resolved_per_page(), 50);
-
-let defaulted = PaginationParams::with(None, None);
-assert_eq!(defaulted.resolved_page(), 1);
-assert_eq!(defaulted.resolved_per_page(), 20);
-
-let clamped = PaginationParams::with(None, Some(500));
-assert_eq!(clamped.resolved_per_page(), 100);
-assert_eq!(clamped.clamped_per_page(), Some(100));</code></pre>
-<p>The constructor stores the raw <code>Option&lt;u32&gt;</code> inputs as-is and applies the clamp / default lazily through the <code>resolved_*</code> / <code>clamped_per_page</code> methods — values produced via <code>with(...)</code> are observationally identical to those that reach a handler through the HTTP extraction path.</p>
+<blockquote>
+<p><strong>0.7.5 Enameling — collection-read parameters widened.</strong> The new <code>filter[&lt;field&gt;]</code>, <code>sort</code>, and <code>cursor</code> parameters layer on top of <code>page</code> / <code>per_page</code> without changing the existing extractor surface — see <a href="pagination.html"><code>pagination.md</code></a> for the consumer-facing guide (the load-bearing surface for filtering, sorting, and cursor pagination). The handler dispatches on the model’s <code>#[ferra(pagination = …)]</code> posture; the page-mode parameters below continue to work unchanged.</p>
+</blockquote>
+<p>The page-mode parameters are read by the generated routes; the extractor is internal since 0.9.0. A missing <code>page</code> is 1 (and <code>0</code> is read as 1), a missing <code>per_page</code> is 20, and <code>per_page</code> is clamped to 1–100, silently: no <code>Warning</code> header (RFC 9111 §5.5 obsoletes it; the body says what applied).</p>
 <ul>
 <li>Default: <code>page=1</code>, <code>per_page=20</code>.</li>
-<li>Cap: <code>per_page ≤ 100</code> (hard limit). Values below 1 or above 100 are silently clamped <strong>and</strong> the response carries <code>Warning: 214 - "per_page clamped to {N} (max 100)"</code> per RFC 7234 §5.5.4.</li>
-<li>The response body’s <code>per_page</code> field reports the clamped value (so clients can detect the clamp without parsing the <code>Warning</code> header).</li>
+<li>Cap: <code>per_page ≤ 100</code> (hard limit). Values below 1 or above 100 are clamped, with no <code>Warning</code> header (RFC 9111 §5.5 obsoletes it; before 0.12.0 the response carried <code>Warning: 214</code>).</li>
+<li>The response body’s <code>per_page</code> field reports the clamped value, so a client detects a clamp by comparing it with what it asked.</li>
+<li>A <code>page</code> or <code>per_page</code> that is not a non-negative integer (<code>page=abc</code>) is a 400 with the code <code>invalid_parameter</code>; it is not read as the default.</li>
 </ul>
 <p>Worked <code>curl</code>:</p>
 <pre><code class="language-text">$ curl -D - 'http://localhost:3000/films?per_page=500'
 HTTP/1.1 200 OK
-warning: 214 - "per_page clamped to 100 (max 100)"
-content-type: application/json
+cache-control: no-store
+content-type: application/hal+json
+vary: Accept
+vary: Authorization, Cookie
 ...
 {"items":[...],"total":523,"page":1,"per_page":100,"_links":{...}}
 </code></pre>
 <hr>
-<h2 id="base-url-extractor"><a class="header" href="#base-url-extractor">Base-URL extractor</a></h2>
-<pre><code class="language-rust ignore">pub fn base_url_from_parts(parts: &amp;http::request::Parts) -&gt; String;</code></pre>
-<p>Produces the <code>base_url</code> prefix used by <code>build_item_links</code> / <code>build_collection_links</code>. Behavior:</p>
+<h2 id="links-and-location"><a class="header" href="#links-and-location">Links and <code>Location</code></a></h2>
+<p>Hypermedia links (<code>_links</code>, HAL-inspired) and the <code>Location</code> header are <strong>relative</strong>
+by default: <code>/films/42</code>, or <code>/api/films/42</code> under a <code>FerraLayer</code> <code>base_path</code>. Resolve
+them against the URL you called, as an HTTP client does for <code>Location</code>. The request’s <code>Host</code>,
+<code>X-Forwarded-Host</code> and <code>X-Forwarded-Proto</code> headers are never read: a client cannot
+make the API emit links to another origin.</p>
+<p><code>Location</code> on a <code>201</code> is the <code>self</code> link of the new row (the same href a HAL read gives it), under a
+projection prefix as on the bare path. It is present only if <code>self</code> is: a caller who may <code>create</code> but not
+<code>GET</code> the row gets <code>201 Created</code> with no body and no <code>Location</code>, with or without
+<code>Prefer: return=minimal</code>, so no id, stamp or author reaches a caller who may not read them (0.13.0).</p>
+<p>To emit absolute links, configure the public origin once:</p>
+<pre class="playground"><code class="language-rust">use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let app = Foundry::new(conn)
+    .with_base_url("https://api.example.com")? // Result&lt;_, BaseUrlError&gt;
+    .mount::&lt;Film&gt;()
+    .build();
+// Location: https://api.example.com/films/42
+<span class="boring">let _ = app;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>The value must be an <code>http</code> or <code>https</code> origin — scheme, host and optional port; a
+trailing <code>/</code> is dropped — with no path, query, fragment, userinfo
+(<code>https://user:password@host</code>) or whitespace; otherwise <code>BaseUrlError::NotHttp</code>,
+<code>NoHost</code> or <code>NotAnOrigin</code>. A path prefix is not part of the origin: declare it with
+<code>FerraLayer::base_path</code> (for instance behind a proxy that serves the API under
+<code>/api</code>).</p>
+<p>On a versioned chain (<code>.api_version("v1")</code>), links carry the version prefix the
+routes are served under, relative or absolute: <code>/v1/films/42</code>, or
+<code>https://api.example.com/v1/films/42</code> with an origin. The order is origin, then <code>base_path</code>, then the version prefix.</p>
+<hr>
+<h2 id="resourcem--a-models-rows-from-a-route-of-your-own"><a class="header" href="#resourcem--a-models-rows-from-a-route-of-your-own"><code>Resource&lt;M&gt;</code> — a model’s rows from a route of your own</a></h2>
+<p>A route of your own reaches a model’s rows through <code>Resource&lt;M&gt;</code>, an axum extractor. <code>Foundry::mount_and_handle::&lt;M&gt;()</code> mounts the model and issues a <code>ResourceHandle&lt;M&gt;</code> (<a href="foundry.html">Foundry</a>); the handle goes in the router state — <code>.with_state(handle)</code>, or a field of an application state that derives <code>axum::extract::FromRef</code> — and the handler takes <code>Resource&lt;M&gt;</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span>use axum::{Json, Router, extract::Path, routing::get};
+use ferra::model::FerraViews;
+use ferra::{FerraError, Foundry, Resource};
+
+async fn one(films: Resource&lt;Film&gt;, Path(id): Path&lt;i32&gt;)
+    -&gt; Result&lt;Json&lt;&lt;Film as FerraViews&gt;::Read&gt;, FerraError&gt;
+{
+    Ok(Json(films.get(id).await?))
+}
+
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let (foundry, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+let app: Router = foundry
+    .build()
+    .merge(Router::new().route("/films/{id}/mine", get(one)).with_state(films));
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Does what</th><th>Takes</th><th>Returns</th></tr>
+</thead>
+<tbody>
+<tr><td><code>get</code></td><td><code>GET /{resource}/{id}</code></td><td>the key</td><td><code>&lt;M as FerraViews&gt;::Read</code></td></tr>
+<tr><td><code>list</code></td><td><code>GET /{resource}</code>, page mode</td><td>a <code>CollectionQuery</code></td><td><code>Page&lt;Read&gt;</code></td></tr>
+<tr><td><code>list_cursor</code></td><td><code>GET /{resource}</code>, cursor mode</td><td>a <code>CursorQuery</code></td><td><code>CursorPage&lt;Read&gt;</code></td></tr>
+<tr><td><code>create</code></td><td><code>POST /{resource}</code></td><td><code>&lt;M as FerraViews&gt;::Write</code></td><td><code>Read</code></td></tr>
+<tr><td><code>update</code></td><td><code>PUT /{resource}/{id}</code> for the fields it sets</td><td>the key, <code>&lt;M as FerraViews&gt;::Patch</code></td><td><code>Read</code></td></tr>
+<tr><td><code>delete</code></td><td><code>DELETE /{resource}/{id}</code>, soft on a soft-delete model</td><td>the key</td><td><code>()</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>All of them answer with a <code>FerraError</code>, so the refusals are those of the generated routes.</p>
+<h3 id="who-the-caller-is-and-the-order-of-refusals"><a class="header" href="#who-the-caller-is-and-the-order-of-refusals">Who the caller is, and the order of refusals</a></h3>
+<p>The caller is bound when <code>Resource&lt;M&gt;</code> is extracted: the identity the JWT layer verified, if the request went through it; else the bearer token of the <code>Authorization</code> header, verified with the chain’s own JWT configuration; else nobody.</p>
+<ol>
+<li>A token that is present and invalid — an <code>Authorization</code> header that is not a well-formed <code>Bearer</code> credential included — is refused at extraction with the <code>401</code> the JWT layer gives, before any database statement.</li>
+<li>On a chain without <code>.with_auth()</code> no token is read, and the caller is anonymous: a rule that needs an identity answers <code>401</code>.</li>
+<li>Your route’s own extractors (<code>FerraPath</code>, <code>FerraJson</code>) run before you call a method, so a malformed path or body can be answered <code>400</code> before the access answers <code>401</code> or <code>403</code>. What the access then refuses — <code>401</code>, <code>403</code>, <code>404</code>, <code>422</code> — is what the generated route refuses, because it is the same code: another caller’s row under <code>IsOwner</code> is a <code>404</code>, indistinguishable from a missing row.</li>
+</ol>
+<h3 id="what-it-hands-back"><a class="header" href="#what-it-hands-back">What it hands back</a></h3>
+<p><code>get</code>, <code>list</code> and <code>create</code> return the model’s <em>read view</em>, <code>&lt;M as FerraViews&gt;::Read</code>: the <code>{Model}ReadProjection</code> struct <code>#[derive(FerraModel)]</code> generates (or the projection promoted with <code>default = true</code>). A <code>#[ferra(write_only)]</code> or <code>#[ferra(skip)]</code> field is not a member of that type, so a route that serializes it cannot leak it. <code>update</code> takes <code>&lt;M as FerraViews&gt;::Patch</code>, the generated <code>{Model}Patch</code>: one <code>Option&lt;T&gt;</code> per field of the write projection, <code>None</code> meaning “leave the column” (and <code>Option&lt;Option&lt;T&gt;&gt;</code> for a nullable column, <code>Some(None)</code> writing null). Only the set columns reach the <code>UPDATE</code>; a write-only column is writable and never read back.</p>
+<p><code>create</code> and <code>update</code> return the row they wrote with the field read rules applied, but without the <code>can(Get)</code> check of the model’s <code>#[ferra(authority)]</code> that the generated routes make before they send a body (a caller who may write a row but not read it gets no body from the route). A handler of yours must not echo that value to a caller who may not read the row: check with <code>get</code> first, or send nothing. The same holds for the rows <code>tx.resource::&lt;N&gt;()</code> returns inside a hook.</p>
+<p>Limits, by design:</p>
 <ul>
-<li>Scheme: first comma-separated token of <code>X-Forwarded-Proto</code> if it matches the <code>{http, https}</code> allowlist; otherwise <code>"http"</code>.</li>
-<li>Host: the <code>Host</code> header if present and non-empty; otherwise <code>"localhost"</code>.</li>
-<li>Output format: <code>"{scheme}://{host}"</code>. No trailing slash.</li>
+<li>The access serves the bare route’s projections. Selecting a named projection comes with per-projection authorization, later.</li>
+<li><code>restore</code> is not offered.</li>
+<li>The read view carries the model’s Rust field names; <code>#[ferra(rename_all = "camelCase")]</code> is applied by the generated routes when they serialize, not by the struct. A route of your own answers with a struct of its own.</li>
+<li>A filter you put in a <code>CollectionQuery</code> or a <code>CursorQuery</code> is held to the route’s safelist: only <code>#[field(filterable)]</code> fields, by their Rust names, with a value of the field’s type. Under <code>IsOwner</code> the list holds the caller’s rows whatever filter you pass.</li>
 </ul>
-<p>Anti-spoofing: <code>X-Forwarded-Proto: javascript</code> (or any non-allowlisted scheme) falls back to <code>http</code>. A spoofed header cannot inject a <code>javascript:</code> URL into <code>_links.*.href</code> by construction.</p>
-<p>Deploying behind a TLS-terminating load balancer? Ensure the LB sets <code>X-Forwarded-Proto: https</code> so the generated links match the client-visible scheme.</p>
+<p>A handler that extracts <code>Resource&lt;M&gt;</code> from a state that carries no handle for <code>M</code> does not compile; see <code>FRG-152</code> in <a href="ferra-forge-diagnostics.html">the diagnostics</a>.</p>
 <hr>
 <h2 id="custom-extractors"><a class="header" href="#custom-extractors">Custom extractors</a></h2>
 <p>See <a href="./custom-handlers.html"><code>custom-handlers.md</code></a> — the rationale for <code>FerraJson&lt;T&gt;</code> / <code>FerraPath&lt;T&gt;</code> (RFC 7807 error continuity), the <code>FromRequest</code> vs <code>FromRequestParts</code> ordering rule, the <code>Send + Sync + 'static</code> cheat-sheet, and a worked end-to-end <code>POST /films/{id}/publish</code> action route.</p>
 <hr>
 <h2 id="security-defaults"><a class="header" href="#security-defaults">Security defaults</a></h2>
-<p><code>ferra_router::&lt;M&gt;(state)</code> mounts a deny-by-default Tower layer stack — a consumer who writes exactly those five lines is already constitution-§I compliant:</p>
+<p>Every route <code>Foundry</code> mounts carries a deny-by-default Tower layer stack:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Layer</th><th>Default</th><th>Override path</th></tr>
 </thead>
 <tbody>
-<tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin</td><td><code>FerraLayer::cors(...)</code> at 0.7.0 Pre-tempering</td></tr>
+<tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin; with <code>JwtConfig::with_cookie</code>, the listed origins only, with credentials (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td><td><code>FerraLayer::cors(...)</code>, refused with the cookie</td></tr>
 <tr><td>413 body-limit mapper</td><td>Rewrites stock <code>text/plain</code> → <code>application/problem+json</code> with <code>type: .../payload_too_large</code></td><td>— (permanent)</td></tr>
-<tr><td><code>tower_http::limit::RequestBodyLimitLayer</code></td><td>1 MiB</td><td><code>FerraLayer::body_limit(...)</code> at 0.7.0</td></tr>
-<tr><td><code>tower_http::trace::TraceLayer</code></td><td>Body sampling OFF (never logs PII)</td><td>Per-route opt-in at 0.12.0 Sheen</td></tr>
-<tr><td><code>tower_governor::GovernorLayer</code> on mutation endpoints</td><td><code>per_second(2)</code> + <code>burst_size(5)</code> + peer-socket-IP key</td><td>Full config at 0.9.0 Forging III</td></tr>
-<tr><td><code>PaginationParams</code> clamp (FR-017)</td><td>Loud <code>Warning: 214</code> header on every clamp</td><td>— (constitutional)</td></tr>
-<tr><td><code>X-Forwarded-Proto</code> allowlist</td><td><code>{http, https}</code> only</td><td>— (constitutional)</td></tr>
+<tr><td><code>tower_http::limit::RequestBodyLimitLayer</code></td><td>1 MiB</td><td><code>FerraLayer::body_limit(...)</code></td></tr>
+<tr><td><code>tower_http::trace::TraceLayer</code></td><td>One <code>INFO</code> event per request: method, path (no query string), status, latency in ms, and for an accepted request the kind of credential (<code>credential</code> = <code>token</code>, <code>cookie</code> or <code>api_key</code>) and a key’s <code>api_key.prefix</code>. Never headers, bodies, a token or a key secret.</td><td><code>FerraLayer::trace_layer</code></td></tr>
+<tr><td><code>tower_governor::GovernorLayer</code> on mutation endpoints</td><td>2 mutations per second, burst 5 (<code>RateLimitRule::new(2, 5)</code>) + peer-socket-IP key</td><td><code>FerraLayer::rate_limit(RateLimitRule::new(per_second, burst))</code></td></tr>
+<tr><td>Cache default (outermost layer of <code>build()</code>)</td><td><code>Cache-Control: no-store</code> when the response has none; <code>Vary</code> merged with <code>Accept</code>, <code>Authorization</code>, <code>Cookie</code></td><td>a route’s own <code>Cache-Control</code>, see <a href="#caching">Caching</a></td></tr>
+<tr><td><code>per_page</code> clamp (FR-017)</td><td>Clamped to <code>[1, 100]</code>; the body’s <code>per_page</code> is the applied value (no <code>Warning</code> header since 0.12.0)</td><td>— (constitutional)</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>429 wire format</strong> — the framework’s default rate-limit component’s 429 responses are rewritten to <code>application/problem+json</code> with <code>type: https://ferra.rs/errors/rate_limited</code>, preserving the <code>Retry-After</code> header from <code>tower_governor</code> verbatim. See the worked body in §“RFC 7807 error taxonomy” above. Oversized bodies produce the same <code>application/problem+json</code> shape — a client parsing <code>type</code> never sees a mixed wire format.</p>
+<p><strong>429 wire format</strong> — the framework’s default rate-limit component’s 429 responses are rewritten to <code>application/problem+json</code> with <code>type: https://ferra.rs/errors/rate_limited</code>, with a <code>Retry-After</code> of at least 1 second. See the worked body in §“RFC 7807 error taxonomy” above. Oversized bodies produce the same <code>application/problem+json</code> shape — a client parsing <code>type</code> never sees a mixed wire format.</p>
+<p><code>FerraLayer::new().no_rate_limit().build()</code> removes mutation throttling and
+its mapper; no <code>ConnectInfo</code> is needed. Otherwise the default peer-IP key
+requires <code>into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()</code>;
+a missing peer answers 500. <code>Foundry::rate_limit_key</code> selects trusted-proxy
+or custom keying before mounting (see <code>foundry.md</code> § Rate-limit override).
+On Lambda quotas are per execution environment: use <code>no_rate_limit</code> with
+API Gateway throttling (the example uses burst 20, rate 10 requests/second).</p>
 <p><strong>Rate-limit observability event.</strong> Each time the rate-limit mapper rewrites a 429, it emits a single structured <code>tracing::warn!</code> event so an operator tailing logs can see rate-limit rejections without reading the framework source:</p>
 <ul>
 <li><strong>Target:</strong> <code>ferra_http::rate_limit</code> — namespaced so an operator can isolate it via <code>EnvFilter</code> (<code>RUST_LOG=ferra_http::rate_limit=warn</code>).</li>
@@ -396,24 +695,44 @@ content-type: application/json
 <li><strong>Fields (deliberately minimal):</strong>
 <ul>
 <li><code>http.method</code> — the request HTTP method (e.g. <code>"POST"</code>). Always present.</li>
-<li><code>http.target</code> — the request path-and-query (e.g. <code>"/films"</code> or <code>"/films?page=2"</code>). Always present.</li>
+<li><code>http.target</code> — the request path, never the query string (e.g. <code>"/films"</code> for <code>POST /films?page=2</code>; ADR-0076). Always present.</li>
 <li><code>http.retry_after_seconds</code> — integer seconds parsed from the inbound <code>Retry-After</code> header. Present only when the header parses as a non-negative integer; genuinely absent otherwise (not recorded as <code>0</code>).</li>
 </ul>
 </li>
 </ul>
 <p>Request and response body content never appear in this event — only the three fields listed above. The schema is pinned minimal so the framework’s dedicated observability phase at 0.12.0 Sheen can absorb it into span-based telemetry (adding <code>trace_id</code>, <code>span_id</code>, and peer-IP once the trusted-proxy story lands) without breaking a consumer’s existing <code>EnvFilter</code> or custom <code>tracing::Layer</code>.</p>
 <p>Wire up a subscriber in your host binary’s <code>main</code> to surface these events:</p>
-<pre><code class="language-rust ignore">tracing_subscriber::fmt()
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>tracing_subscriber::fmt()
     .with_env_filter("ferra_http::rate_limit=warn")
-    .init();</code></pre>
-<p><strong>Layer placement (FR-006).</strong> The rate-limit mapper mounts as the <strong>outer</strong> layer of the mutation sub-router only, wrapping <code>tower_governor::GovernorLayer</code> from the outside (the last <code>.layer()</code> call on that sub-router). Consumer-added middleware appended to <code>ferra_router::&lt;M&gt;(state)</code> wraps the mapper from further outside — see §“Layer ordering — how <code>.layer()</code> composes” below for the full diagram.</p>
+    .init();
+<span class="boring">}</span></code></pre>
+<p><strong>Layer placement (FR-006).</strong> The rate-limit mapper mounts as the <strong>outer</strong> layer of the mutation sub-router only, wrapping <code>tower_governor::GovernorLayer</code> from the outside (the last <code>.layer()</code> call on that sub-router). Consumer-added middleware appended to <code>Foundry::…build()</code> wraps the mapper from further outside — see §“Layer ordering — how <code>.layer()</code> composes” below for the full diagram.</p>
 <p><strong>Overriding the defaults.</strong> Every default in the table above is overridable via the <code>FerraLayer</code> builder applied to a <code>Foundry</code> chain — body cap, CORS, mutation rate-limit rule, tracing layer, and a <code>base_path</code> prefix on hypermedia links. The override surface is documented in <a href="foundry.html#transport-layer-overrides"><code>foundry.md</code> § “Transport-layer overrides”</a> with the full worked example and the REPLACE-not-merge rule for per-model overrides.</p>
+<h3 id="cors-with-the-cookie"><a class="header" href="#cors-with-the-cookie">CORS with the cookie</a></h3>
+<p>When the <code>JwtConfig</code> has <code>with_cookie(name, origins)</code> (<a href="ferra-auth.html"><code>ferra-auth.md</code></a>
+§ Cookie), each model’s CORS layer is built from that origin list instead of the deny-all
+default: a listed origin gets its exact <code>Access-Control-Allow-Origin</code> and
+<code>Access-Control-Allow-Credentials: true</code>, any other origin gets no <code>Access-Control-Allow-*</code>
+header, and a preflight needs no credential. The same list is the CSRF guard of a write
+the cookie authenticates. CORS wraps the authentication layer, so what that layer answers
+(the 401 of an expired cookie, the 400 of two credentials, the 403 of the CSRF guard)
+carries the CORS headers too: a listed app can read it and tell that its session expired.</p>
+<p><strong>Do not set <code>FerraLayer::cors(...)</code> with the cookie.</strong> <code>build()</code> panics: “a custom CORS
+layer cannot be combined with the cookie credential: remove <code>FerraLayer::cors</code>; the origins
+given to <code>JwtConfig::with_cookie</code> drive CORS”. Two policies would leave one silently
+ignored, and a custom layer with <code>allow_credentials(true)</code> answers every origin. A chain
+without the cookie keeps <code>FerraLayer::cors</code> as it was.</p>
 <h3 id="layer-ordering--how-layer-composes"><a class="header" href="#layer-ordering--how-layer-composes">Layer ordering — how <code>.layer()</code> composes</a></h3>
-<p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>ferra_router::&lt;M&gt;(state)</code> therefore wraps every Ferra-provided layer from the outside.</p>
-<p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>ferra_router::&lt;M&gt;(state)</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
+<p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>Foundry::…build()</code> therefore wraps every Ferra-provided layer from the outside.</p>
+<p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>Foundry::…build()</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
 <pre><code class="language-text">CONCEPTUAL stack (request top→bottom):        LITERAL call sequence (first→last in source):
 
- outer → CorsLayer                              .layer(DefaultBodyLimit::disable())   ← first call (innermost)
+ outer → cache defaults (Cache-Control, Vary)   (chain level, outside everything below)
+         request budget
+         CorsLayer                              .layer(DefaultBodyLimit::disable())   ← first call (innermost)
+         JWT / API key authentication
          body_limit_mapper                      .layer(TraceLayer::new_for_http())
          RequestBodyLimitLayer(1 MiB)           .layer(RequestBodyLimitLayer::new(1 MiB))
          TraceLayer                             .layer(middleware::from_fn(body_limit_mapper))
@@ -423,17 +742,139 @@ content-type: application/json
            GovernorLayer                          .layer(GovernorLayer { ... })       ← first call on mutations
  inner → handlers                                .layer(middleware::from_fn(rate_limit_mapper))  ← last (outer)
 </code></pre>
-<p><strong>Reading it:</strong> a request enters at <code>CorsLayer</code> (outermost), traverses down to the handler, and the response retraces the stack back out. In the source, the call order is <strong>inverted</strong> — the first <code>.layer()</code> call is the innermost layer on the merged router, and the last <code>.layer()</code> call is the outermost.</p>
-<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a custom observability layer is a decision about which sub-router you wrap — consumers who want to observe only mutations attach to a sub-router; consumers who want to observe everything attach to the merged router returned by <code>ferra_router::&lt;M&gt;(state)</code>.</p>
+<p><strong>Reading it:</strong> on the generated routes the order, outermost first, is cache defaults, request budget, CORS, JWT (and API key) authentication, body limit, trace, then the rate limiter on mutations. A request enters at the cache defaults (outermost), traverses down to the handler, and the response retraces the stack back out. In the source, the call order is <strong>inverted</strong> — the first <code>.layer()</code> call is the innermost layer on the merged router, and the last <code>.layer()</code> call is the outermost.</p>
+<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a custom observability layer is a decision about which sub-router you wrap — consumers who want to observe only mutations attach to a sub-router; consumers who want to observe everything attach to the merged router returned by <code>Foundry::…build()</code>.</p>
 <p><strong>Worked consumer example.</strong> A consumer appending two custom layers on top of the framework stack:</p>
-<pre><code class="language-rust ignore">let app = ferra_router::&lt;Film&gt;(state)
-    .layer(MyObservabilityLayer::new())   // outer: sees requests before the framework
-    .layer(MyShedLoadLayer::new());       // appended AFTER → now the TRUE outermost</code></pre>
-<p>On incoming requests: <code>MyShedLoadLayer</code> runs first, then <code>MyObservabilityLayer</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
+<pre class="playground"><code class="language-rust">use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">use axum::{extract::Request, middleware::{from_fn, Next}, response::Response};
+</span><span class="boring">async fn observe(request: Request, next: Next) -&gt; Response { next.run(request).await }
+</span><span class="boring">async fn shed_load(request: Request, next: Next) -&gt; Response { next.run(request).await }
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let app = Foundry::new(conn).mount::&lt;Film&gt;().build()
+    .layer(from_fn(observe))      // outer: sees requests before the framework
+    .layer(from_fn(shed_load));   // appended AFTER → now the TRUE outermost
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>On incoming requests: <code>shed_load</code> runs first, then <code>observe</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
 <p>See also §“RFC 7807 error taxonomy” for the 429 wire body the <code>rate_limit_mapper</code> produces.</p>
 <hr>
+<h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
+<p>Every response a <code>Foundry</code> router gives, errors included, carries
+<code>Cache-Control: no-store</code> and a <code>Vary</code> that names <code>Accept</code>, <code>Authorization</code> and
+<code>Cookie</code> (and the configured API key header when API keys are configured). This covers the generated routes, your <code>.route(...)</code> routes, <code>/docs</code>, a
+404 or 405 before any route, the 503 of the request budget, the 413, the 429 and a
+CORS preflight answer. A shared cache (CDN, API gateway, proxy) therefore stores
+nothing and cannot replay an authenticated answer to another caller (RFC 9111
+§3.5 protects <code>Authorization</code> only, and a 200 or 404 is cacheable with no header
+at all, §4.2.2).</p>
+<ul>
+<li><code>Cache-Control</code> is inserted only when the response has none: a route that sets
+its own <code>Cache-Control</code>, whatever its directives, keeps it.</li>
+<li><code>Vary</code> is merged, never replaced: the names the route already sent stay, the
+missing ones among the three are added, case-insensitively. A <code>Vary: *</code> is left
+as it is. A route that opts into caching still carries
+<code>Vary: Authorization, Cookie</code>: the entries are keyed on them (over-keying is
+safe).</li>
+</ul>
+<p><strong>A public route that may be cached.</strong> Declare it with <code>.route(...)</code> and give its
+<code>MethodRouter</code> a layer that sets <code>Cache-Control</code>; the default only inserts when the
+header is absent, so this route alone keeps its directive:</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use axum::{http::{HeaderValue, header}, response::Response, routing::get};
+use ferra::Foundry;
+
+fn configure(conn: sea_orm::DatabaseConnection) {
+    let cacheable = get(|| async { "a public page" }).layer(
+        axum::middleware::map_response(|mut response: Response| async move {
+            response.headers_mut().insert(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("public, max-age=60"),
+            );
+            response
+        }),
+    );
+    let _router = Foundry::new(conn).route("/public", cacheable).build();
+}
+<span class="boring">}</span></code></pre>
+<p><code>tower_http::set_header::SetResponseHeaderLayer::overriding</code> does the same; it needs
+the <code>set-header</code> feature of <code>tower-http</code>, which Ferra does not enable, so your
+application declares it. A generated model route has no such knob before 1.0.</p>
+<blockquote>
+<p><strong>Warning.</strong> Do not add a layer that overwrites <code>Cache-Control</code> to the <code>Router</code>
+that <code>build()</code> returns: it wraps Ferra’s default and replaces <code>no-store</code> on every
+route, authenticated ones included. Ferra cannot see it and does not refuse it.
+<code>FoundryBuilder::layer</code> takes a <code>FerraLayer</code>, which cannot set <code>Cache-Control</code>:
+its knobs are CORS, body limit, rate limit, trace and base path, and <code>trace_layer</code>
+takes a <code>TraceLayer</code>, which does not set response headers. Only a layer added to
+the <code>Router</code> after <code>build()</code> can override <code>no-store</code>.</p>
+</blockquote>
+<h3 id="responses-that-depend-on-the-caller"><a class="header" href="#responses-that-depend-on-the-caller">Responses that depend on the caller</a></h3>
+<p>A response whose content depends on who asks carries <code>no-store</code> and the full
+<code>Vary</code> above. Tests prove it on each such surface: a field only some roles read, a
+list scoped to the caller’s own rows, a list narrowed by an authority and
+<code>GET /me</code>. No generated response carries <code>public</code> or <code>s-maxage</code>, whatever the model,
+the operation or the identity.</p>
+<p>What the guarantee does not cover is yours: the responses of your <code>.route(...)</code>
+handlers, which keep any <code>Cache-Control</code> they set, and a layer you add after
+<code>build()</code>. A <code>public</code> or <code>s-maxage</code> there lets a shared cache replay a caller’s
+answer to another (OWASP API8, security misconfiguration).</p>
+<hr>
+<h2 id="write-bodies-reject-unknown-fields"><a class="header" href="#write-bodies-reject-unknown-fields">Write bodies reject unknown fields</a></h2>
+<p>Both write paths now refuse a request body carrying a field the model does not
+declare, with <strong>HTTP 422</strong> and an <code>application/problem+json</code> body naming every
+offending field.</p>
+<p><strong>Since 0.8.0</strong> (a break from 0.7). Through 0.7.x the two paths disagreed: projection-routed writes
+were already strict, while bare-path (<code>POST /films</code>, <code>PUT /films/{id}</code>) writes
+silently dropped unknown fields and returned <code>201</code> / <code>200</code>. The same model therefore
+enforced two different postures depending on which URL a consumer addressed. That
+divergence is closed; the bare path is now strict too.</p>
+<p><strong>Why strict.</strong> The model’s field set is the safelist. A typed model surface that
+silently discards consumer-supplied fields is the silent-tolerance shape adjacent to
+mass assignment — a client sends <code>{"role": "admin"}</code>, receives <code>200</code>, and has no
+signal that the field went nowhere. The industry is genuinely split here (Stripe and
+OWASP allowlisting on one side, Postel’s-law tolerant-reader on the other); Ferra
+picks strict as a deliberate security-over-convenience arbitration, not as a claim of
+consensus.</p>
+<p><strong>Migrating.</strong> Request bodies must match the model’s declared field set.</p>
+<ul>
+<li>Remove fields your model does not declare. If a client was sending them and
+relying on the drop, that reliance was silent and is now visible — which is the
+point.</li>
+<li>A field you <em>want</em> accepted must exist on the model, or on the projection’s
+<code>write = [...]</code> set for a projection-routed write.</li>
+<li>Every offending field is reported in one response; the framework does not stop at
+the first.</li>
+<li>Since 0.9.0 the bare path reads the model’s default write projection, which leaves
+out the primary key, the owner, read-only, skipped and computed fields, and the
+behavior columns: a body carrying any of them is a 422 too (see
+<a href="projections-and-routing.html">Projections and routing</a> § Writes).</li>
+</ul>
+<p><strong>The OpenAPI document says so.</strong> It carries
+<code>additionalProperties: false</code> on every write-body schema, so generated clients and
+API-discovering agents see the same strictness the server enforces.</p>
+<hr>
 <h2 id="content-negotiation--rfc-7240-prefer-header"><a class="header" href="#content-negotiation--rfc-7240-prefer-header">Content negotiation — RFC 7240 <code>Prefer:</code> header</a></h2>
-<p>Every mutation endpoint (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>) recognises the <a href="https://www.rfc-editor.org/rfc/rfc7240">RFC 7240</a> <code>Prefer:</code> request header and branches the response shape accordingly. Consumers that do not send the header observe <strong>no change</strong> — the wire shape stays byte-identical to the framework’s pre-0.6.5 emission.</p>
+<p>Every mutation endpoint (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>) recognises the <a href="https://www.rfc-editor.org/rfc/rfc7240">RFC 7240</a> <code>Prefer:</code> request header and branches the response shape accordingly. Consumers that do not send the header observe the default shape.</p>
 <h3 id="recognised-tokens"><a class="header" href="#recognised-tokens">Recognised tokens</a></h3>
 <div class="table-wrapper">
 <table>
@@ -442,12 +883,13 @@ content-type: application/json
 </thead>
 <tbody>
 <tr><td>(header absent)</td><td>default mutation shape</td><td><code>POST → 201 Created</code>, <code>PUT → 200 OK</code>, <code>DELETE → 204</code></td><td>full resource body on <code>POST</code>/<code>PUT</code>; empty on <code>DELETE</code></td></tr>
-<tr><td><code>return=minimal</code></td><td>omit the response body</td><td><code>POST → 204 No Content</code> (Location preserved), <code>PUT → 204</code>, <code>DELETE → 204</code> unchanged</td><td>empty</td></tr>
+<tr><td><code>return=minimal</code></td><td>omit the response body</td><td><code>POST → 204 No Content</code> (Location preserved, for a caller who may <code>GET</code> the new row; one who may not gets <code>201</code> with no body and no <code>Location</code>), <code>PUT → 204</code>, <code>DELETE → 204</code> unchanged</td><td>empty</td></tr>
 <tr><td><code>return=representation</code></td><td>explicit form of the default</td><td><code>POST → 201</code>, <code>PUT → 200</code>, <code>DELETE → 204</code> unchanged</td><td>full resource body</td></tr>
-<tr><td><code>respond-async</code></td><td><strong>parse-only at 0.6.5</strong> — recognised so clients can probe the header without being broken, but has no effect on the response shape. Reserved for a future async-jobs cohort.</td><td>unchanged</td><td>unchanged</td></tr>
+<tr><td><code>respond-async</code></td><td><strong>parse-only</strong> — recognised so clients can probe the header without being broken, but has no effect on the response shape. Reserved for a future async-jobs cohort.</td><td>unchanged</td><td>unchanged</td></tr>
 </tbody>
 </table>
 </div>
+<p>A caller who may <code>PUT</code> or restore a row but not <code>GET</code> it gets <code>204 No Content</code> with no body whatever it asked, as a create gets its <code>201</code> with no body (0.13.0): the write is done, nothing of the row leaves. <code>Preference-Applied: return=minimal</code> is echoed only when <code>return=minimal</code> was asked, never <code>return=representation</code>. A hand-written route on <code>Resource::update</code> serves what it chooses.</p>
 <p>The parser is case-insensitive, whitespace-tolerant, and silently drops unrecognised tokens and <code>;</code>-delimited parameters per RFC 7240 §2 (“recipients SHOULD ignore preferences they do not understand”):</p>
 <pre><code class="language-http">Prefer: Return=Minimal, respond-async; wait=10
 </code></pre>
@@ -461,8 +903,8 @@ content-type: application/json
 </thead>
 <tbody>
 <tr><td>(absent)</td><td>absent</td></tr>
-<tr><td><code>return=minimal</code></td><td><code>return=minimal</code></td></tr>
-<tr><td><code>return=representation</code></td><td><code>return=representation</code> (echoed even though the body is unchanged — the standard binds the echo to “preferences that were honoured”, not to “preferences that changed the response”)</td></tr>
+<tr><td><code>return=minimal</code></td><td><code>return=minimal</code> (also for a caller who may not <code>GET</code> the row: it gets no body whatever it asked, and the echo says only what it asked)</td></tr>
+<tr><td><code>return=representation</code></td><td><code>return=representation</code> (echoed even though the body is unchanged — the standard binds the echo to “preferences that were honoured”, not to “preferences that changed the response”), except for a caller who may not <code>GET</code> the row it just created, updated or restored: it gets no body, so <code>return=representation</code> is not honoured and not echoed (0.13.0)</td></tr>
 <tr><td><code>respond-async</code></td><td>absent (parse-only — no observable change)</td></tr>
 <tr><td><code>return=minimal, respond-async</code></td><td><code>return=minimal</code> (only the honoured preference is echoed)</td></tr>
 <tr><td><code>handling=lenient</code> (unrecognised)</td><td>absent</td></tr>
@@ -470,7 +912,7 @@ content-type: application/json
 </table>
 </div>
 <h3 id="interaction-with-the-422-validation-path"><a class="header" href="#interaction-with-the-422-validation-path">Interaction with the 422 validation path</a></h3>
-<p>When a mutation request fails declarative validation (the 0.6.0 Welding <code>application/problem+json</code> 422 path), the <code>Prefer:</code> header is recognised but does <strong>not</strong> change the response. The 422 body is mandated by the framework’s closed-namespace contract; <code>Preference-Applied:</code> is <strong>not</strong> emitted on the 422 path (no preference was honoured that changed observable behaviour).</p>
+<p>When a mutation request fails declarative validation (the <code>application/problem+json</code> 422 path), the <code>Prefer:</code> header is recognised but does <strong>not</strong> change the response. The 422 body is mandated by the framework’s closed-namespace contract; <code>Preference-Applied:</code> is <strong>not</strong> emitted on the 422 path (no preference was honoured that changed observable behaviour).</p>
 <h3 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h3>
 <pre><code class="language-bash"># Default — full body returned.
 curl -i -X POST https://api.example.com/films \
@@ -492,14 +934,14 @@ curl -i -X POST https://api.example.com/films \
 # Location: /films/43
 # Preference-Applied: return=minimal
 </code></pre>
-<p>Batch-processing consumers gain bandwidth and JSON-parse savings on every mutation; consumers that do not opt in observe the same response shape they did before 0.6.5.</p>
+<p>Batch-processing consumers gain bandwidth and JSON-parse savings on every mutation.</p>
 <hr>
 <h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
-<p><code>[dependencies] ferra = { package = "ferra-rs", version = "0.5" }</code> + <code>use ferra::*;</code> is the canonical entry point at 0.4.0. The <code>package = "ferra-rs"</code> alias is required because the <code>ferra</code> name on crates.io is owned by an unrelated project; the framework ships as <code>ferra-rs</code> and Cargo’s package alias keeps <code>ferra::*</code> working in your Rust code (see <a href="./getting-started.html#important-the-crate-is-published-as-ferra-rs">Getting Started</a>). Every item on this page — <code>FerraState</code>, <code>FerraError</code>, <code>FerraJson</code>, <code>FerraPath</code>, <code>PaginationParams</code>, <code>Link</code>, <code>ItemLinks</code>, <code>CollectionLinks</code>, <code>ItemResponse</code>, <code>CollectionResponse</code>, <code>build_item_links</code>, <code>build_collection_links</code>, <code>base_url_from_parts</code>, the five handlers, and <code>ferra_router</code> — is reached from this single import, alongside the <code>#[derive(FerraModel)]</code> macro and the <code>ferra-core</code> / <code>ferra-db</code> public surface.</p>
-<p>Consumers do not depend on <code>ferra-core</code>, <code>ferra-db</code>, <code>ferra-forge</code>, or <code>ferra-http</code> directly. The 0.4.0 compile-fail trybuild fixture also pins <code>ferra::Statement</code>, <code>ferra::execute_unprepared</code>, <code>ferra::raw_sql</code>, and <code>ferra::sea_orm::Statement</code> as unreachable — there is no raw-SQL entry point on the facade.</p>
+<p><code>[dependencies] ferra = { git = "…", tag = "…" }</code> is the entry point (the facade package is <code>ferra</code>; nothing is published on crates.io). <code>Resource</code>, <code>FerraError</code>, <code>FerraJson</code>, <code>FerraPath</code> and <code>Foundry</code> are named from this single dependency, alongside the <code>#[derive(FerraModel)]</code> macro (<code>use ferra::{FerraModel, Foundry};</code>; <code>use ferra::prelude::*;</code> opens them all, for an application that declares no <code>sea-orm</code> of its own). The exact list of what <code>ferra</code> exports is <a href="stability.html"><code>stability.md</code></a>.</p>
+<p>Consumers do not depend on <code>ferra-core</code>, <code>ferra-db</code>, <code>ferra-forge</code>, or <code>ferra-http</code> directly. A compile-fail fixture pins <code>ferra::Statement</code>, <code>ferra::execute_unprepared</code> and <code>ferra::raw_sql</code> as unreachable: the root of the facade has no raw-SQL entry point. <code>ferra::sea_orm</code> is Sea-ORM itself; what Ferra guarantees is about the routes it generates.</p>
 <hr>
 <h2 id="worked-end-to-end-example"><a class="header" href="#worked-end-to-end-example">Worked end-to-end example</a></h2>
-<pre><code class="language-rust ignore">use ferra::*;
+<pre class="playground"><code class="language-rust no_run">use ferra::{FerraModel, Foundry};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -508,6 +950,7 @@ mod film {
 
     #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
     #[sea_orm(table_name = "films")]
+    #[ferra(auth = "none")] // deliberately public: this example has no JWT
     pub struct Model {
         #[sea_orm(primary_key)]
         pub id: i32,
@@ -529,9 +972,9 @@ pub use film::Model as Film;
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let database_url = std::env::var("DATABASE_URL")?;
     let conn = sea_orm::Database::connect(&amp;database_url).await?;
-    let app = ferra_router::&lt;Film&gt;(FerraState::new(conn));
+    let app = Foundry::new(conn).mount::&lt;Film&gt;().build();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
     Ok(())
 }</code></pre>
 <p>See <a href="../../examples/hello-ferra/"><code>examples/hello-ferra/</code></a> for the full three-command boot sequence (<code>docker compose up -d postgres</code> <em>or</em> <code>podman compose up -d postgres</code> → <code>sea-orm-cli migrate up</code> → <code>cargo run -p hello-ferra</code>) and the <code>smoke.sh</code> script that exercises all seven wire-format contracts.</p>
@@ -551,20 +994,19 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </table>
 </div>
 <p>When <code>Content-Length</code> is present, <code>RequestBodyLimitLayer</code> short-circuits at the layer level before the stream is consumed — hence the early 413. When the header is absent, the stream is consumed up to the cap, the read fails, and the JSON extractor rejects the request as a parse error (still machine-readable, still RFC 7807, still parseable via the same generic <code>type</code>-dispatch path you use for the other validation failures).</p>
-<p>Both outcomes are semantically correct — the oversized input is rejected either way. The divergence is intentional at 0.4.1. A future release may unify the two paths under a single 413 (an anvil-class cleanup candidate); the Story 3 regression test pins the current 400 fallback so any such rework must explicitly update or remove it. If you can set <code>Content-Length</code> on your client, do — your clients then see a single, predictable 413.</p>
+<p>Both outcomes are semantically correct — the oversized input is rejected either way. The divergence is intentional; a regression test pins the 400 fallback, so any change to it is visible. If you can set <code>Content-Length</code> on your client, do — your clients then see a single, predictable 413.</p>
 <h3 id="other-diagnostics"><a class="header" href="#other-diagnostics">Other diagnostics</a></h3>
 <ul>
-<li><strong>413 with <code>application/problem+json</code> body</strong> — request body exceeds 1 MiB. Split the request or (at 0.7.0 Pre-tempering) raise the limit via <code>FerraLayer::body_limit(...)</code>.</li>
-<li><strong>429 with <code>Retry-After</code></strong> — peer IP hit the mutation rate limit (<code>per_second(2)</code> / <code>burst_size(5)</code>). Back off for the number of seconds in <code>Retry-After</code>.</li>
-<li><strong><code>Warning: 214 - "per_page clamped ..."</code> header</strong> — your <code>per_page</code> query parameter was out of <code>[1, 100]</code>. Use <code>per_page ≤ 100</code> to silence it.</li>
+<li><strong>413 with <code>application/problem+json</code> body</strong> — request body exceeds 1 MiB. Split the request or raise the limit via <code>FerraLayer::body_limit(...)</code> (<a href="foundry.html">Foundry</a>).</li>
+<li><strong>429 with <code>Retry-After</code></strong> — peer IP hit the mutation rate limit (2 per second, burst 5 by default). Back off for the number of seconds in <code>Retry-After</code>.</li>
 <li><strong><code>problem+json</code> with <code>type: ".../validation"</code> and <code>errors[0].code = "invalid_path_param"</code></strong> — the path segment after <code>/{resource}/</code> is not a valid primary key for <code>M</code> (e.g. <code>GET /films/abc</code> when <code>Film.id: i32</code>). The built-in path extractor rejects before the handler runs.</li>
 <li><strong>500 with <code>detail: "internal server error"</code></strong> — the DB surfaced an error the framework does not map. Inspect logs / tracing for the <code>Debug</code> form of <code>FerraError::Internal</code>; the HTTP body intentionally says nothing more.</li>
-<li><strong>CORS preflight fails</strong> — <code>CorsLayer::new()</code> denies all cross-origin by default. At 0.4.0, CORS is not configurable; at 0.7.0 Pre-tempering <code>FerraLayer::cors(...)</code> ships the override surface.</li>
+<li><strong>CORS preflight fails</strong> — <code>CorsLayer::new()</code> denies all cross-origin by default. Open it with <code>FerraLayer::cors(...)</code> (<a href="foundry.html">Foundry</a> § Transport-layer overrides).</li>
 </ul>
 <hr>
 <ol class="footnote-definition">
 <li id="footnote-middleware">
-<p>emitted by a middleware mapper (the 413 body-limit mapper or the 429 rate-limit mapper), not by <code>FerraError::IntoResponse</code>. The wire shape is identical to the four handler-produced variants — a client that handles one <code>type</code> URI handles them all through the same generic RFC 7807 code path. <a href="#fr-middleware-1">↩</a> <a href="#fr-middleware-2">↩2</a></p>
+<p>emitted by a middleware mapper (the 413 body-limit mapper or the 429 rate-limit mapper), not by <code>FerraError::IntoResponse</code>. The wire shape is identical to the handler-produced variants — a client that handles one <code>type</code> URI handles them all through the same generic RFC 7807 code path. <a href="#fr-middleware-1">↩</a> <a href="#fr-middleware-2">↩2</a></p>
 </li>
 </ol>
 
@@ -612,11 +1054,11 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

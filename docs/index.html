@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,11 +182,16 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p>Ferra is a Rust framework for building HTTP APIs from a single source of truth.
-You annotate a struct once — Ferra derives the routes, the SQL queries, the
-OpenAPI spec, the documentation UI, and the hypermedia automatically, at compile
-time. If the struct changes, everything downstream changes with it. If the
-generated code is inconsistent, the build fails.</p>
+<p>Ferra is a Rust framework for building HTTP APIs from a single source of truth:
+a Sea-ORM entity with one derive, <code>#[derive(FerraModel)]</code>. From it Ferra derives
+the routes, the SQL queries, the OpenAPI document, the documentation page, the
+hypermedia links and the authorization checks, at compile time. If the struct
+changes, everything downstream changes with it. If the generated code would be
+inconsistent, the build fails.</p>
+<p>The priorities, in order, are <strong>security, developer experience, and the
+experience of the AI agents that write code against Ferra</strong>. Where they pull
+apart, security wins: a model declares who may do what, and a route that has no
+rule is refused, not served.</p>
 <hr>
 <h2 id="the-problem-ferra-solves"><a class="header" href="#the-problem-ferra-solves">The problem Ferra solves</a></h2>
 <p>Building a conventional REST API means describing the same data structure
@@ -198,30 +203,84 @@ multiple times:</p>
 <li>once in OpenAPI annotations (<code>#[utoipa::path(...)]</code>, response schemas),</li>
 <li>once in validation rules.</li>
 </ul>
-<p>Every copy can drift from the others — and none of these mismatches are caught
+<p>Every copy can drift from the others, and none of these mismatches are caught
 at compile time. A field renamed in the struct but not in the OpenAPI annotation
 is a silent documentation lie. A validation rule missing from one handler is a
 silent security gap.</p>
-<p>Ferra collapses all five copies into one struct:</p>
-<pre><code class="language-rust ignore">use ferra::*;
-
-#[derive(FerraModel)]
-pub struct Film {
-    #[id]
-    pub id:    Id,
+<p>Ferra collapses the copies into one struct:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "bearer")] // every operation requires a valid token
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(min_length = 1, max_length = 255, filterable, sortable)]
     pub title: String,
-    pub year:  i32,
-}</code></pre>
+    #[field(min = 1888, max = 2100)]
+    pub year: i32,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>(The hidden lines are the imports and the <code>Relation</code> enum that every Sea-ORM
+entity carries; <a href="./getting-started.html">Getting started</a> shows a complete file.)</p>
 <hr>
-<h2 id="what-you-get-from-twelve-lines"><a class="header" href="#what-you-get-from-twelve-lines">What you get from twelve lines</a></h2>
-<pre><code class="language-rust ignore">#[tokio::main]
-async fn main() {
-    let conn = sea_orm::Database::connect(std::env::var("DATABASE_URL").unwrap()).await.unwrap();
-    let app  = Foundry::new(conn).mount::&lt;Film&gt;().build();
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+<h2 id="what-you-get"><a class="header" href="#what-you-get">What you get</a></h2>
+<p>Mount the model on a <code>Foundry</code>, give it a JWT configuration, and serve it:</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">use ferra::{ClaimCheck, FerraIdentity, FerraModel, Foundry, HmacAlgorithm, JwtConfig};
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">#[derive(Clone, Debug, Deserialize)]
+</span><span class="boring">struct MyClaims { sub: String }
+</span><span class="boring">impl FerraIdentity for MyClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span>#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let conn = sea_orm::Database::connect(std::env::var("DATABASE_URL")?).await?;
+    let jwt = JwtConfig::single_secret(
+        "key-1",
+        std::env::var("JWT_SECRET")?,
+        HmacAlgorithm::Hs256,
+        ClaimCheck::expect("https://auth.example.com/"),
+        ClaimCheck::expect("films-api"),
+    )?;
+    let app = Foundry::new(conn)
+        .with_auth::&lt;MyClaims&gt;(jwt)
+        .mount::&lt;film::Model&gt;()
+        // Public in development: /docs needs no token (see `with_docs_protected` in ferra-openapi.md).
+        .with_docs()
+        .build();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;(),
+    )
+    .await?;
+    Ok(())
 }</code></pre>
-<p>Running <code>cargo run</code> gives you all of the following — no additional code required.</p>
+<p>Running it gives you all of the following, with no further code.</p>
 <h3 id="five-crud-routes"><a class="header" href="#five-crud-routes">Five CRUD routes</a></h3>
 <div class="table-wrapper">
 <table>
@@ -229,250 +288,180 @@ async fn main() {
 <tr><th>Method</th><th>Path</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>GET</code></td><td><code>/films</code></td><td>Paginated collection — <code>?page=1&amp;per_page=20</code></td></tr>
-<tr><td><code>GET</code></td><td><code>/films/:id</code></td><td>Single resource by ID</td></tr>
-<tr><td><code>POST</code></td><td><code>/films</code></td><td>Create — returns <code>201</code> + <code>Location</code> header</td></tr>
-<tr><td><code>PUT</code></td><td><code>/films/:id</code></td><td>Full update — returns <code>200</code> or <code>404</code></td></tr>
-<tr><td><code>DELETE</code></td><td><code>/films/:id</code></td><td>Delete — returns <code>204</code> or <code>404</code></td></tr>
+<tr><td><code>GET</code></td><td><code>/films</code></td><td>Paginated collection, <code>?page=1&amp;per_page=20</code> (<code>filter[...]</code>, <code>sort</code> and <code>cursor</code> for the fields that opt in)</td></tr>
+<tr><td><code>GET</code></td><td><code>/films/{id}</code></td><td>One resource by key</td></tr>
+<tr><td><code>POST</code></td><td><code>/films</code></td><td>Create: <code>201</code> and a <code>Location</code> header; the server chooses the key</td></tr>
+<tr><td><code>PUT</code></td><td><code>/films/{id}</code></td><td>Update the row the path names: <code>200</code>, or <code>404</code></td></tr>
+<tr><td><code>DELETE</code></td><td><code>/films/{id}</code></td><td>Delete: <code>204</code>, or <code>404</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>Pagination is first-class, not a bolt-on. The collection endpoint always returns
-a page envelope with <code>total</code>, <code>page</code>, <code>per_page</code>, and the HAL <code>_links</code> for
-<code>next</code> and <code>prev</code>.</p>
-<h3 id="hypermedia-_links-in-every-response"><a class="header" href="#hypermedia-_links-in-every-response">Hypermedia <code>_links</code> in every response</a></h3>
-<p>Every item response includes a <code>_links</code> block following the HAL standard. Clients
-and AI agents can navigate the API without prior knowledge of its URL structure:</p>
+<p>Pagination is first-class. The collection endpoint answers a page envelope with
+<code>items</code>, <code>total</code>, <code>page</code>, <code>per_page</code> and, in the HAL representation, the <code>_links</code> for
+<code>self</code>, <code>next</code>, <code>prev</code>, <code>first</code> and <code>last</code>; <a href="./pagination.html">Pagination</a> has the cursor
+mode.</p>
+<h3 id="authorization-that-refuses-by-default"><a class="header" href="#authorization-that-refuses-by-default">Authorization that refuses by default</a></h3>
+<p>Every route passes one checkpoint before the path, the query or the body is
+read. A model with no declared posture does not compile
+(<a href="./ferra-forge-diagnostics.html#frg-100--model-declares-no-authorization-posture"><code>FRG-100</code></a>),
+a model that needs an identity does not mount on a chain without
+<code>.with_auth()</code>
+(<a href="./ferra-forge-diagnostics.html#frg-151--mounting-without-with_auth-a-model-that-needs-an-identity"><code>FRG-151</code></a>),
+and <code>#[authorize(...)]</code> states a rule per operation (<code>IsOwner</code>, <code>HasRole(...)</code>,
+<code>Authenticated</code>, <code>Anyone</code>), with the owner of a row read from the token.
+<a href="./ferra-auth.html">Authentication and Authorization</a> is the page.</p>
+<h3 id="hypermedia-_links-in-the-hal-representation"><a class="header" href="#hypermedia-_links-in-the-hal-representation">Hypermedia <code>_links</code> in the HAL representation</a></h3>
+<p>By default, and with <code>Accept: application/hal+json</code>, every item response includes a
+<code>_links</code> block following the HAL standard, so that clients and AI agents can navigate
+the API without prior knowledge of its URL structure. <code>Accept: application/json</code> gets
+the same body without it
+(<a href="./ferra-http.html#response-representations">Response representations</a>):</p>
 <pre><code class="language-json">{
-  "id":    "01JVZ2RFJK3N7XQKE4M8P6SWTD",
+  "id":    1,
   "title": "Amélie",
   "year":  2001,
   "_links": {
-    "self":       { "href": "https://api.example.com/films/01JVZ2RFJK3N7XQKE4M8P6SWTD" },
-    "collection": { "href": "https://api.example.com/films" }
+    "self":       { "href": "/films/1" },
+    "collection": { "href": "/films" }
   }
 }
 </code></pre>
-<p>The <code>_links.self</code> href is always absolute and always correct — built from the
-<code>Host</code> header at request time, not hardcoded at build time.</p>
-<h3 id="openapi-31-spec-that-cannot-drift"><a class="header" href="#openapi-31-spec-that-cannot-drift">OpenAPI 3.1 spec that cannot drift</a></h3>
-<p>The spec is served at <code>/docs/openapi.json</code> and the interactive Scalar UI at <code>/docs</code>.
-Both are derived from the same struct the routes are derived from — they cannot
-disagree with the running code. There are no annotations to forget, no
-<code>#[utoipa::path]</code> attributes to keep in sync.</p>
-<p>Add a field to <code>Film</code> and it appears in the spec, the Scalar UI, the request
-validation, and the SQL insert — all at the next <code>cargo build</code>.</p>
-<h3 id="typed-sql--injection-proof-by-construction"><a class="header" href="#typed-sql--injection-proof-by-construction">Typed SQL — injection-proof by construction</a></h3>
-<p>Every generated query is parameterized. There is no mechanism in the framework
-to concatenate user input into a SQL string. SQL injection is structurally
-excluded, not just discouraged — the framework has <code>#![forbid(unsafe_code)]</code> on
-every crate.</p>
-<h3 id="rfc-7807-errors--typed-and-machine-readable"><a class="header" href="#rfc-7807-errors--typed-and-machine-readable">RFC 7807 errors — typed and machine-readable</a></h3>
+<p>The links, like the <code>Location</code> header, are <strong>relative</strong> by default: resolve them
+against the URL you called. The request’s <code>Host</code> and <code>X-Forwarded-*</code> headers are
+never read, so that a client cannot make the API emit links to another origin.
+Configure the public origin once with <code>.with_base_url("https://api.example.com")?</code>
+for absolute links (<a href="./ferra-http.html">Ferra HTTP</a>).</p>
+<h3 id="an-openapi-document-that-cannot-drift"><a class="header" href="#an-openapi-document-that-cannot-drift">An OpenAPI document that cannot drift</a></h3>
+<p>The OpenAPI 3.2 document is served at <code>/docs/openapi.json</code> and the interactive
+Scalar page at <code>/docs</code> (when the chain says <code>.with_docs()</code>). Both are derived
+from the same struct the routes are derived from, so they cannot disagree with
+the running code. There are no annotations to forget.</p>
+<p>Add a field to <code>Film</code> and it appears in the document, the Scalar page, the
+request validation and the SQL insert, at the next <code>cargo build</code>.</p>
+<h3 id="typed-sql-bound-by-construction"><a class="header" href="#typed-sql-bound-by-construction">Typed SQL, bound by construction</a></h3>
+<p>Every query a generated route runs is parameterized: a filter value is bound, a
+sort key is taken only from the fields the model declares sortable, a cursor is
+decoded before any query is built. The generated routes have no mechanism to put
+request data in SQL text. Your own code keeps Sea-ORM’s full SQL access on the
+connection it owns (<code>sea_orm::Statement</code>, <code>execute_unprepared</code>): there, the query
+is yours. The framework has <code>#![forbid(unsafe_code)]</code> on every crate.</p>
+<h3 id="rfc-7807-errors-typed-and-machine-readable"><a class="header" href="#rfc-7807-errors-typed-and-machine-readable">RFC 7807 errors, typed and machine-readable</a></h3>
 <p>Every error response follows RFC 7807 problem details. The <code>type</code> field is a URI
-from a <strong>closed</strong> set the framework maintains as a constant — not a free-form
+from a <strong>closed</strong> set the framework maintains as a constant, not a free-form
 string. SDK generators and AI agents can produce a typed branch for every
-possible error because the set is expressed as a closed <code>enum</code> constraint in the
-OpenAPI spec.</p>
+possible error.</p>
 <pre><code class="language-json">{
   "type":   "https://ferra.rs/errors/not_found",
   "title":  "Resource Not Found",
   "status": 404,
-  "detail": "films/01JVZ2RFJK3N7XQKE4M8P6SWTD not found"
+  "detail": "films/42 not found"
 }
 </code></pre>
-<p>The complete error URI table is documented in <a href="./ferra-error-handling.html">Error Handling</a>.</p>
+<p>The complete error URI table is in <a href="./ferra-error-handling.html">Error Handling</a>.</p>
+<h3 id="validation-on-the-field"><a class="header" href="#validation-on-the-field">Validation on the field</a></h3>
+<p><code>#[field(min_length, max_length, min, max, pattern, email, url, required)]</code>
+become <code>garde</code> validators, applied on <code>POST</code> and <code>PUT</code> before the query runs. A
+violation answers <code>422</code> with an <code>errors</code> array of <code>{field, code, message}</code>, every failing field in one
+response (<a href="./ferra-forge.html">Ferra Forge</a>).</p>
+<h3 id="behaviors"><a class="header" href="#behaviors">Behaviors</a></h3>
+<p><code>#[behavior(timestampable, soft_delete)]</code> uses the <code>created_at</code>, <code>updated_at</code> and
+<code>deleted_at</code> columns of your table (under other names with
+<code>timestampable(created = "..", updated = "..")</code> and <code>soft_delete(column = "..")</code>)
+and adds the matching logic: both stamps are in every read response, an update
+refreshes <code>updated_at</code> in its own statement, a delete sets <code>deleted_at</code> (which no
+response carries), and a soft-deleted row is a <code>404</code>, never a deleted
+record (<a href="./behaviors.html">Behaviors</a>).</p>
 <h3 id="security-defaults-not-security-options"><a class="header" href="#security-defaults-not-security-options">Security defaults, not security options</a></h3>
 <ul>
-<li><strong>Rate limiting</strong> on mutation routes (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>) — out of the box,
-no middleware to remember to add.</li>
-<li><strong>Body size cap</strong> — requests over 1 MiB are rejected before the body is read.</li>
-<li><strong>CORS</strong> — restrictive by default. You opt in to origins, not out of open access.</li>
-<li><strong><code>#![forbid(unsafe_code)]</code></strong> — on every crate in the workspace, no exceptions.</li>
+<li><strong>Rate limiting</strong> on mutation routes (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>), out of the box,
+keyed on the peer address (serve with <code>into_make_service_with_connect_info</code>).</li>
+<li><strong>Body size cap</strong>: requests over 1 MiB are rejected before the body is read.</li>
+<li><strong>CORS</strong>: restrictive by default. You opt in to origins, not out of open access.</li>
+<li><strong><code>#![forbid(unsafe_code)]</code></strong> on every crate in the workspace.</li>
 </ul>
 <hr>
 <h2 id="extending-beyond-the-generated-surface"><a class="header" href="#extending-beyond-the-generated-surface">Extending beyond the generated surface</a></h2>
-<p>The generated CRUD surface is a floor, not a ceiling. Ferra routes are standard
-Axum handlers — hand-written routes compose freely alongside them:</p>
-<pre><code class="language-rust ignore">async fn top_rated(State(conn): State&lt;DatabaseConnection&gt;) -&gt; Result&lt;Json&lt;Vec&lt;Film&gt;&gt;, FerraError&gt; {
-    let films = Film::find()
-        .filter(film::Column::Year.gt(2000))
-        .order_by_desc(film::Column::Rating)
-        .limit(10)
-        .all(&amp;conn)
+<p>The generated CRUD surface is a floor, not a ceiling. <code>Foundry::build()</code> returns
+a standard axum <code>Router</code>: hand-written routes merge in beside the generated
+ones, and answer with a body of their own:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use axum::{Json, Router, routing::get};
+</span><span class="boring">use ferra::{FerraError, Foundry};
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, ferra::FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span>async fn film_count(
+    axum::extract::State(conn): axum::extract::State&lt;DatabaseConnection&gt;,
+) -&gt; Result&lt;Json&lt;u64&gt;, FerraError&gt; {
+    let count = film::Entity::find()
+        .count(&amp;conn)
         .await
-        .map_err(|e| FerraError::Internal(e.to_string()))?;
-    Ok(Json(films))
+        .map_err(|err| FerraError::Internal(err.to_string()))?;
+    Ok(Json(count))
 }
 
-let app = Foundry::new(conn)
-    .mount::&lt;Film&gt;()
-    .route("/films/top-rated", get(top_rated))
-    .build();</code></pre>
-<p>Custom handlers reuse the same <code>FerraError</code> enum and emit the same RFC 7807
-bodies — clients handle one error shape across the entire API surface.</p>
-<hr>
-<h2 id="whats-coming--cast-iron-to-hardened-steel"><a class="header" href="#whats-coming--cast-iron-to-hardened-steel">What’s coming — Cast Iron to Hardened Steel</a></h2>
-<p>Ferra is in its Cast Iron phase (v0.5–v0.14): each version adds one major
-capability on the way to a stable 1.0.</p>
-<h3 id="v05--rolling--openapi-31--scalar-ui"><a class="header" href="#v05--rolling--openapi-31--scalar-ui">v0.5 — Rolling · OpenAPI 3.1 + Scalar UI</a></h3>
-<p>The OpenAPI 3.1 spec and the Scalar interactive UI land here. The spec is a
-<strong>deterministic compiler output</strong> — if a field type changes, the spec changes.
-If the spec would be wrong, the code does not compile.</p>
-<p>Also ships: <code>ferra::DateTime</code> and <code>ferra::Date</code> newtypes over <code>jiff</code> for
-timestamp fields — serialized as RFC 3339, correctly handled in OpenAPI schemas.</p>
-<h3 id="v06--welding--field-validation"><a class="header" href="#v06--welding--field-validation">v0.6 — Welding · Field validation</a></h3>
-<p>Declarative validation rules directly on struct fields, generated by the
-proc-macro into <code>garde</code> validators. Rules are applied automatically on <code>POST</code>
-and <code>PUT</code> before the query runs:</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-pub struct Film {
-    #[id]
-    pub id:    Id,
-    #[field(min_length = 1, max_length = 255)]
-    pub title: String,
-    #[field(min = 1888, max = 2100)]
-    pub year:  i32,
-    #[field(email)]
-    pub contact: String,
-    #[field(url)]
-    pub poster:  Option&lt;String&gt;,
-}</code></pre>
-<p>Violations return <code>422 Unprocessable Content</code> with a per-field <code>errors</code> map.
-Every failing field is reported in a single response — clients never retry
-to discover further errors.</p>
-<pre><code class="language-json">{
-  "type":   "https://ferra.rs/errors/validation_failed",
-  "title":  "Validation Failed",
-  "status": 422,
-  "detail": "validation failed",
-  "errors": {
-    "title":   ["must be at least 1 character"],
-    "year":    ["must be at most 2100"],
-    "contact": ["must be a valid email address"]
-  }
-}
-</code></pre>
-<h3 id="v07--pre-tempering--model-behaviors"><a class="header" href="#v07--pre-tempering--model-behaviors">v0.7 — Pre-tempering · Model behaviors</a></h3>
-<p>Common database patterns available as struct-level annotations:</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-#[behavior(timestampable, soft_delete)]
-pub struct Film {
-    #[id]
-    pub id:    Id,
-    pub title: String,
-}</code></pre>
-<ul>
-<li><strong><code>timestampable</code></strong> — <code>created_at</code> and <code>updated_at</code> are injected automatically.
-<code>INSERT</code> sets both; <code>UPDATE</code> refreshes <code>updated_at</code>. No field declarations
-needed in the struct.</li>
-<li><strong><code>soft_delete</code></strong> — <code>DELETE /films/:id</code> sets <code>deleted_at</code> instead of removing
-the row. All <code>SELECT</code> queries automatically filter <code>WHERE deleted_at IS NULL</code>.
-A soft-deleted item is invisible to the API — it returns <code>404</code>, not a deleted
-record.</li>
-</ul>
-<h3 id="v08--forging--authentication--authorization"><a class="header" href="#v08--forging--authentication--authorization">v0.8 — Forging · Authentication + authorization</a></h3>
-<p>Auth is deny-by-default. Forgetting to configure it is a startup panic, not a
-silent open endpoint.</p>
-<p>You implement one trait to bridge your JWT claims to Ferra’s permission system:</p>
-<pre><code class="language-rust ignore">impl FerraIdentity for MyClaims {
-    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
-    fn has_role(&amp;self, role: &amp;str) -&gt; bool { self.roles.contains(role) }
-}</code></pre>
-<p>Then declare access rules on the model:</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-#[authorize(
-    read   = "IsAuthenticated",
-    write  = "IsOwner | IsAdmin",
-    delete = "IsAdmin"
-)]
-pub struct Film {
-    #[id] pub id: Id,
-    pub title:   String,
-    #[field(owner)]
-    pub owner_id: Id,
-}</code></pre>
-<p><code>IsOwner</code> is resolved automatically by comparing <code>identity.id()</code> to the
-<code>#[field(owner)]</code> field — no custom handler code needed.</p>
-<p>v0.8.5 extends this with external JWKS providers (Auth0, Keycloak, Cognito,
-Google), API key authentication, and a <code>FerraAuthProvider</code> trait for bringing
-any custom auth mechanism.</p>
-<h3 id="v09--forging-iii--role-based-field-projections"><a class="header" href="#v09--forging-iii--role-based-field-projections">v0.9 — Forging III · Role-based field projections</a></h3>
-<p>Different callers see different fields of the same model, declared statically:</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-#[project(read = ["id", "title", "year"], admin_read = ["id", "title", "year", "internal_notes"])]
-#[authorize(read_as = { IsAdmin =&gt; "admin_read", _ =&gt; "read" })]
-pub struct Film { /* ... */ }</code></pre>
-<p>The OpenAPI spec emits a <code>oneOf</code> for the two response shapes — SDK generators
-produce typed variants, not a union of optional fields. The projection mismatch
-is caught at compile time.</p>
-<h3 id="v010--assembly--relations"><a class="header" href="#v010--assembly--relations">v0.10 — Assembly · Relations</a></h3>
-<p>IRI-based relations between models, declared in the struct:</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-pub struct Film {
-    #[id] pub id: Id,
-    pub title: String,
-    #[field(belongs_to = Director)]
-    pub director_id: Id,
-    #[field(has_many = Review)]
-    pub reviews: Vec&lt;Id&gt;,
-}</code></pre>
-<p>Foreign keys are stored as IDs. In API responses, they are rendered as IRI
-references (<code>"/directors/01HXYZ"</code>). Write endpoints accept the same IRI format.
-The OpenAPI spec documents the relation type correctly.</p>
-<h3 id="v012--sheen--test-client--observability"><a class="header" href="#v012--sheen--test-client--observability">v0.12 — Sheen · Test client + observability</a></h3>
-<p><code>FerraTestClient</code> for integration testing without a running server:</p>
-<pre><code class="language-rust ignore">let client = FerraTestClient::new(state);
-let res    = client.create(Film { title: "Amélie".into(), year: 2001 }).await;
-assert_eq!(res.status(), 201);
-
-let res = client.with_auth(admin_claims).delete(id).await;
-assert_eq!(res.status(), 204);</code></pre>
-<p>Also ships: built-in <code>tracing</code> spans per request and per DB query, and an
-optional OpenTelemetry export via <code>--features otel</code>.</p>
-<h3 id="v014--deployment--serverless"><a class="header" href="#v014--deployment--serverless">v0.14 — Deployment · Serverless</a></h3>
-<pre><code class="language-toml">ferra = { package = "ferra-rs", version = "0.14", features = ["lambda"] }
-</code></pre>
-<pre><code class="language-rust ignore">// The same app code runs on Axum or Lambda — the entry point is the same.
-ferra::run(app).await.unwrap();</code></pre>
-<p><code>FerraState::lazy()</code> defers the DB connection to the first request for Lambda
-cold-start optimization.</p>
-<h3 id="v10--hardened-steel--stable-api"><a class="header" href="#v10--hardened-steel--stable-api">v1.0 — Hardened Steel · Stable API</a></h3>
-<p>Security audit, benchmarks, crates.io publication. The public API is
-Semver-stable from this point. The invariant holds from the first beta: a
-<code>#[derive(FerraModel)]</code> written at v1.0 compiles unchanged in v2, v3, v4, and
-v5.</p>
+<span class="boring">fn demo(conn: DatabaseConnection) {
+</span>let app: Router = Foundry::new(conn.clone())
+    .mount::&lt;film::Model&gt;()
+    .build()
+    .merge(Router::new().route("/films/count", get(film_count)).with_state(conn));
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>A route of your own is not covered by Ferra’s authorization: protect it
+yourself, as <a href="./custom-handlers.html">Custom Handlers</a> shows. It can reuse the
+<code>FerraError</code> enum and so emit the same RFC 7807 bodies: clients handle one error
+shape across the whole API.</p>
 <hr>
 <h2 id="what-ferra-is-not"><a class="header" href="#what-ferra-is-not">What Ferra is not</a></h2>
 <p><strong>Not an ORM.</strong> Database schema management (migrations, table creation) is
-handled by Sea-ORM CLI and lives outside the framework. Ferra generates the
-queries; you manage the schema.</p>
+Sea-ORM’s: <code>sea-orm-migration</code> or the Sea-ORM CLI, outside the framework. Ferra
+generates the routes and the queries; you manage the schema.</p>
 <p><strong>Not a general-purpose web framework.</strong> No template engines, no session
-handling, no WebSockets yet. Ferra is narrowly focused on REST + hypermedia +
-typed errors. When you need to go further, Axum handlers compose directly
-alongside Ferra routes.</p>
-<p><strong>Not stable yet.</strong> The public API follows Semver once 1.0 ships. Until then,
-minor versions may introduce breaking changes — each release documents them.</p>
+handling, no WebSockets. Ferra is narrowly focused on REST, hypermedia and typed
+errors. When you need to go further, axum handlers compose directly alongside
+Ferra routes.</p>
+<p><strong>Not an identity provider.</strong> Ferra validates a JWT signed with a shared HMAC
+secret; it does not issue tokens, and in 0.9 it has no RS256/JWKS verifier or
+pluggable authenticator (<a href="./ferra-auth.html">Authentication and Authorization</a>).</p>
+<p><strong>Not on crates.io.</strong> An application depends on a tag of the Git repository.
+The public contract of the 0.9 line is frozen, and a change of it needs a new
+minor version; <a href="./stability.html">Stability policy</a> says what is in the contract,
+and <a href="./migrating-to-0.9.html">Migrating from 0.8 to 0.9</a> what changed.</p>
 <hr>
 <h2 id="how-to-read-this-guide"><a class="header" href="#how-to-read-this-guide">How to read this guide</a></h2>
 <ul>
-<li><strong><a href="./getting-started.html">Getting Started</a></strong> — zero to running API in five
-minutes. Start here.</li>
-<li><strong><a href="./architecture.html">Architecture</a></strong> — Ferra’s cohabitation principle: what
+<li><strong><a href="./getting-started.html">Getting Started</a></strong>: zero to a running, protected API
+in five minutes. Start here.</li>
+<li><strong><a href="./architecture.html">Architecture</a></strong>: Ferra’s cohabitation principle: what
 the framework wraps, what it re-exports verbatim, and where the upstream crate
 docs are the canonical reference.</li>
-<li><strong><a href="./foundry.html">Foundry</a></strong> — the router builder: configuration, middleware
-stack, mounting multiple models.</li>
-<li><strong><a href="./ferra-db.html">Ferra DB</a></strong> — <code>PgRepository&lt;M&gt;</code>, query methods, and how
-Sea-ORM sits underneath.</li>
-<li><strong><a href="./ferra-http.html">Ferra HTTP</a></strong> — extractors, the <code>FerraError</code> enum, the
-built-in middleware stack.</li>
-<li><strong><a href="./ferra-openapi.html">Ferra OpenAPI</a></strong> — the generated spec, the Scalar UI,
-schema customization.</li>
-<li><strong><a href="./ferra-forge.html">Ferra Forge</a></strong> — the <code>#[derive(FerraModel)]</code> proc-macro:
-field attributes, deferred keys, compile-time diagnostics.</li>
-<li><strong><a href="./custom-handlers.html">Custom Handlers</a></strong> — Axum handlers alongside
+<li><strong><a href="./foundry.html">Foundry</a></strong>: the router builder: configuration, middleware
+stack, mounting several models.</li>
+<li><strong><a href="./ferra-auth.html">Authentication and Authorization</a></strong>: tokens, postures,
+<code>#[authorize]</code> rules, owned rows.</li>
+<li><strong><a href="./ferra-core.html">Ferra Core</a></strong>, <strong><a href="./ferra-db.html">Ferra DB</a></strong>,
+<strong><a href="./ferra-http.html">Ferra HTTP</a></strong>, <strong><a href="./ferra-openapi.html">Ferra OpenAPI</a></strong>:
+what each library crate does, and which part of it is the contract.</li>
+<li><strong><a href="./ferra-forge.html">Ferra Forge</a></strong>: the <code>#[derive(FerraModel)]</code> proc-macro:
+field attributes, deferred keys.</li>
+<li><strong><a href="./ferra-forge-diagnostics.html">Compile-time diagnostics</a></strong>: every <code>FRG-NNN</code>
+code, with a bad and a good example, both compiled.</li>
+<li><strong><a href="./custom-handlers.html">Custom Handlers</a></strong>: axum handlers alongside
 generated routes, sharing the same error taxonomy.</li>
-<li><strong><a href="./ferra-error-handling.html">Error Handling</a></strong> — the closed RFC 7807 error
+<li><strong><a href="./ferra-error-handling.html">Error Handling</a></strong>: the closed RFC 7807 error
 URI set, per-variant wire shape, client branching patterns.</li>
 </ul>
 
@@ -514,11 +503,11 @@ URI set, per-variant wire shape, client branching patterns.</li>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

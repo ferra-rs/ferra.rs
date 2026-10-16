@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,7 +185,17 @@
 <p>Most Ferra apps need at least one route that is not pure CRUD — a publish action, a derived collection, an aggregation, a webhook receiver. This page is the authoritative guide to writing those handlers on top of a Ferra-served API. A reader with this page plus standard Rust knowledge produces a compiling action route on the first attempt — no framework source, no ADR, no constitution required.</p>
 <p>The companion CRUD / envelope / Tower-stack / typed-extraction reference is <code>ferra-http.md</code>. The router-assembly facade is <code>foundry.md</code>.</p>
 <hr>
-<h2 id="when-ferra_routerm-is-not-enough"><a class="header" href="#when-ferra_routerm-is-not-enough">When <code>ferra_router::&lt;M&gt;</code> is not enough</a></h2>
+<p><strong>Dependencies.</strong> The examples on this page assume the dependencies of
+<a href="getting-started.html">Getting started</a>:</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
+<h2 id="when-the-generated-routes-are-not-enough"><a class="header" href="#when-the-generated-routes-are-not-enough">When the generated routes are not enough</a></h2>
 <p>The five built-in handlers cover the resource-shaped endpoints — list, read, create, update, delete. They are all you need for ~80 % of the surface a typical app exposes.</p>
 <p>You write a custom handler when the route is not one of those five operations. Common reasons:</p>
 <ul>
@@ -195,16 +205,17 @@
 <li><strong>Webhook receivers.</strong> <code>POST /webhooks/stripe</code> reading a non-Ferra payload shape.</li>
 <li><strong>Cross-cutting endpoints.</strong> <code>GET /healthz</code>, <code>GET /metrics</code>.</li>
 </ul>
-<p>Custom handlers are plain Axum handlers. They accept Axum extractors, return <code>Result&lt;_, FerraError&gt;</code> for RFC 7807 error continuity, and compose with the framework router via <code>axum::Router::merge</code> or by appending <code>.route(...)</code> on top of <code>Foundry::build()</code> / <code>ferra_router::&lt;M&gt;(state)</code>.</p>
+<p>Custom handlers are plain Axum handlers. They accept Axum extractors, return <code>Result&lt;_, FerraError&gt;</code> for RFC 7807 error continuity, and compose with the framework router by appending <code>.route(...)</code> or <code>.merge(...)</code> on the value <code>Foundry::build()</code> returns.</p>
 <hr>
 <h2 id="the-worked-example-post-filmsidpublish"><a class="header" href="#the-worked-example-post-filmsidpublish">The worked example: <code>POST /films/{id}/publish</code></a></h2>
-<p>The complete shape of an action route — model declaration, handler signature, composition with <code>Foundry</code> — in one file. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical four-dep set (<code>ferra</code>, <code>tokio</code>, <code>axum</code>, <code>serde</code>) and it compiles.</p>
-<pre><code class="language-rust ignore">use ferra::prelude::*;
-use axum::{
-    Json, Router,
-    http::request::Parts,
-    routing::post,
+<p>The complete shape of an action route — model declaration, handler signature, composition with <code>Foundry</code> — in one file. The route reaches the <code>films</code> table through <code>Resource&lt;Film&gt;</code>: it is judged by the rules of <code>PUT /films/{id}</code>, not by whatever the handler remembers to check. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical dependency set (<code>ferra</code>, <code>tokio</code>, <code>serde</code>, <code>sea-orm</code> as in <a href="getting-started.html">Getting Started</a>, and <code>axum</code> with its <code>macros</code> feature, which <code>#[axum::debug_handler]</code> needs) and it compiles.</p>
+<pre class="playground"><code class="language-rust no_run">use axum::{Json, Router, routing::post};
+use ferra::{
+    ClaimCheck, Date, FerraError, FerraIdentity, FerraJson, FerraModel, FerraPath, Foundry,
+    HmacAlgorithm, JwtConfig, Resource, ResourceHandle,
 };
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // --- The model -----------------------------------------------------
 
@@ -217,6 +228,14 @@ mod film {
         Serialize, Deserialize,
     )]
     #[sea_orm(table_name = "films")]
+    #[ferra(auth = "bearer")] // the posture every model declares; see ferra-auth.md
+    #[authorize(              // a film belongs to the caller who created it
+        list = IsOwner,
+        get = IsOwner,
+        create = Authenticated,
+        update = IsOwner,
+        delete = IsOwner
+    )]
     pub struct Model {
         #[sea_orm(primary_key)]
         pub id: i32,
@@ -226,6 +245,8 @@ mod film {
         pub year: Option&lt;i32&gt;,
         pub release_date: Option&lt;Date&gt;,
         pub published: bool,
+        #[field(owner)]
+        pub owner_id: Uuid,
     }
 
     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -236,6 +257,22 @@ mod film {
 
 pub use film::Model as Film;
 
+// --- Who the caller is ---------------------------------------------
+
+#[derive(Clone, Debug, Deserialize)]
+struct Claims {
+    sub: String,
+}
+
+impl FerraIdentity for Claims {
+    fn id(&amp;self) -&gt; &amp;str {
+        &amp;self.sub
+    }
+    fn has_role(&amp;self, _role: &amp;str) -&gt; bool {
+        false
+    }
+}
+
 // --- The action's request body -------------------------------------
 
 // Plain serde struct — nothing Ferra-specific. The `FerraJson&lt;T&gt;`
@@ -245,58 +282,52 @@ struct PublishRequest {
     release_date: Option&lt;Date&gt;,
 }
 
+// --- The action's response body ------------------------------------
+
+// A route of your own answers with a body of its own: the fields you
+// choose, under the names you choose.
+#[derive(Serialize)]
+struct PublishedFilm {
+    id: i32,
+    title: String,
+    published: bool,
+    release_date: Option&lt;Date&gt;,
+}
+
 // --- The handler ---------------------------------------------------
 
 // `#[axum::debug_handler]` is optional but turns the dense
 // `Handler` trait-bound error into a single, targeted message
 // when one of the rules below is violated. Keep it on while
 // iterating; it is a no-op at runtime.
-#[axum::debug_handler]
+#[axum::debug_handler(state = ResourceHandle&lt;Film&gt;)]
 async fn publish_film(
-    // FromRequestParts — `State` reads only the request parts,
-    //                   so it can be in any position.
-    State(state): State&lt;FerraState&lt;Film&gt;&gt;,
+    // FromRequestParts — binds the caller (the bearer token) and gives
+    //                   access to the films, under the films' rules.
+    films: Resource&lt;Film&gt;,
     // FromRequestParts — `FerraPath` is the typed-extraction
     //                   wrapper around `axum::extract::Path&lt;T&gt;`.
     FerraPath(id): FerraPath&lt;i32&gt;,
-    // FromRequestParts — `Parts` itself, used below for
-    //                   building HAL `_links` from the request URL.
-    parts: Parts,
     // FromRequest — `FerraJson` consumes the request body. Body-
     //              consuming extractors MUST be the LAST argument.
     FerraJson(body): FerraJson&lt;PublishRequest&gt;,
-) -&gt; Result&lt;Json&lt;ItemResponse&lt;Film&gt;&gt;, FerraError&gt; {
-    // 1. Read the existing row.
-    let mut film = state
-        .repo
-        .find_by_id(id)
-        .await
-        .map_err(FerraError::from)?;
+) -&gt; Result&lt;Json&lt;PublishedFilm&gt;, FerraError&gt; {
+    // Same rules as `PUT /films/{id}`: another caller's film is a 404 and
+    // the row is unchanged. Only `published` and `release_date` are written.
+    let patch = film::ModelPatch {
+        published: Some(true),
+        release_date: body.release_date.map(Some),
+        ..Default::default()
+    };
+    let film = films.update(id, patch).await?;
 
-    // 2. Apply the action's effect.
-    film.published = true;
-    if let Some(d) = body.release_date {
-        film.release_date = Some(d);
-    }
-
-    // 3. Persist.
-    let updated = state
-        .repo
-        .update(id, film)
-        .await
-        .map_err(FerraError::from)?;
-
-    // 4. Build the response envelope with HAL `_links`. The two
-    //    helpers live at the facade root (not the prelude) — reach
-    //    them via the fully-qualified path or add an explicit `use`.
-    let base_url = ferra::base_url_from_parts(&amp;parts);
-    let links = ferra::build_item_links(
-        Film::meta(),
-        &amp;updated.id.to_string(),
-        &amp;base_url,
-    );
-
-    Ok(Json(ItemResponse { data: updated, links }))
+    // Answer with the fields this action exposes.
+    Ok(Json(PublishedFilm {
+        id: film.id,
+        title: film.title,
+        published: film.published,
+        release_date: film.release_date,
+    }))
 }
 
 // --- Composition with Foundry --------------------------------------
@@ -304,43 +335,74 @@ async fn publish_film(
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let database_url = std::env::var("DATABASE_URL")?;
-    let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;
+    let conn = sea_orm::Database::connect(&amp;database_url).await?;
 
-    // Foundry assembles the CRUD + `/docs` surface from `conn`.
-    let api = Foundry::new(conn.clone())
-        .mount::&lt;Film&gt;()
-        .with_docs()
-        .build();
+    let jwt = JwtConfig::single_secret(
+        "key-1",
+        std::env::var("JWT_SECRET")?,
+        HmacAlgorithm::Hs256,
+        ClaimCheck::expect("https://auth.example.com/"),
+        ClaimCheck::expect("films-api"),
+    )?;
 
-    // The action route lives on a sibling sub-router with its own
-    // `FerraState&lt;Film&gt;`. `DatabaseConnection: Clone` (Sea-ORM pool
-    // refcount); `FerraState&lt;M&gt;: Clone` (Arc refcount) — both clones
-    // are cheap.
+    // `mount_and_handle` mounts `Film` as `.mount::&lt;Film&gt;()` does — the CRUD
+    // routes, the JWT layer — and returns the handle that routes of your own
+    // use to reach the films.
+    let (foundry, films) = Foundry::new(conn)
+        .with_auth::&lt;Claims&gt;(jwt)
+        .mount_and_handle::&lt;Film&gt;();
+    let api = foundry.with_docs().build();
+
+    // The action route lives on a sibling sub-router whose state is the
+    // handle. `ResourceHandle&lt;M&gt;: Clone` (reference counts only).
     let custom = Router::new()
         .route("/films/{id}/publish", post(publish_film))
-        .with_state(FerraState::&lt;Film&gt;::new(conn));
+        .with_state(films);
 
     let app = api.merge(custom);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    axum::serve(listener, app).await?;
+    // The rate limiter keys on the peer address: serve with connect info.
+    axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
     Ok(())
 }</code></pre>
-<p>A successful <code>POST /films/42/publish</code> with body <code>{"release_date": "2026-05-10"}</code> returns <code>200 OK</code> and the same envelope shape as <code>GET /films/42</code>:</p>
+<p><code>film::ModelPatch</code> is the struct <code>#[derive(FerraModel)]</code> generates next to <code>Model</code> (<code>{Model}Patch</code>, one <code>Option&lt;T&gt;</code> per writable field, <code>None</code> leaving the column; also <code>&lt;Film as FerraViews&gt;::Patch</code>). The owner column is compared with the token’s <code>sub</code> rendered as a string, so a <code>Uuid</code> <code>owner_id</code> matches a <code>sub</code> holding that UUID (<a href="ferra-auth.html"><code>ferra-auth.md</code></a>).</p>
+<p><code>Resource&lt;Film&gt;</code> has six methods — <code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code> — each of which does what the generated route of the same name does: it runs the authorization checkpoint of the operation, scopes a list to the caller’s rows under <code>IsOwner</code>, stamps the owner on <code>create</code>, validates with the model’s <code>#[field(...)]</code> rules, and writes under the owner’s guard. What it hands back is the model’s <em>read view</em>, <code>&lt;Film as FerraViews&gt;::Read</code>: a <code>#[ferra(write_only)]</code> column is not a member of that type, so a route cannot send it by mistake. <a href="ferra-http.html#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a> is the reference.</p>
+<blockquote>
+<p><strong>Field rules reach a route of your own (0.13.0).</strong> A field with a
+<code>#[field(read = …, write = …)]</code> rule is judged for the bound caller by <code>Resource&lt;M&gt;</code> as it is
+by the generated routes. What <code>get</code>, <code>list</code> and <code>list_cursor</code> return has each field the caller
+may not read set to <code>None</code>, so a route that serializes it sends no such key (never <code>null</code>); an
+<code>IsOwner</code> read rule is judged row by row. A gated field of the write view, and of a patch, is an
+<code>Option</code> (<code>Option&lt;Option&lt;T&gt;&gt;</code> when the column is nullable): <code>None</code> is left alone, <code>Some(None)</code> is
+<code>null</code>, and a field the caller may not read or write that you set is refused like the generated
+route refuses it (<code>422</code>, then <code>403</code>), the row unchanged. A filter on a field the caller may not
+read is refused as on the route, and a <code>sort</code> on it keeps the default order.</p>
+</blockquote>
+<blockquote>
+<p><strong>Hooks (0.13.0).</strong> <code>Resource&lt;M&gt;::create</code> and <code>Resource&lt;M&gt;::update</code> run the model’s <code>before_save</code> and
+<code>after_save</code> hooks, and <code>Resource&lt;M&gt;::delete</code> its <code>before_delete</code> and <code>after_delete</code>, in the write’s transaction,
+as the generated routes do (<a href="behaviors.html#hooks">Hooks</a>).</p>
+</blockquote>
+<blockquote>
+<p><strong>No response envelope in 0.9.0.</strong> The routes <code>Foundry</code> generates answer with
+the row filtered through its read projection, under its wire names, flat or with
+HAL <code>_links</code> as the client’s <code>Accept</code> chooses. That envelope is not public: a route of your own would build links
+that know neither the base path, nor the version prefix, nor the configured
+origin. Answer with a struct of your own, as above. The same goes for
+<code>#[ferra(rename_all = "camelCase")]</code>: the read view carries the model’s Rust
+field names, so a route that serializes it sends those, not the wire names of
+the generated routes.</p>
+</blockquote>
+<p>A successful <code>POST /films/42/publish</code> with body <code>{"release_date": "2026-05-10"}</code> returns <code>200 OK</code>:</p>
 <pre><code class="language-json">{
   "id": 42,
   "title": "Rust en pratique",
-  "director": "Alice",
-  "year": 2025,
-  "release_date": "2026-05-10",
   "published": true,
-  "_links": {
-    "self":       { "href": "https://api.example.com/films/42" },
-    "collection": { "href": "https://api.example.com/films" }
-  }
+  "release_date": "2026-05-10"
 }
 </code></pre>
-<p>Errors flow through the same <code>FerraError</code> taxonomy the built-in handlers use — a malformed JSON body returns <code>400</code> with <code>type: "https://ferra.rs/errors/validation"</code>; a missing row returns <code>404</code> with <code>type: "https://ferra.rs/errors/not_found"</code>. Clients that handle one Ferra error already handle this one.</p>
+<p>Errors flow through the same <code>FerraError</code> taxonomy the built-in handlers use — a malformed JSON body returns <code>400</code> with <code>type: "https://ferra.rs/errors/validation"</code>; a film that is not yours returns <code>404</code> with <code>type: "https://ferra.rs/errors/not_found"</code>, the same answer as a film that does not exist; no token is a <code>401</code>. Clients that handle one Ferra error already handle this one.</p>
 <hr>
 <h2 id="extractor-ordering-fromrequest-vs-fromrequestparts"><a class="header" href="#extractor-ordering-fromrequest-vs-fromrequestparts">Extractor ordering: <code>FromRequest</code> vs <code>FromRequestParts</code></a></h2>
 <p>Axum has two extractor traits. The distinction looks academic until you write your first multi-extractor handler — then it becomes the load-bearing rule.</p>
@@ -358,12 +420,13 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <p><strong>The rule:</strong> at most one body-consuming extractor (<code>FromRequest</code>) per handler, and it MUST be the last argument. Every other extractor is body-agnostic (<code>FromRequestParts</code>) and goes earlier.</p>
 <p>This is a fundamental property of HTTP, not an Axum design quirk: a request body is a one-shot stream. Once you have read it, the bytes are gone.</p>
 <p>The handler in the worked example follows the rule:</p>
-<pre><code class="language-rust ignore">async fn publish_film(
-    State(state): State&lt;FerraState&lt;Film&gt;&gt;,   // FromRequestParts
+<pre><code class="language-text">async fn publish_film(
+    films: Resource&lt;Film&gt;,                    // FromRequestParts
     FerraPath(id): FerraPath&lt;i32&gt;,            // FromRequestParts
-    parts: Parts,                             // FromRequestParts
     FerraJson(body): FerraJson&lt;PublishRequest&gt;, // FromRequest — LAST
-) -&gt; Result&lt;...&gt; { ... }</code></pre>
+) -&gt; Result&lt;...&gt; { ... }
+</code></pre>
+<p>(An excerpt of the handler above, which is the compiled version.)</p>
 <p>Reorder <code>FerraJson</code> ahead of <code>FerraPath</code> and the build fails. Without <code>#[axum::debug_handler]</code> the compiler reports the violation through a deep trait-bound chain on <code>Handler</code>. With <code>#[axum::debug_handler]</code> the diagnostic points directly at the offending argument.</p>
 <p><strong>Multiple body extractors.</strong> Axum allows exactly one body-consuming extractor per handler. If you legitimately need to look at the raw bytes <em>and</em> a typed JSON deserialization, do both inside a single <code>FromRequest</code>-implementing wrapper, or read <code>Bytes</code> and parse it explicitly with <code>serde_json::from_slice</code>. There is no <code>Json&lt;A&gt; + Json&lt;B&gt;</code> shape.</p>
 <hr>
@@ -385,7 +448,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </div>
 <p><strong>Notes on the framework’s own types:</strong></p>
 <ul>
-<li><code>FerraState&lt;M&gt;</code> is <code>Clone + Send + Sync + 'static</code> by construction — it wraps <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>. Pass it through any number of handlers freely.</li>
+<li><code>ResourceHandle&lt;M&gt;</code> is <code>Clone + Send + Sync + 'static</code> — it wraps a shared connection. Keep it in the router state and pass it through any number of handlers freely.</li>
 <li><code>FerraJson&lt;T&gt;</code> / <code>FerraPath&lt;T&gt;</code> add no bounds beyond the inner <code>T: DeserializeOwned + Send + 'static</code> that Axum already requires.</li>
 <li><code>FerraError</code> is <code>Send + Sync + 'static</code> and implements <code>axum::response::IntoResponse</code> — return <code>Result&lt;_, FerraError&gt;</code> from any handler signature.</li>
 </ul>
@@ -393,8 +456,16 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <hr>
 <h2 id="friendlier-diagnostics-with-axumdebug_handler"><a class="header" href="#friendlier-diagnostics-with-axumdebug_handler">Friendlier diagnostics with <code>#[axum::debug_handler]</code></a></h2>
 <p>Axum’s <code>Handler</code> trait has a blanket impl that erases per-argument type information by the time the bound failure is reported. Without help, a single wrong extractor produces a multi-screen <code>not satisfied</code> chain.</p>
-<pre><code class="language-rust ignore">#[axum::debug_handler]
-async fn my_handler(/* … */) -&gt; Result&lt;…&gt; { … }</code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use axum::Json;
+use ferra::{FerraError, FerraPath};
+
+#[axum::debug_handler]
+async fn my_handler(FerraPath(id): FerraPath&lt;i32&gt;) -&gt; Result&lt;Json&lt;i32&gt;, FerraError&gt; {
+    Ok(Json(id))
+}
+<span class="boring">}</span></code></pre>
 <p>The proc-macro re-checks the arguments one by one and emits a single targeted error per offending argument:</p>
 <ul>
 <li><em>Json must be the last extractor</em></li>
@@ -407,66 +478,203 @@ async fn my_handler(/* … */) -&gt; Result&lt;…&gt; { … }</code></pre>
 <h2 id="ferrajsont-and-ferrapatht--rfc-7807-error-continuity"><a class="header" href="#ferrajsont-and-ferrapatht--rfc-7807-error-continuity"><code>FerraJson&lt;T&gt;</code> and <code>FerraPath&lt;T&gt;</code> — RFC 7807 error continuity</a></h2>
 <p>Axum’s stock <code>Json&lt;T&gt;</code> and <code>Path&lt;T&gt;</code> produce <code>text/plain</code> <code>400</code> bodies on rejection. A consumer that handles Ferra’s <code>application/problem+json</code> taxonomy elsewhere on the API gets a mixed wire format on the rejection path — two parsers, two error shapes, two test surfaces.</p>
 <p><code>FerraJson&lt;T&gt;</code> and <code>FerraPath&lt;T&gt;</code> are thin newtypes around the stock extractors that intercept the rejection and remap it to <code>FerraError::Validation</code>:</p>
-<pre><code class="language-rust ignore">pub struct FerraJson&lt;T&gt;(pub T);   // wraps axum::Json&lt;T&gt;
-pub struct FerraPath&lt;T&gt;(pub T);   // wraps axum::extract::Path&lt;T&gt;</code></pre>
+<pre><code class="language-text">pub struct FerraJson&lt;T&gt;(pub T);   // wraps axum::Json&lt;T&gt;
+pub struct FerraPath&lt;T&gt;(pub T);   // wraps axum::extract::Path&lt;T&gt;
+</code></pre>
 <p>The output on a malformed body looks like every other Ferra <code>400</code>:</p>
 <pre><code class="language-json">{
   "type":   "https://ferra.rs/errors/validation",
   "title":  "Validation Error",
   "status": 400,
   "detail": "validation failed",
-  "errors": {
-    "errors": [
-      { "field": "body", "code": "invalid_json",
-        "message": "expected `,` or `}` at line 1 column 14" }
-    ]
-  }
+  "errors": [
+    { "field": "body", "code": "invalid_json",
+      "message": "expected `,` or `}` at line 1 column 14" }
+  ]
 }
 </code></pre>
 <p>Use the wrappers in every custom handler that takes JSON or path parameters. The single-token swap from <code>Json&lt;T&gt;</code> → <code>FerraJson&lt;T&gt;</code> and <code>Path&lt;T&gt;</code> → <code>FerraPath&lt;T&gt;</code> is the only difference.</p>
 <p><strong>What if I genuinely want stock Axum extraction?</strong> You can — they coexist. A handler that takes <code>axum::Json&lt;T&gt;</code> produces stock <code>400</code> <code>text/plain</code> on rejection; one that takes <code>FerraJson&lt;T&gt;</code> produces RFC 7807. Pick per handler.</p>
-<p>The <code>errors[*].code</code> vocabulary at this release is <code>{"invalid_json", "invalid_path_param"}</code>. It widens when field-level validation lands, which is additive — existing consumer branches keep matching.</p>
+<p><code>errors[*].code</code> is drawn from the closed list in <a href="./ferra-error-handling.html#validation-codes">ferra-error-handling.md § Validation codes</a>; these wrappers produce <code>invalid_json</code> and <code>invalid_path_param</code>. New codes are additive — existing consumer branches keep matching.</p>
 <hr>
-<h2 id="composing-with-foundry-ferra_routerm-or-both"><a class="header" href="#composing-with-foundry-ferra_routerm-or-both">Composing with Foundry, <code>ferra_router::&lt;M&gt;</code>, or both</a></h2>
-<p>Three composition patterns, in order of how often you reach for them:</p>
+<h2 id="composing-with-foundry"><a class="header" href="#composing-with-foundry">Composing with Foundry</a></h2>
+<p>Two composition patterns, in order of how often you reach for them:</p>
 <h3 id="1-append-routes-on-top-of-foundrybuild"><a class="header" href="#1-append-routes-on-top-of-foundrybuild">1. Append routes on top of <code>Foundry::build()</code></a></h3>
-<pre><code class="language-rust ignore">let api = Foundry::new(conn.clone())
-    .mount::&lt;Film&gt;()
-    .with_docs()
-    .build();
+<pre class="playground"><code class="language-rust">use axum::{Router, routing::post};
+use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">        pub published: bool,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">async fn publish_film() {}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let (builder, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+let api = builder.with_docs().build();
 
 let custom = Router::new()
     .route("/films/{id}/publish", post(publish_film))
-    .with_state(FerraState::&lt;Film&gt;::new(conn));
+    .with_state(films);
 
-let app: Router = api.merge(custom);</code></pre>
+let app: Router = api.merge(custom);
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your action endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
-<h3 id="2-append-routes-on-top-of-a-single-resource-ferra_routerm"><a class="header" href="#2-append-routes-on-top-of-a-single-resource-ferra_routerm">2. Append routes on top of a single-resource <code>ferra_router::&lt;M&gt;</code></a></h3>
-<pre><code class="language-rust ignore">let state = FerraState::&lt;Film&gt;::new(conn);
-let app: Router = ferra_router::&lt;Film&gt;(state.clone())
-    .route("/films/{id}/publish", post(publish_film))
-    .with_state(state);</code></pre>
-<p>Use this shape when you have exactly one resource and no <code>Foundry</code> chain — you skip docs but keep the per-resource Tower stack on the CRUD endpoints.</p>
-<h3 id="3-hand-rolled-router-with-no-ferra-crud-at-all"><a class="header" href="#3-hand-rolled-router-with-no-ferra-crud-at-all">3. Hand-rolled <code>Router</code> with no Ferra CRUD at all</a></h3>
-<pre><code class="language-rust ignore">let app: Router = Router::new()
+<h3 id="2-hand-rolled-router-with-no-ferra-crud-at-all"><a class="header" href="#2-hand-rolled-router-with-no-ferra-crud-at-all">2. Hand-rolled <code>Router</code> with no Ferra CRUD at all</a></h3>
+<pre class="playground"><code class="language-rust">use axum::{Router, routing::{get, post}};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">        pub published: bool,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">async fn publish_film() {}
+</span><span class="boring">fn demo() {
+</span>let app: Router = Router::new()
     .route("/healthz", get(|| async { "ok" }))
-    .route("/films/{id}/publish", post(publish_film))
-    .with_state(FerraState::&lt;Film&gt;::new(conn));</code></pre>
-<p>For apps that are <em>only</em> action routes, with no CRUD surface to derive. You retain <code>FerraJson</code> / <code>FerraPath</code> / <code>FerraError</code> and the response envelopes; you give up the auto-generated CRUD, the HAL <code>_links</code> builder pre-wired into the response, and the docs surface.</p>
-<p>In all three patterns, consumer-added <code>.layer(...)</code> calls on the final <code>Router</code> wrap the framework stack from the outside. Place observability and authentication layers there; place per-route policy where the policy belongs (a sub-router scoped to that route).</p>
-<hr>
-<h2 id="reaching-the-repository-directly"><a class="header" href="#reaching-the-repository-directly">Reaching the repository directly</a></h2>
-<p><code>FerraState&lt;M&gt;</code> exposes <code>pub repo: Arc&lt;PgRepository&lt;M&gt;&gt;</code>. A custom handler that only needs the database adapter (no other state) can extract just that:</p>
-<pre><code class="language-rust ignore">use std::sync::Arc;
-use ferra::PgRepository;
+    .route("/films/{id}/publish", post(publish_film));
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>For apps that are <em>only</em> action routes, with no CRUD surface to derive (and so no model to reach: your own state, if the routes need one, is yours). You retain <code>FerraJson</code> / <code>FerraPath</code> / <code>FerraError</code>; you give up the auto-generated CRUD, the HAL <code>_links</code> on the responses, and the docs surface.</p>
+<p>In both patterns, consumer-added <code>.layer(...)</code> calls on the final <code>Router</code> wrap the framework stack from the outside. Place observability and authentication layers there; place per-route policy where the policy belongs (a sub-router scoped to that route).</p>
+<p>A route you add yourself is outside Ferra’s authorization policy: <code>Foundry</code> protects the routes it mounts, not yours. Protect a custom route yourself, for instance with the <code>CurrentUser&lt;YourClaims&gt;</code> extractor behind the JWT layer (see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>).</p>
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
+use axum::{Router, http::StatusCode, middleware::from_fn_with_state, routing::post};
+use ferra::{CurrentUser, FerraAuthLayer, FerraError, FerraIdentity, Foundry, JwtConfig};
+use ferra::ferra_auth_enforcing_middleware;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">        pub published: bool,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">#[derive(Clone, Debug, Deserialize)]
+</span><span class="boring">struct YourClaims { sub: String }
+</span><span class="boring">impl FerraIdentity for YourClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span>
+// `CurrentUser` rejects with 401 when the request carries no identity.
+async fn publish_film(
+    CurrentUser(user): CurrentUser&lt;YourClaims&gt;,
+    /* other extractors */
+) -&gt; Result&lt;StatusCode, FerraError&gt; {
+    // check `user` against your own rule here, return FerraError::Forbidden to refuse
+    let _ = user;
+    Ok(StatusCode::NO_CONTENT)
+}
 
-async fn count_films(
-    State(repo): State&lt;Arc&lt;PgRepository&lt;Film&gt;&gt;&gt;,
-) -&gt; Result&lt;Json&lt;u64&gt;, FerraError&gt; {
-    let page = repo.find_page(1, 1).await.map_err(FerraError::from)?;
-    Ok(Json(page.total))
-}</code></pre>
-<p><code>FerraState&lt;M&gt;: FromRef&lt;Arc&lt;PgRepository&lt;M&gt;&gt;&gt;</code> makes this swap zero-effort — Axum derives the inner extractor from the outer state. Use it when the handler genuinely does not need the rest of the state.</p>
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt_config: JwtConfig) {
+</span>let jwt = Arc::new(jwt_config); // the same `JwtConfig` settings you give `.with_auth`
+let (_api, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+let custom: Router = Router::new()
+    .route("/films/{id}/publish", post(publish_film))
+    .with_state(films)
+    .layer(from_fn_with_state(
+        FerraAuthLayer::&lt;YourClaims&gt;::new(jwt),
+        ferra_auth_enforcing_middleware::&lt;YourClaims&gt;,
+    ));
+<span class="boring">let _ = custom;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>To unit-test such a handler, call it with <code>CurrentUser(claims)</code> — the tuple field is
+public, no token is needed. To test it behind the layer, sign a token with
+<code>ferra::testing::bearer</code> (see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Testing
+authenticated routes).</p>
+<hr>
+<h2 id="raw-database-access-outside-the-contract"><a class="header" href="#raw-database-access-outside-the-contract">Raw database access, outside the contract</a></h2>
+<p>Ferra hands out no repository: <code>ResourceHandle&lt;M&gt;</code> and <code>Resource&lt;M&gt;</code> are the only way to a model’s rows through Ferra, and they apply the generated routes’ rules. A query they do not cover (a join, an aggregate, a report) is yours to write against <strong>your own</strong> <code>DatabaseConnection</code>. That connection is not Ferra’s: nothing checks the caller, scopes the owner or filters soft-deleted rows for you, and it is outside Ferra’s stability contract.</p>
+<p>Keep both in one state and let Axum derive each part:</p>
+<pre class="playground"><code class="language-rust">use axum::{Json, Router, extract::{FromRef, State}, http::StatusCode, routing::get};
+use ferra::{DatabaseConnection, Foundry, ResourceHandle};
+use sea_orm::{EntityTrait, PaginatorTrait};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">        pub published: bool,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span>
+#[derive(Clone, FromRef)]
+struct AppState {
+    films: ResourceHandle&lt;Film&gt;, // `Resource&lt;Film&gt;` is extracted from it
+    conn: DatabaseConnection,    // yours: raw queries, no checkpoint
+}
+
+async fn count_films(State(conn): State&lt;DatabaseConnection&gt;) -&gt; Result&lt;Json&lt;u64&gt;, StatusCode&gt; {
+    let n = film::Entity::find()
+        .count(&amp;conn)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(n))
+}
+
+<span class="boring">fn demo(conn: DatabaseConnection) {
+</span>let (builder, films) = Foundry::new(conn.clone()).mount_and_handle::&lt;Film&gt;();
+let app: Router = builder.build().merge(
+    Router::new()
+        .route("/films/count", get(count_films))
+        .with_state(AppState { films, conn }),
+);
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>A transaction is the same: <code>conn.begin()</code> on your connection, outside Ferra. Ferra has no transaction-taking method on <code>Resource&lt;M&gt;</code>.</p>
 <hr>
 <h2 id="cross-references-for-the-curious-reader"><a class="header" href="#cross-references-for-the-curious-reader">Cross-references (for the curious reader)</a></h2>
 <p>Pointers below trace decisions back to their arbitration. They are <em>not</em> required reading for correct use of the APIs above — every guarantee stated on this page stands on its own.</p>
@@ -521,11 +729,11 @@ async fn count_films(
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

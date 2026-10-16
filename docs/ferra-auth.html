@@ -1,0 +1,1764 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Authentication and Authorization - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-5b3de983.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/ferra-auth.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="authentication--authorization"><a class="header" href="#authentication--authorization">Authentication &amp; Authorization</a></h1>
+<p>Ferra derives authentication and authorization from your model declaration. You
+implement one trait, mark the model, and the framework wires the JWT pipeline and
+evaluates per-operation access rules before any database write.</p>
+<p>Everything on this page lives in the <code>ferra</code> facade crate — there
+is no separate auth dependency to add.</p>
+<h2 id="dependencies-and-urls"><a class="header" href="#dependencies-and-urls">Dependencies and URLs</a></h2>
+<p>The examples on this page assume the dependencies of <a href="getting-started.html">Getting started</a> —
+<code>sea-orm</code> declared next to <code>ferra</code>, at the same major version (a project that has two
+majors of Sea-ORM does not compile: <code>FRG-400</code>):</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
+<p>A model’s URL segment is its table name: <code>table_name = "articles"</code> is served at <code>/articles</code>.
+To serve a table under another name, put <code>#[ferra(resource = "notes")]</code> on the model.
+A model’s table is its own to create (a migration, or <code>Schema::create_table_from_entity</code> in
+development, as Getting started shows): Ferra never creates one.</p>
+<h2 id="the-shape-of-a-ferra-model"><a class="header" href="#the-shape-of-a-ferra-model">The shape of a Ferra model</a></h2>
+<p>Every example below builds on the same declaration shape, so it is worth pinning
+once. A Ferra model is a Sea-ORM entity struct carrying a second derive:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraModel;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "articles")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+<span class="boring">}</span></code></pre>
+<p>Container attributes (<code>#[ferra(...)]</code>, <code>#[authorize(...)]</code>) sit next to
+<code>#[sea_orm(...)]</code>; field attributes (<code>#[field(...)]</code>, <code>#[ferra(...)]</code>) sit on the
+field.</p>
+<p><strong>The type you mount is that <code>Model</code> struct.</strong> Sea-ORM’s <code>DeriveEntityModel</code> requires
+the struct to be named <code>Model</code>, so the usual layout is one module per resource and
+the mount site names it through the module — <code>mount::&lt;article::Model&gt;()</code>. Some
+codebases add <code>pub use Model as Article;</code> and mount <code>article::Article</code>; both are the
+same type. Every later example on this page mounts <code>article::Model</code>.</p>
+<p>The resource path is derived from <code>table_name</code>, not from the struct name: the model
+above serves <code>/articles</code>.</p>
+<h2 id="identity--the-ferraidentity-trait"><a class="header" href="#identity--the-ferraidentity-trait">Identity — the <code>FerraIdentity</code> trait</a></h2>
+<p>Your application defines its own JWT-claims struct and implements <code>FerraIdentity</code>.
+The trait has exactly two methods:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraIdentity;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MyClaims {
+    pub sub: String,
+    pub roles: Vec&lt;String&gt;,
+    pub exp: usize,
+}
+
+impl FerraIdentity for MyClaims {
+    fn id(&amp;self) -&gt; &amp;str {
+        &amp;self.sub
+    }
+    fn has_role(&amp;self, role: &amp;str) -&gt; bool {
+        self.roles.iter().any(|r| r == role)
+    }
+}
+<span class="boring">}</span></code></pre>
+<ul>
+<li><code>id()</code> is what <code>IsOwner</code> compares against the row’s <code>#[field(owner)]</code> value. The
+owner column is rendered to a string for the comparison, so a <code>Uuid</code> owner column
+matches a <code>sub</code> claim carrying that UUID’s canonical text form.</li>
+<li><code>has_role()</code> backs <code>IsAdmin</code> (which asks for the role <code>"admin"</code>) and
+<code>HasRole("...")</code>.</li>
+<li>An <code>id()</code> that is the empty string (a token with <code>sub: ""</code>) is refused with the generic
+401, like any other failed credential, with one <code>warn</code> (<code>reason = "empty_subject"</code>); a
+handler never reads an empty subject as an authenticated one. Only the empty string is
+refused: any other <code>sub</code> is yours to accept. For an API key, <code>api_key::issue</code> refuses an
+empty or whitespace-only subject with <code>ApiKeyError::EmptySubject</code>, and a key stored with
+an empty subject is the same 401.</li>
+</ul>
+<p>Expiry is enforced by the framework, not by your struct: <code>exp</code> is validated before
+your claims are ever deserialised, so omitting the field from <code>MyClaims</code> does <strong>not</strong>
+produce a never-expiring token. Carry it only if your own code needs to read it.</p>
+<p><code>Deserialize</code> is required — the framework deserialises the token’s claims payload
+directly into your type. A claims struct that cannot be built from the token (a
+missing non-<code>Option</code> field, say) is a <strong>401</strong>, not a 400: the token is a credential,
+and a credential the framework cannot interpret is a failed authentication, not
+malformed user input.</p>
+<p>Models that need no identity use the framework’s <code>AnonymousIdentity</code> by default —
+nothing to implement, nothing to declare.</p>
+<h2 id="jwt-configuration"><a class="header" href="#jwt-configuration">JWT configuration</a></h2>
+<p><code>JwtConfig</code> is rotation-aware by construction. <code>JwtSecret.key</code> is a
+<code>secrecy::SecretString</code>: it is elided from <code>Debug</code> output and zeroized on drop, so a
+<code>tracing</code> event that captures the config cannot leak key bytes.</p>
+<p>A <code>JwtConfig</code> built from secrets supports the <strong>symmetric HMAC family</strong> —
+<code>HmacAlgorithm::Hs256</code>, <code>Hs384</code>, <code>Hs512</code>. This is enforced by the type: an asymmetric
+algorithm is not representable there, so the public surface never promises an
+algorithm the runtime rejects. Tokens signed with Ed25519 by an identity provider come
+from a <a href="#key-set--tokens-from-an-identity-provider-eddsa">key set</a> instead.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{ClaimCheck, HmacAlgorithm, JwtConfig};
+
+<span class="boring">fn demo() -&gt; Result&lt;JwtConfig, Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let jwt = JwtConfig::single_secret(
+    "key-2026-05",                                 // kid — matched against the token header
+    std::env::var("JWT_SECRET")?,                  // the HMAC secret, from the environment only
+    HmacAlgorithm::Hs256,
+    ClaimCheck::expect("https://auth.example.com/"), // `iss` the token must carry
+    ClaimCheck::expect("films-api"),                 // `aud` the token must carry
+)?
+.with_leeway(30); // optional clock-skew tolerance, in seconds; 0 by default
+<span class="boring">Ok(jwt)
+</span><span class="boring">}
+</span><span class="boring">}</span></code></pre>
+<p><code>single_secret</code> returns <code>Result&lt;JwtConfig, JwtConfigError&gt;</code>. It refuses a secret
+shorter than the algorithm’s output (RFC 7518 §3.2): <strong>32 bytes for HS256, 48 for
+HS384, 64 for HS512</strong> (<code>JwtConfigError::SecretTooShort</code>). Generate one with
+<code>openssl rand -base64 32</code> (or 48, 64).</p>
+<p>There is no default for the issuer and the audience: each is either
+<code>ClaimCheck::expect(value)</code> — the token must carry that value — or
+<code>ClaimCheck::Skip</code>. Say <code>Skip</code> only when your identity provider cannot put a value
+there that identifies you. Under <code>ClaimCheck::Skip</code> for the audience, a token that
+does name an audience is still refused (RFC 7519 §4.1.3: this service names none).</p>
+<p>For a rotation set, build the secrets with <code>JwtSecret::new(kid, key, algorithm)</code> and
+pass them, newest first, to <code>JwtConfig::from_secrets(secrets, issuer, audience)</code>,
+which returns <code>JwtConfigError::NoSecret</code> for an empty set.</p>
+<p><strong>Every token must carry a <code>kid</code> header.</strong> A token with no <code>kid</code> at all is rejected
+exactly like one whose <code>kid</code> is unknown: 401. Tell whatever mints your tokens to set
+it — many JWT libraries omit it by default.</p>
+<p>Wire it into the application once, naming your claims type:</p>
+<pre class="playground"><code class="language-rust">use ferra::Foundry;
+<span class="boring">use ferra::{FerraIdentity, FerraModel};
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod article {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "articles")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">#[derive(Clone, Serialize, Deserialize)]
+</span><span class="boring">pub struct MyClaims {
+</span><span class="boring">    pub sub: String,
+</span><span class="boring">    pub roles: Vec&lt;String&gt;,
+</span><span class="boring">    pub exp: usize,
+</span><span class="boring">}
+</span><span class="boring">impl FerraIdentity for MyClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, role: &amp;str) -&gt; bool { self.roles.iter().any(|r| r == role) }
+</span><span class="boring">}
+</span><span class="boring">async fn demo(jwt: ferra::JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let conn = sea_orm::Database::connect(std::env::var("DATABASE_URL")?).await?;
+
+let app = Foundry::new(conn)
+    .with_auth::&lt;MyClaims&gt;(jwt)      // names the identity type for the whole chain
+    .mount::&lt;article::Model&gt;()
+    .build();                        // -&gt; axum::Router
+
+let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
+<span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><code>with_auth</code> must precede any <code>mount</code> — the builder’s typestate enforces it — and it
+fixes one identity type for the whole chain. It combines with <code>.api_version("v1")?</code> in
+either order; a versioned chain gets the same auth layer as an un-versioned one (see
+<a href="foundry.html"><code>foundry.md</code></a> § Versioning + deprecation).</p>
+<h3 id="validation-semantics-you-should-know-before-shipping"><a class="header" href="#validation-semantics-you-should-know-before-shipping">Validation semantics you should know before shipping</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Check</th><th>Behaviour</th></tr>
+</thead>
+<tbody>
+<tr><td><code>exp</code></td><td>Required and checked.</td></tr>
+<tr><td><code>nbf</code></td><td>Checked when present: a token not yet valid is refused 401.</td></tr>
+<tr><td>leeway</td><td><code>0</code> unless set with <code>.with_leeway(seconds)</code>; it applies to <code>exp</code> and <code>nbf</code>. A non-zero leeway is a standing replay-tolerance window, so it is opt-in.</td></tr>
+<tr><td><code>iss</code> / <code>aud</code></td><td><code>ClaimCheck::expect(value)</code>: the claim must be present and equal. <code>ClaimCheck::Skip</code>: not required — but a token carrying an <code>aud</code> is refused under <code>Skip</code>.</td></tr>
+<tr><td><code>crit</code> header</td><td>A token carrying a <code>crit</code> header parameter is refused, even an empty list: Ferra understands no extension (RFC 7515 §4.1.11).</td></tr>
+<tr><td>algorithm</td><td>Pinned server-side from your configured <code>HmacAlgorithm</code>, never read from the token’s <code>alg</code> header — the structural mitigation for the <code>alg: none</code> and algorithm-confusion attack classes (RFC 8725 §3.1).</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><strong><code>iss</code> as an array.</strong> <code>ClaimCheck::expect(value)</code> accepts a token whose <code>iss</code>
+is a JSON array that contains <code>value</code> (the behavior of the JWT library).
+RFC 7519 defines <code>iss</code> as a single string; an issuer that follows it never
+produces the array form, and only a holder of the shared secret can sign one.</li>
+<li><strong>No external authenticator in 0.9.0.</strong> The identity the generated routes and
+<code>CurrentUser</code> trust comes from Ferra’s JWT layer only, with a shared HMAC
+secret. An RS256/JWKS verifier or a session store cannot supply it. A later
+0.x release may add an authenticator next to <code>.with_auth</code>; nothing in your
+code will have to change for that.</li>
+</ul>
+<h3 id="key-rotation-with-zero-downtime"><a class="header" href="#key-rotation-with-zero-downtime">Key rotation with zero downtime</a></h3>
+<p><strong>Ferra verifies tokens; it does not mint them.</strong> There is no signing API at 0.8.0 —
+whatever issues your tokens (your own login endpoint, an auth service) is a separate
+concern, and rotation is therefore a two-system dance. The secrets passed to
+<code>JwtConfig::from_secrets</code> are the set of keys this service will <em>accept</em>; order carries no meaning for verification.</p>
+<p>Rotate in this order, which is safe under a rolling deploy:</p>
+<ol>
+<li><strong>Add</strong> the new <code>JwtSecret</code> to the set on every verifier and roll the fleet. Both
+keys now verify; the issuer still signs with the old one.</li>
+<li>Confirm every replica is on the two-key build before continuing. Flipping the
+issuer while some replicas still lack the new key produces intermittent 401s for
+the duration of the roll.</li>
+<li><strong>Switch the issuer</strong> to sign with the new key.</li>
+<li>Wait out the longest-lived outstanding token’s <code>exp</code>, plus your fleet’s clock skew.
+Ferra emits no per-<code>kid</code> success signal, so this gate is time-based — size it from
+the issuer’s configured token lifetime, and consider trimming on one canary replica
+first.</li>
+<li><strong>Trim</strong> the old secret and roll again.</li>
+</ol>
+<p>A token whose <code>kid</code> is absent from the active set is refused 401, and the framework
+emits a single structured <code>tracing</code> event under target <code>ferra_http::auth</code> named
+<code>kid_unknown</code>. That event deliberately carries <strong>no</strong> <code>kid</code> value, <strong>no</strong> configured-
+<code>kid</code> set, no claims and no request path — naming the failure mode without naming
+the credential.</p>
+<h2 id="key-set--tokens-from-an-identity-provider-eddsa"><a class="header" href="#key-set--tokens-from-an-identity-provider-eddsa">Key set — tokens from an identity provider (EdDSA)</a></h2>
+<p>When an identity provider signs tokens with Ed25519 and publishes its public keys
+as a key set (a JWKS, RFC 7517), point Ferra at the set instead of sharing a secret:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{ClaimCheck, JwtConfig, KeySetAlgorithm};
+use std::time::Duration;
+
+<span class="boring">fn demo() -&gt; Result&lt;JwtConfig, ferra::JwtConfigError&gt; {
+</span>let jwt = JwtConfig::key_set(
+    "https://auth.example.com/.well-known/jwks.json", // https only
+    KeySetAlgorithm::EdDsa,                           // the one accepted algorithm, named here
+    ClaimCheck::expect("https://auth.example.com/"),
+    ClaimCheck::expect("films-api"),
+)?
+.with_key_set_timeout(Duration::from_secs(2))?       // whole fetch; 3 s by default
+.with_key_set_max_age(Duration::from_secs(300))?;    // cap on the cache lifetime; 10 min by default
+<span class="boring">Ok(jwt)
+</span><span class="boring">}
+</span><span class="boring">}</span></code></pre>
+<p>Everything else is the same as for a secret: pass the <code>JwtConfig</code> to <code>with_auth</code>, the
+claims type is yours (<code>Deserialize</code> plus <code>FerraIdentity</code>), roles come from your own
+claims (there is no role-claim path to configure).</p>
+<h3 id="what-ferra-does-with-the-key-set"><a class="header" href="#what-ferra-does-with-the-key-set">What Ferra does with the key set</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th>Value</th><th>Set by</th></tr>
+</thead>
+<tbody>
+<tr><td>Fetch timeout (connect, TLS, headers, body, all of it)</td><td>3 s</td><td><code>with_key_set_timeout</code></td></tr>
+<tr><td>Longest a fetched set is trusted</td><td>10 min</td><td><code>with_key_set_max_age</code></td></tr>
+<tr><td>Least time between two fetches</td><td>30 s</td><td>fixed</td></tr>
+<tr><td>Largest key-set body</td><td>64 KiB</td><td>fixed</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><strong>First use, never at startup.</strong> The set is fetched by the first request that needs
+a key, and by nothing else: building the configuration, building the <code>Foundry</code> and
+starting the server make no request. A request with no credential needs no key.</li>
+<li><strong>Cached.</strong> A fresh set answers a known <code>kid</code> with no I/O. The provider’s
+<code>Cache-Control: max-age</code> is honored, capped at the maximum above and never below
+30 s; with none (or <code>no-store</code>, <code>no-cache</code>, an unparsable value) the maximum applies.</li>
+<li><strong>An unknown <code>kid</code> reloads at most once per 30 s.</strong> A token whose <code>kid</code> is not in the
+cached set makes one fetch when the last one is 30 s old, and is a 401 if the key is
+still missing; a burst of such tokens costs one fetch, not one each. A request that
+waits for a fetch in flight shares its outcome instead of fetching again.</li>
+<li><strong>Which keys count.</strong> Only keys of type <code>OKP</code>, curve <code>Ed25519</code>, with a <code>kid</code> and a
+32-byte <code>x</code> that is a point of the curve; <code>use</code> and <code>alg</code>, when present, must be
+<code>sig</code> and <code>EdDSA</code>. Any other key is ignored, and two keys sharing a <code>kid</code> are both
+ignored. Only the token’s <code>kid</code> selects a key: <code>jku</code>, <code>jwk</code>, <code>x5u</code> and <code>x5c</code> in a
+token header are never read.</li>
+<li><strong>HTTPS, no redirect.</strong> The fetch is <code>GET</code> over HTTPS with the Mozilla roots compiled
+in (<code>webpki-roots</code>), HTTP/1.1, <code>Accept: application/json</code>; a redirect, a non-2xx
+status, a certificate that does not verify, a body over the bound or one that is not
+a key set is a failure. A failure logs one <code>warn</code> (target <code>ferra_http::key_set</code>, with
+<code>reason</code> and, for a status, <code>status</code>) that holds neither the URL, nor the body, nor a
+<code>kid</code>.</li>
+</ul>
+<h3 id="when-the-provider-is-down"><a class="header" href="#when-the-provider-is-down">When the provider is down</a></h3>
+<ul>
+<li><strong>No fresh key cached</strong> (a cold start, or the cached set has expired): <strong>503</strong>
+<code>https://ferra.rs/errors/identity_unavailable</code>, with no <code>Retry-After</code>, and the same
+body whatever failed. An expired set is never served.</li>
+<li><strong>Keys cached:</strong> a token the cached keys verify is accepted whatever the provider
+does; a token with a <code>kid</code> they lack is a 401, also when the reload fails.</li>
+<li><strong>A provider that answers but publishes no usable Ed25519 key</strong> (an empty set, or
+only keys of another type) is not “down”: the set is cached like any other and every
+token is a 401, not a 503, until the cache lifetime ends (<code>with_key_set_max_age</code>,
+10 minutes by default, or the provider’s shorter <code>max-age</code>, never under 30 s) or the
+30 s reload for an unknown <code>kid</code> finds a key.</li>
+</ul>
+<p>On AWS Lambda the first request of a cold start pays the fetch (about one round trip
+to the provider). With the provider unreachable that request waits for the timeout and
+answers 503, inside the budget when the timeout is below it, as <code>build()</code> checks.</p>
+<h3 id="good-to-know"><a class="header" href="#good-to-know">Good to know</a></h3>
+<ul>
+<li><strong>A key the provider withdraws stays trusted up to the cache lifetime</strong> (the
+provider’s <code>max-age</code>, capped at <code>with_key_set_max_age</code>, 10 minutes by default): there
+is no forced refresh on rotation, only the reload for an unknown <code>kid</code>. Lower the
+maximum if that window is too long for you; a withdrawn key is not revoked sooner.</li>
+<li><strong>Rustls provider.</strong> Ferra builds its HTTPS client with its own explicit <code>ring</code>
+provider and installs no process-wide default. An application that uses <code>rustls</code>
+itself with <code>native-tls</code> or the <code>aws-lc-rs</code> provider, and relied on rustls picking its
+provider implicitly, finds two providers enabled once Ferra is in the tree: it
+must call <code>rustls::crypto::ring::default_provider().install_default()</code> (or the
+<code>aws-lc-rs</code> one) at startup. Applications on <code>sea-orm</code>’s <code>runtime-tokio-rustls</code>
+already have <code>ring</code> and <code>webpki-roots</code> and need nothing.</li>
+<li><strong>One kind of source per <code>Foundry</code>:</strong> a set of secrets or a key set, with one issuer
+and audience. Switching from one to the other is a redeploy; key rotation inside the
+source (several HMAC <code>kid</code>s, or the key set’s keys) needs none.</li>
+<li><strong>The algorithm is configuration, never the token’s choice.</strong> <code>KeySetAlgorithm::EdDsa</code>
+accepts an <code>EdDSA</code> token and refuses <code>none</code>, any other algorithm, and an HS256 token
+signed with the public key as the secret: 401.</li>
+<li><strong>The URL is checked when the configuration is built:</strong> <code>http://</code> is
+<code>JwtConfigError::KeySetUrlNotHttps</code>; no host, a user name or password, or a string
+that is not a URL is <code>JwtConfigError::InvalidKeySetUrl</code> (the error never repeats the
+URL). A timeout of zero is <code>JwtConfigError::ZeroTimeout</code>; the two setters on a
+configuration built from secrets are <code>JwtConfigError::NotAKeySet</code>.</li>
+<li><strong>The fetch runs inside the request, so its timeout must be below the request budget.</strong>
+With <code>FoundryBuilder::request_budget(b)</code> and a fetch timeout (3 s by default) that is
+not below <code>b</code>, <code>build()</code> panics with a message naming both values, and the two ways
+out: lower the timeout with <code>with_key_set_timeout</code>, or raise the budget. Below the
+budget, a key set that does not answer is a 503 <code>identity_unavailable</code> before the
+budget’s own 503 <code>timeout</code> can happen.</li>
+<li><code>JwtConfig::validate</code>, which is synchronous, answers <code>TokenRejection::KidUnknown</code> for a
+key set: verify through the <code>Foundry</code> layers or <code>Resource&lt;M&gt;</code>.</li>
+<li><strong>Hand-written routes.</strong> <code>Resource&lt;M&gt;</code> verifies the token the way the layer does, a
+key set included: a 401 for a bad token, a 503 <code>identity_unavailable</code> when the set
+cannot be fetched.</li>
+</ul>
+<h2 id="api-keys--machines"><a class="header" href="#api-keys--machines">API keys — machines</a></h2>
+<p>A machine (an ETL job, a script) authenticates with an API key instead of a JWT.
+A key is <code>ferra_&lt;16 hex&gt;_&lt;64 hex&gt;</code>: a public prefix that finds the row and a 256-bit
+secret of which only the SHA-256 is stored. Keys live in a table Ferra owns,
+<code>ferra_api_keys</code> (<code>ferra::api_key::SCHEMA_SQL</code> is its DDL: run it with your own
+migration tool), behind the <code>ApiKeyStore</code> trait; <code>PgApiKeyStore</code> is the Postgres
+implementation.</p>
+<pre class="playground"><code class="language-rust">use ferra::api_key::{PgApiKeyStore, issue};
+use ferra::{ApiKeyConfig, DatabaseConnection, FerraIdentity, Foundry, JwtConfig};
+use serde::Deserialize;
+
+#[derive(Clone, Deserialize)]
+struct Claims { sub: String }
+impl FerraIdentity for Claims {
+    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+}
+
+<span class="boring">async fn demo(conn: DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>// The header defaults to `X-Api-Key`. `header` refuses `authorization` and `cookie`
+// (`ApiKeyConfigError::ReservedHeader`) and a name that is not a valid header
+// (`ApiKeyConfigError::InvalidHeader`).
+let keys = ApiKeyConfig::new(PgApiKeyStore::new(conn.clone())).header("X-ETL-Api-Key")?;
+let builder = Foundry::new(conn.clone())
+    .with_auth::&lt;Claims&gt;(jwt) // keys come after `with_auth`, before the first `.mount`
+    .with_api_keys(keys);
+
+// Issue a key once, for a subject and the roles it keeps for good; the plaintext is
+// shown this once, the store keeps only its hash.
+let key = issue(&amp;PgApiKeyStore::new(conn), "svc-etl", &amp;["etl"], None).await?;
+let plaintext: String = key.into_plaintext();
+<span class="boring">let _ = (builder, plaintext);
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<ul>
+<li><strong>Who the caller is.</strong> A request with a valid key is the key’s <code>subject</code> with exactly
+the roles frozen when the key was issued (<code>ferra::ApiKeyIdentity</code>), never your claims
+type. <code>#[authorize]</code> rules and <code>#[field(owner)]</code> see the subject as <code>id()</code>.</li>
+<li><strong>A key owns rows through its subject.</strong> Issue the key with the owner’s identifier as
+the <code>subject</code> and <code>#[field(owner)]</code> works as for a token: <code>IsOwner</code> compares the
+subject, a row of another subject is the 404 an absent row gets, and a list is scoped
+to the subject’s rows. A role frozen into the key (<code>&amp;["admin"]</code>) is what <code>IsAdmin</code> and
+<code>HasRole("admin")</code> see; roles are exact names and are never read from anywhere else.</li>
+<li><strong>In a handler: <code>Principal&lt;I&gt;</code>.</strong> <code>ferra::Principal&lt;I&gt;</code> is <code>Token(I)</code> for a verified JWT
+(your claims type) or <code>ApiKey(ApiKeyIdentity)</code> for a verified key; it is
+<code>#[non_exhaustive]</code>, so a <code>match</code> needs a wildcard arm. <code>CurrentUser&lt;I&gt;</code> serves tokens
+only and answers 401 on a key request: a handler that must accept both extracts
+<code>Principal&lt;I&gt;</code>. Only the credential layer produces either: an <code>ApiKeyIdentity</code> or a
+<code>Principal</code> your own layer inserts as a request extension authenticates nothing.</li>
+<li><strong>Refusals.</strong> An unknown prefix, a wrong secret, a revoked key, an expired key and a
+malformed key are the same 401 as a bad token: same body, same headers. A malformed
+key (not exactly <code>ferra_&lt;16 hex&gt;_&lt;64 hex&gt;</code>) never reaches the database.</li>
+<li><strong>When the store fails</strong> (database down, pool timeout) on a well-formed key, the answer
+is 503 <code>identity_unavailable</code>, the same body as an unreachable key set; the failure
+goes to a <code>warn</code> trace (<code>credential refused</code>, <code>reason = "store_unavailable"</code>, the
+key’s prefix), never to the response. The trace holds no text of the database error (no
+host name, no message): when the store’s error is a Sea-ORM database error, or one wrapping a
+<code>DbErr</code> as its <code>source</code>, that carries a SQLSTATE, the five characters are in the field <code>db.response.status_code</code>; any other
+store error logs no such field.</li>
+<li><strong>Last use</strong> (<code>ApiKeyConfig::track_last_use()</code>, off by default) records <code>last_used_at</code>
+without slowing the request: after a verified request whose key has no last use, or one
+older than a minute, the write is spawned and never awaited. At most eight such writes
+run at once in the process; with none free the write is skipped, because the last use is
+advisory. A failed write is one <code>warn</code> (<code>prefix</code>, <code>reason = "store"</code>, and the SQLSTATE
+in <code>db.response.status_code</code> when the cause is a database error, or one wrapping a <code>DbErr</code> as its <code>source</code>, that carries one),
+never the key and never the text of the database error. <strong>On AWS
+Lambda</strong> the instance may be frozen once the response is sent: a write may be delayed or
+lost, so read <code>last_used_at</code> as “about when”, not as an audit log.</li>
+<li><strong>Revocation</strong> (<code>ferra::api_key::revoke(&amp;store, prefix)</code>) takes effect at the next
+request: there is no key cache. The row is kept, flagged, for audit; <code>revoke</code> answers
+<code>false</code> for a prefix that does not exist.</li>
+<li><strong>Expiry</strong> is <code>issue(..., Some(instant))</code>: a key is refused from that instant, by the
+server’s clock, whatever store holds it.</li>
+<li><strong>Nothing readable is stored.</strong> The table holds the prefix, the SHA-256 of the secret (a
+fast hash is enough for 256 random bits; slow password hashes protect human
+passwords), the subject, the roles and the dates. <code>issue</code> and <code>revoke</code> log one <code>info</code>
+event with the prefix; nothing logs a secret.</li>
+<li><strong>Only the configured header is a credential.</strong> On a chain without <code>with_api_keys</code>, an
+<code>X-Api-Key</code> header is ignored. <code>Vary</code> names the configured header on every response.</li>
+<li><strong>One credential per request.</strong> A key next to an <code>Authorization</code> header, or two key
+headers, is a 400 <code>multiple_credentials</code>, whatever they hold; a key that is invalid
+alone is a 401 and the JWT is not tried.</li>
+</ul>
+<h2 id="cookie--a-token-from-a-single-page-app"><a class="header" href="#cookie--a-token-from-a-single-page-app">Cookie — a token from a single-page app</a></h2>
+<p>A single-page app can keep its token in an <code>HttpOnly</code> cookie, out of reach of a script
+that an XSS flaw injected. Name the cookie and the origins allowed to use it on the
+<code>JwtConfig</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{ClaimCheck, HmacAlgorithm, JwtConfig};
+
+<span class="boring">fn demo() -&gt; Result&lt;JwtConfig, Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let jwt = JwtConfig::single_secret(
+    "key-2026-10",
+    std::env::var("JWT_SECRET")?,
+    HmacAlgorithm::Hs256,
+    ClaimCheck::expect("https://auth.example.com/"),
+    ClaimCheck::expect("films-api"),
+)?
+// The cookie's name, then the origins of the app that may send it.
+.with_cookie("__Host-token", ["https://app.example.com"])?;
+<span class="boring">Ok(jwt)
+</span><span class="boring">}
+</span><span class="boring">}</span></code></pre>
+<p>The cookie value is verified exactly like a bearer token: same algorithm, issuer,
+audience and expiry, same generic 401 when it fails, and the identity is the same
+<code>Principal::Token</code> (or <code>CurrentUser</code>) of your claims type. It works with a secret or a
+key set. A request carries one credential: the cookie next to an <code>Authorization</code> header
+or an API key, or the cookie name twice (in one <code>Cookie</code> field or in two), is a 400
+<code>multiple_credentials</code>.</p>
+<h3 id="the-cookie-is-the-issuers-ferra-never-sets-it"><a class="header" href="#the-cookie-is-the-issuers-ferra-never-sets-it">The cookie is the issuer’s: Ferra never sets it</a></h3>
+<p>Your identity provider (or login endpoint) sets the cookie; Ferra only reads it. It
+should set these attributes:</p>
+<pre><code class="language-http">Set-Cookie: __Host-token=&lt;jwt&gt;; Path=/; Secure; HttpOnly; SameSite=Lax
+</code></pre>
+<ul>
+<li><code>HttpOnly</code>: a script cannot read the token.</li>
+<li><code>Secure</code>: the browser sends it over HTTPS only.</li>
+<li><code>SameSite</code>: <code>Lax</code> or <code>Strict</code> keeps the browser from sending it on a cross-site
+request. Do not rely on it alone: <code>SameSite</code> is about <em>sites</em>, and the guard below
+is about <em>origins</em>.</li>
+<li><strong>Use the <code>__Host-</code> name prefix.</strong> A browser accepts a <code>__Host-</code> cookie only with
+<code>Secure</code>, <code>Path=/</code> and no <code>Domain</code>, so a sibling subdomain cannot set or overwrite
+it. It is strongly recommended; <code>with_cookie</code> takes any RFC 6265 token as the name.</li>
+</ul>
+<h3 id="writes-are-guarded-against-csrf"><a class="header" href="#writes-are-guarded-against-csrf">Writes are guarded against CSRF</a></h3>
+<p>A browser sends the cookie on every request to your API, including a request a hostile
+page made. So a request authenticated by the cookie whose method is not <code>GET</code>, <code>HEAD</code> or
+<code>OPTIONS</code> (a <code>PURGE</code> or any other method too) needs <strong>exactly one <code>Origin</code> header equal to
+an origin you listed</strong>. A missing, <code>null</code>, repeated, unreadable or unlisted <code>Origin</code> is a
+<code>403</code> <code>forbidden</code> with the fixed detail <code>a write authenticated by a cookie must come from an allowed origin</code>, never the <code>Origin</code> it received, before the handler runs and with the
+row unchanged. Browsers send <code>Origin</code> on every write.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td><code>GET</code>, <code>HEAD</code>, <code>OPTIONS</code> with the cookie, any <code>Origin</code> or none</td><td>served: reads are not guarded</td></tr>
+<tr><td>Write with the cookie and one listed <code>Origin</code></td><td>served</td></tr>
+<tr><td>Write with the cookie and no <code>Origin</code>, <code>Origin: null</code>, two <code>Origin</code> headers, or an unlisted one</td><td><code>403</code> <code>forbidden</code>, fixed detail</td></tr>
+<tr><td>Write with an <code>Authorization</code> header or an API key</td><td>not guarded (a browser does not attach those by itself)</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><strong>A form sends <code>Origin: null</code> under <code>Referrer-Policy: no-referrer</code>.</strong> A page served
+with that policy makes a form post carry <code>Origin: null</code>, which is refused. Post such a
+form from a page whose policy lets the origin through, or use <code>fetch</code> from the
+listed app.</li>
+<li><strong>The guard is part of reading the caller.</strong> The auth layer, <code>Resource&lt;M&gt;</code> and
+<code>Principal&lt;I&gt;</code>/<code>CurrentUser&lt;I&gt;</code> on a <code>.route(...)</code> handler all apply it, so a route of
+your own that takes the caller is guarded. A route that never reads the caller (a
+webhook with its own scheme) reads no credential and is outside the guard.</li>
+<li><strong>Origins are exact.</strong> A browser omits the default port, so <code>with_cookie</code> refuses an
+explicit <code>:443</code> (https) or <code>:80</code> (http), like a trailing <code>/</code>; a request that sends
+<code>https://app.example.com:443</code> is not <code>https://app.example.com</code>. The scheme and the host
+are compared without regard to case. List every origin of your app.</li>
+</ul>
+<h3 id="cors-with-credentials-from-the-same-list"><a class="header" href="#cors-with-credentials-from-the-same-list">CORS with credentials, from the same list</a></h3>
+<p>With the cookie configured, each model’s CORS layer is built from the same origin list:
+a listed origin gets its exact <code>Access-Control-Allow-Origin</code> and
+<code>Access-Control-Allow-Credentials: true</code>; any other origin gets no
+<code>Access-Control-Allow-*</code> header at all, so a browser refuses its response. A preflight is
+answered without a credential. The methods are the model’s, and the headers are
+<code>Content-Type</code>, <code>Accept</code>, <code>If-Match</code> and <code>Prefer</code>, never a wildcard.</p>
+<p><code>with_cookie</code> refuses, at configuration, a name that is not an RFC 6265 token
+(<code>JwtConfigError::InvalidCookieName</code>), the wildcard <code>*</code> (<code>WildcardOrigin</code>), an empty list
+(<code>NoOrigin</code>) and any origin that is not <code>https://host[:port]</code>: <code>null</code>, a path, a query, a
+fragment, a trailing <code>/</code>, a user name (<code>InvalidOrigin</code>). Credentials with a wildcard origin
+is the classic hole, so it does not exist:</p>
+<pre class="playground"><code class="language-rust">use ferra::{ClaimCheck, HmacAlgorithm, JwtConfig, JwtConfigError};
+
+<span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let secret = "0123456789abcdef0123456789abcdef".to_owned();
+let jwt = || {
+    JwtConfig::single_secret(
+        "key-1",
+        secret.clone(),
+        HmacAlgorithm::Hs256,
+        ClaimCheck::Skip,
+        ClaimCheck::Skip,
+    )
+};
+
+// Refused when the configuration is built, never at the first request.
+assert!(matches!(
+    jwt()?.with_cookie("__Host-token", ["*"]),
+    Err(JwtConfigError::WildcardOrigin)
+));
+assert!(matches!(
+    jwt()?.with_cookie("__Host-token", ["null"]),
+    Err(JwtConfigError::InvalidOrigin { .. })
+));
+assert!(matches!(
+    jwt()?.with_cookie("__Host-token", ["https://app.example.com/"]),
+    Err(JwtConfigError::InvalidOrigin { .. })
+));
+assert!(matches!(
+    jwt()?.with_cookie("__Host-token", []),
+    Err(JwtConfigError::NoOrigin)
+));
+<span class="boring">Ok(())
+</span><span class="boring">}</span></code></pre>
+<ul>
+<li><strong>No custom CORS layer with the cookie.</strong> A <code>FerraLayer::cors(...)</code> (on the chain’s
+<code>.layer(...)</code> or on one model) next to the cookie makes <code>build()</code> panic: the origins
+given to <code>with_cookie</code> drive CORS, and two policies would leave one of them silently
+ignored. Remove <code>FerraLayer::cors</code>.</li>
+<li><strong><code>http://</code> is for local development.</strong> An <code>http://</code> origin is accepted only for
+<code>localhost</code>, <code>127.0.0.1</code> and <code>[::1]</code>, and only when you list it; <code>build()</code> logs one
+<code>warn</code> per such origin. Do not list one in production: a cookie sent in the clear is
+one that anyone on the path reads.</li>
+</ul>
+<h2 id="one-credential-per-request"><a class="header" href="#one-credential-per-request">One credential per request</a></h2>
+<p>A request carries one credential. Ferra never picks one of two, and never falls back
+from one that failed to another: presence decides, not validity.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td>Two or more credentials: <code>Authorization</code> and the API key header, two <code>Authorization</code> headers, two key headers, whatever each holds</td><td><code>400</code> <code>multiple_credentials</code>, before anything is verified</td></tr>
+<tr><td>One credential, invalid: a bad token, a bad key</td><td><code>401</code> at once; the other source is not tried</td></tr>
+<tr><td>One credential, valid</td><td>served as that credential</td></tr>
+<tr><td>No credential</td><td>anonymous where the rule allows it (<code>Anyone</code>), <code>401</code> where it needs an identity</td></tr>
+<tr><td>The identity source is out of reach (key set, key store)</td><td><code>503</code> <code>identity_unavailable</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The 400 has one fixed body, <code>send one credential per request</code>, and names no source. A
+client that sends two (a proxy that adds a header, a client library that sets both) fails
+loudly instead of getting an identity its operator did not choose; the one rule is the
+same on enforcing models, on populate-only ones (an <code>#[authorize]</code> block that needs an
+identity somewhere), through <code>Resource&lt;M&gt;</code> and in <code>Principal&lt;I&gt;</code>, <code>CurrentUser&lt;I&gt;</code> on a
+route declared with <code>.route(...)</code>. A model whose every rule is <code>Anyone</code> reads no
+credential, so it serves the anonymous answer, as it did before; so does a declared
+route that reads no caller. A CORS preflight is exempt from authentication, as before.</p>
+<h3 id="logging-tracing-and-throttling-credentials"><a class="header" href="#logging-tracing-and-throttling-credentials">Logging, tracing and throttling credentials</a></h3>
+<ul>
+<li><strong>Refusals are logged.</strong> Each refused credential is one <code>warn</code> event, target
+<code>ferra_http::credential</code>, with <code>credential</code> (<code>token</code>, <code>api_key</code> or <code>cookie</code>), <code>api_key.prefix</code>
+when the key is well formed, and a <code>reason</code>. The secret, the token and any cookie
+value are never logged.</li>
+<li><strong>Accepted requests are traced.</strong> The request span of the default trace layer carries
+<code>credential</code> and, for a key, <code>api_key.prefix</code>: a trace says which key acted. A custom
+<code>trace_layer(...)</code> builds its own span and does not get these fields; it also sees the
+request headers, so mark <code>Authorization</code>, <code>Cookie</code> and your key header sensitive in it
+(<code>tower_http::sensitive_headers</code>) before logging any header.</li>
+<li><strong>Throttle at the platform.</strong> The mutation rate limiter covers writes only and runs
+after the credential layer; reads are never throttled. A well-formed key that does not
+exist costs one indexed <code>SELECT</code>, and on a scaled-to-zero database it can wake the
+compute. Put an API Gateway or WAF throttle in front, and watch the refusal <code>warn</code>
+events for bursts.</li>
+</ul>
+<h2 id="model-auth-posture--ferraauth--"><a class="header" href="#model-auth-posture--ferraauth--">Model auth posture — <code>#[ferra(auth = ...)]</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[ferra(auth = "bearer")]   // every operation requires a valid bearer token
+#[ferra(auth = "none")]     // deliberately, explicitly public
+<span class="boring">}</span></code></pre>
+<p>A model declaring <strong>neither</strong> <code>auth</code> nor <code>#[authorize(...)]</code> <strong>fails to compile</strong>.
+This is deliberate: for a framework that mounts SQL-backed CRUD, the only safe
+default is to refuse to build until you have made the auth surface an explicit
+decision. Forgetting is a compile error, not a 3am incident.</p>
+<h2 id="authorization-rules--authorize"><a class="header" href="#authorization-rules--authorize">Authorization rules — <code>#[authorize(...)]</code></a></h2>
+<p><code>#[authorize]</code> is a container attribute alongside <code>#[ferra(...)]</code>. It attaches one
+rule per operation:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "bearer")]
+#[authorize(
+    list = Authenticated,
+    get = Authenticated,
+    create = Authenticated,
+    update = IsOwner | IsAdmin,
+    delete = IsOwner | IsAdmin
+)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    #[field(owner)]
+    pub owner_id: Uuid,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>The block must cover all five operations</strong> — <code>list</code>, <code>get</code>, <code>create</code>, <code>update</code>,
+<code>delete</code>. A partial block is a compile error naming the missing operations. Ferra
+will not pick a posture for the ones you left out, in either direction: defaulting
+them to <code>Anyone</code> is the classic hole, and defaulting them to <code>Authenticated</code> would
+silently weaken every rule the day someone flips <code>auth = "bearer"</code> to <code>"none"</code>.</p>
+<p>A model with <code>#[behavior(soft_delete)]</code> also serves <code>POST /{resource}/{id}/restore</code>.
+Its rule is the optional <code>restore</code> key. Without it, <code>restore</code> requires both the
+<code>update</code> and the <code>delete</code> rule (<code>update + delete</code>): reviving a row takes the right to
+edit it <em>and</em> the right to delete it, so an owner cannot revive a row that only an
+admin was allowed to delete. Naming <code>restore</code> on a model without soft delete is a
+compile error (FRG-104).</p>
+<h3 id="the-vocabulary"><a class="header" href="#the-vocabulary">The vocabulary</a></h3>
+<p>The checker set is closed — there is no runtime-evaluated string DSL, and that
+closure <em>is</em> the security property.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Checker</th><th>Passes when</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Anyone</code></td><td>always; no identity needed</td></tr>
+<tr><td><code>Authenticated</code></td><td>an identity was materialised from a valid token</td></tr>
+<tr><td><code>IsOwner</code></td><td>the stored row’s <code>#[field(owner)]</code> value equals <code>identity.id()</code>; on <code>list</code>, keeps the caller’s rows only</td></tr>
+<tr><td><code>IsAdmin</code></td><td><code>identity.has_role("admin")</code></td></tr>
+<tr><td><code>HasRole("editor")</code></td><td><code>identity.has_role("editor")</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Combinators: <code>+</code> (all must pass), <code>|</code> (at least one), <code>(...)</code> for grouping. <strong>Mixed
+<code>+</code> and <code>|</code> must be parenthesised</strong> — <code>Authenticated + (IsOwner | IsAdmin)</code> compiles;
+the same expression without parentheses is a compile error rather than a silently
+assumed precedence.</p>
+<p>Writing a redundant <code>Authenticated</code> alongside an identity-dependent checker is
+allowed and never warned about — readability beats minimalism here.</p>
+<p>Checkers are written bare. <code>AuthRule::IsAdmin</code> (or any other path) is a compile
+error (FRG-103) that names the bare spelling; before 0.9.0 it was silently dropped,
+and the operation ended up with no rule. An empty <code>#[authorize()]</code> is refused too
+(FRG-101): it used to compile and check nothing. So is a <code>HasRole</code> whose role is
+empty or only whitespace — <code>HasRole("")</code>, <code>HasRole("  ")</code> (FRG-101): it names no
+role, and a claims type whose role list holds an empty string would satisfy it.</p>
+<h3 id="ownership"><a class="header" href="#ownership">Ownership</a></h3>
+<p>A model is owner-scoped when exactly one field carries <code>#[field(owner)]</code>. Its type
+must be <code>Id</code>, <code>Uuid</code>, <code>i32</code> or <code>i64</code> (FRG-112): the owner is written from, and
+compared with, <code>FerraIdentity::id()</code>, so the identity’s id must be the text form of a
+value of that type — a UUID’s canonical text, or a decimal integer.</p>
+<p><strong>The server writes the owner; the client never does.</strong></p>
+<ul>
+<li>On <strong>create</strong>, the owner column is set to the caller’s <code>id()</code>, converted to the
+column’s type, whatever the body says. Under a projection prefix the owner field
+is not in the write projection, so a body that names it is refused with 422, like
+any other unknown field. At the bare path (<code>POST /{resource}</code>) the body is still
+the whole model: an owner named there is accepted and overwritten with the
+caller’s id.</li>
+<li>The id must be the <strong>canonical text</strong> of a value of the column’s type: <code>42</code> for an
+integer column (not <code>+42</code>, <code>042</code> or <code> 42</code>), the lowercase hyphenated form for a
+<code>Uuid</code> / <code>Id</code> column (not the <code>urn:uuid:</code> form, braces, uppercase or the form
+without hyphens). <code>IsOwner</code> compares texts, so any other spelling would let one
+identity act as another.</li>
+<li>A caller whose <code>id()</code> is not such a text — an IdP subject such as <code>auth0|abc123</code>
+on a <code>Uuid</code> column, or a non-canonical spelling — is refused with <strong>403</strong>: the
+token is valid, but that identity cannot own a row of this model.</li>
+<li>On <strong>update</strong>, the owner never changes: the <code>UPDATE</code> leaves the column untouched,
+whatever the body says. Under a projection prefix the owner field is not in the
+write projection, so a body that names it is refused with 422.</li>
+<li>A projection’s explicit <code>write = [...]</code> list cannot name the owner field (FRG-115).</li>
+<li>The owner of a new row comes from the token, so the <code>create</code> rule must need an
+identity. A model with an owner field whose <code>create</code> rule lets an anonymous caller
+in (<code>Anyone</code>, or <code>auth = "none"</code> without a block) does not compile (FRG-114): write
+<code>create = Authenticated</code>, or a role check.</li>
+</ul>
+<p><strong>The owner field keeps its name and its text.</strong> The owner check reads the owner
+from the row by the field’s Rust name and compares its text with the caller’s id. No
+serde attribute may rename or re-serialize a model field (FRG-116, see
+<a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Field names on the wire), the owner included.</p>
+<p>If your identity provider’s subjects are neither UUIDs nor integers, store a local
+<code>Uuid</code> per user, put it in the token as a claim that your <code>id()</code> returns, and use it
+as the owner.</p>
+<p><strong><code>IsOwner</code></strong> passes when the stored row’s owner equals the caller’s <code>id()</code>. It is
+valid on <code>get</code>, <code>update</code>, <code>delete</code> and <code>restore</code>, the operations that address one
+stored row. It is refused on <code>create</code> (FRG-113): a row being created has no owner
+yet — it will be the caller.</p>
+<p>On <code>list</code>, <code>IsOwner</code> <strong>filters</strong> the collection in SQL: the caller sees the rows it
+owns (<code>WHERE owner = &lt;caller id&gt;</code>), and the page counts, links and cursors are those
+of the filtered collection. <code>list = IsOwner | IsAdmin</code> lets an administrator see every
+row and everyone else their own. An anonymous caller gets 401; a caller whose id is
+not the canonical text of a value of the owner column’s type gets 403. Filtering,
+sorting and pagination compose with the owner filter.</p>
+<p>On <code>get</code>, <code>update</code>, <code>delete</code> and <code>restore</code>, the framework reads the stored row before
+the check and compares the <strong>stored</strong> owner, never anything the request body says.
+<code>restore</code> reads the soft-deleted row on purpose. An anonymous caller is refused with
+401 before any row is read, and someone else’s row answers 404, exactly like a
+missing row.</p>
+<p><strong>A write only touches the row that was checked.</strong> <code>update</code>, <code>delete</code> and <code>restore</code>
+run in one transaction: the row is read with <code>SELECT … FOR UPDATE</code>, its owner and its
+soft-delete state are checked against what the authorization check saw, and only then
+is it written. A row that was deleted, soft-deleted or handed to another owner in the
+meantime answers 404 and nothing is written.</p>
+<p><strong>Read your own row.</strong> A model with a unique root owner can declare <code>#[ferra(me)]</code>: <code>GET /me</code> then answers the
+row whose owner is the caller’s <code>id()</code>, and the same 404 for any row the caller may not read. See
+<a href="projections-and-routing.html#me"><code>projections-and-routing.md</code></a>.</p>
+<h3 id="ownership-through-a-parent"><a class="header" href="#ownership-through-a-parent">Ownership through a parent</a></h3>
+<p>A row that has no tenant of its own can be owned through its parent. Put
+<code>#[field(owner(from = &lt;relation&gt;))]</code> on the owner field, naming the <code>BelongsTo</code> field that
+reaches the parent; the parent declares <code>#[field(owner)]</code> of the same type (FRG-127), and so
+does each level above it. The owner of the row is then its parent’s owner, copied once, at
+create:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod context {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "contexts")]
+    #[ferra(auth = "bearer")]
+    #[authorize(list = IsOwner, get = IsOwner, create = Authenticated, update = IsOwner, delete = IsOwner)]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[field(owner)] // level 1: the client, stamped from the token
+        pub client_id: Uuid,
+        pub name: String,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod source {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "sources")]
+    #[ferra(auth = "bearer")]
+    #[authorize(list = IsOwner, get = IsOwner, create = Authenticated, update = IsOwner, delete = IsOwner)]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub context_id: i32,
+        #[field(owner(from = context))] // level 2: copied from the context
+        pub owner_id: Uuid,
+        pub name: String,
+        #[sea_orm(belongs_to, from = "context_id", to = "id")]
+        pub context: BelongsTo&lt;super::context::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod job {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "jobs")]
+    #[ferra(auth = "bearer")]
+    #[authorize(list = IsOwner, get = IsOwner, create = Authenticated, update = IsOwner, delete = IsOwner)]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub source_id: i32,
+        #[field(owner(from = source))] // level 3: copied from the source
+        pub owner_id: Uuid,
+        pub status: String,
+        #[sea_orm(belongs_to, from = "source_id", to = "id")]
+        pub source: BelongsTo&lt;super::source::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Create.</strong> <code>POST /jobs {"source_id": 7, "status": "new"}</code> reads the source <code>7</code> in the write’s
+transaction with <code>SELECT … FOR SHARE</code>, judges it under <strong>the source’s own <code>update</code> rule</strong> (the
+rules of its <code>ModelMeta</code>, whether or not the source is mounted on this <code>Foundry</code>), and gives the
+new job the source’s owner. The owner is never the body’s nor the token’s: a body <code>owner_id</code> is
+ignored (or refused, like any field outside the write projection). The share lock holds the
+source until the job is committed, so a soft delete of the source that comes meanwhile waits
+for the create; sibling creates do not wait for each other.</p>
+<p><strong>Update.</strong> The owner never changes: a body <code>owner_id</code> is ignored, like on any owned model. A
+<code>PUT /jobs/12</code> that leaves <code>source_id</code> as it is reads no parent, so a job under a soft-deleted
+source stays editable. A <code>source_id</code> that changes moves the job: once the job is locked, the new
+source is read <code>FOR SHARE</code> and judged as on create, and its owner must be the job’s, so a job
+cannot leave its owner even through a parent the caller may update. Any refusal is the same 422
+<code>reference_not_found</code>, the job unchanged. The job itself is checked first: a job the caller may not
+see is a 404 before the new source is looked at.</p>
+<p><strong>The parent’s authority.</strong> A source that has <code>#[ferra(authority)]</code> is also judged by it, on
+create and on a re-parenting update: its <code>filter</code> (when it serves <code>list</code>) is in the locking
+<code>WHERE</code>, then <code>can(Update, source)</code> judges the row, with the context of the request. A refusal,
+an <code>Err</code> or a panic of that authority is the same 422 below, never a 500; the job’s own
+<code>can(Create)</code> runs after the insert and answers 403 or 500. The context is the caller’s, whatever the job’s own rules say: a model with <code>owner(from)</code> gets at least the populate-only credential layer, so the identity is there and the API key header is dropped.</p>
+<p><strong>One answer for every refusal.</strong> An absent source, a soft-deleted one, one of another client
+and one the caller may read but not update (by its rules or its authority) are the same
+<code>422 validation_failed</code> with one error, <code>{"field": "source_id", "code": "reference_not_found"}</code>:
+same status, body and length, no echo of the id, nothing written. A caller cannot tell a
+source that exists from one that does not. A foreign key that is missing or <code>null</code> is not this
+case: it stays the ordinary “missing field” or type error of the write.</p>
+<p><strong>What this does not do.</strong></p>
+<ul>
+<li>A parent whose <code>update</code> rule the caller cannot pass makes every child create a 422: with
+<code>update = HasRole("auditor")</code> on the parent, only an auditor creates children. Give the parent
+the rule that says who may attach rows to it.</li>
+<li>A soft-deleted parent cascades nothing. Its children stay served under their own owner;
+creating under it is the 422; restoring a child does not check its parent, and restoring the
+parent leaves its children as they are.</li>
+<li>A plain <code>BelongsTo</code> foreign key violated by a write Ferra cannot see (SQLSTATE <code>23503</code>) is a
+500 until 0.16.0; so is any write made outside Ferra (a migration, a script, a hand-written
+route that uses its own connection): the check lives in Ferra’s write path only.</li>
+<li>Two writes that lock the same rows in opposite orders can deadlock (<code>40P01</code>): Postgres aborts
+one, which answers 500 until the retry of 0.14.0. Authority code and rules must be pure: a
+retry runs them again.</li>
+<li>The check reads the parent by the key the body carries; a parent whose primary key is
+composite is not found by it and the create is refused as above.</li>
+</ul>
+<p><strong>Let the database hold the chain too.</strong> Ferra’s check does not protect rows written outside
+Ferra. Recommended, not required: a composite foreign key per level, so that a child cannot name
+a parent of another owner even there, and an index led by the owner column, which serves the
+owner-scoped list and its cursor:</p>
+<pre><code class="language-sql">ALTER TABLE sources ADD CONSTRAINT sources_id_owner UNIQUE (id, owner_id);
+ALTER TABLE jobs ADD FOREIGN KEY (source_id, owner_id) REFERENCES sources (id, owner_id);
+CREATE INDEX jobs_owner_id ON jobs (owner_id, id);
+</code></pre>
+<p>With it a write that disagrees with the chain is refused by Postgres (a 500 through Ferra, which
+checks first and answers 422 for every case it can see).</p>
+<h3 id="auth-and-authorize-on-the-same-model"><a class="header" href="#auth-and-authorize-on-the-same-model"><code>auth</code> and <code>#[authorize]</code> on the same model</a></h3>
+<p>Every operation a model serves gets exactly one rule, computed when the model is
+mounted:</p>
+<ol>
+<li>the rule its <code>#[authorize(...)]</code> block declares (without a <code>restore</code> key,
+<code>restore</code> is <code>update + delete</code>);</li>
+<li>with no block, the rule its posture implies: <code>auth = "bearer"</code> gives
+<code>Authenticated</code>, <code>auth = "none"</code> gives <code>Anyone</code>.</li>
+</ol>
+<p>So with a block, <strong>the block wins</strong> and <code>auth</code> documents intent. An operation
+without a rule is never served: <code>Foundry::build()</code> refuses to start (FRG-150).</p>
+<p>Every request passes one checkpoint, inside the handler, that evaluates that rule.
+The JWT layer is defense in depth, derived from the same rules:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rules of the served operations</th><th>Layer</th><th>Who decides</th></tr>
+</thead>
+<tbody>
+<tr><td>every rule needs an identity (<code>auth = "bearer"</code> without block, or a block without <code>Anyone</code>)</td><td>enforcing: refuses a missing or invalid token with 401</td><td>the checkpoint, after the layer</td></tr>
+<tr><td>some rules need an identity, some are <code>Anyone</code></td><td>populate-only: refuses an invalid token, lets a missing one through</td><td>the checkpoint</td></tr>
+<tr><td>every rule is <code>Anyone</code> (<code>auth = "none"</code> without block, or an all-<code>Anyone</code> block)</td><td>none</td><td>the checkpoint, which always allows</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>auth = "none"</code> with <code>#[authorize(get = IsOwner, ...)]</code> does not disarm <code>IsOwner</code>:
+the rules decide, and the checkpoint still enforces it. But naming <code>IsOwner</code> in the
+block does not, by itself, wire the JWT layer either — the layer is only installed
+on a chain that also calls <code>.with_auth::&lt;YourClaims&gt;(jwt)</code> (see “What wires the auth
+layer” below). Mounting such a model <strong>without</strong> <code>.with_auth()</code> is therefore a
+compile error (<strong>FRG-151</strong>, see § Compile-time auth defense): without a layer nothing
+could ever produce an identity. The runtime checkpoint stays behind that gate: were
+the model mounted without a layer anyway, every operation the block marks
+identity-dependent (<code>IsOwner</code>, <code>Authenticated</code>, <code>IsAdmin</code>, <code>HasRole</code>) would refuse
+every caller — anonymous or presenting an otherwise-valid token — with 401.</p>
+<h3 id="anyone-inside-a-combinator"><a class="header" href="#anyone-inside-a-combinator"><code>Anyone</code> inside a combinator</a></h3>
+<p><code>Anyone | IsOwner</code> compiles, is not warned about, and always passes — <code>|</code> returns on
+its first allowing branch and <code>Anyone</code> always allows. It is a tautology.</p>
+<p>It is not inert, though, and this is the subtle part: the layer derivation looks at
+the <em>checker set</em>, not at whether the rule can ever fail. <code>IsOwner</code> appears, so the
+layer is wired — and a request carrying a broken token is refused 401 on an operation
+whose rule can never reject anyone. If you meant “public”, write <code>Anyone</code> alone.</p>
+<h3 id="what-wires-the-auth-layer"><a class="header" href="#what-wires-the-auth-layer">What wires the auth layer</a></h3>
+<p>You do not declare the token pipeline separately. Naming any identity-dependent
+checker (<code>Authenticated</code>, <code>IsOwner</code>, <code>IsAdmin</code>, <code>HasRole</code>) wires it, because such a
+checker cannot evaluate without an identity and the layer is the only thing that
+produces one. <code>#[ferra(auth = "bearer")]</code> is the equivalent shorthand for the
+no-<code>#[authorize]</code> case.</p>
+<p>The consequence worth internalising: a model whose <code>#[authorize]</code> block names only
+<code>Anyone</code> gets <strong>no</strong> auth layer and serves every operation tokenless. That is a
+second, fully explicit way to declare a public model, and Ferra accepts it without
+complaint.</p>
+<h3 id="projections-and-authorization"><a class="header" href="#projections-and-authorization">Projections and authorization</a></h3>
+<p>A projection has no rule of its own unless it declares one: its routes
+(<code>/{prefix}/{resource}</code>, <code>/{prefix}/{resource}/{id}</code>) are governed by the model’s
+rules, the <code>#[authorize(...)]</code> block or the <code>auth</code> posture. A projection that
+shows or accepts more than the bare path must say who may use it
+(0.13.0, <a href="ferra-forge-diagnostics.html#frg-117--a-projection-widens-exposure-without-authorize"><code>FRG-117</code></a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "articles")]
+#[ferra(auth = "bearer")]
+#[ferra(projection(
+    name = "public",
+    default = true, // the bare path serves `public`: no `draft`
+    promotes_from = "auto-derived",
+    breaking_change_version = "0.13.0",
+    read = [id, title],
+))]
+#[ferra(projection(
+    name = "editor",
+    read = [id, title, draft],
+    authorize = HasRole("editor") | IsAdmin, // shows more than the bare path: says who
+))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub draft: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>Note what “the bare path” is: without a projection promoted with <code>default = true</code>, it serves
+every readable field of the model, so a projection that lists fewer fields hides nothing
+(the bare path still shows them all) and one that lists more shows nothing new. To keep a
+field off the bare path give it a <code>read</code> rule (see Field rules), or promote a narrower
+projection as above.</p>
+<p>A caller the rule refuses gets a <code>404</code> (the same bytes as for a row that does not exist,
+or <code>&lt;resource&gt; not found</code> for a list or a create), an anonymous caller gets a <code>401</code>, and
+nothing is read or written before the answer. The rule is added to the model’s rule of
+each operation, and the model’s <code>403</code> comes after the <code>404</code> (order: <code>401</code>, <code>400</code>, <code>404</code>,
+<code>403</code>) where the operation reads the row (an <code>IsOwner</code> rule, or a field rule in the write
+set); a model rule that reads no row keeps its <code>403</code> before any read, the same for an
+existing and an absent row, so it tells nothing about the row. <code>Authenticated</code> on a bearer model, or <code>Anyone</code>, restricts nothing more than the
+model does, and nothing checks for it.</p>
+<p><strong>Hooks come after these checks.</strong> A model with <code>#[ferra(hooks)]</code> runs zero hooks for a request refused before the
+statement: <code>401</code>, <code>403</code>, <code>404</code> (the locked-row <code>404</code> of an authority included), <code>413</code>, <code>415</code>, <code>422</code> (the parent check
+too). Three refusals come after the statement, because they need the row as written: the authority’s post-write <code>403</code>, an
+authority error at the post-check (<code>500</code>), and a storage refusal (a unique <code>409</code>, a foreign-key violation).
+<code>before_save</code> has run, its writes are rolled back with the statement, and <code>after_save</code> does not run
+(<a href="behaviors.html#hooks">Hooks</a>).</p>
+<p><code>authorize = &lt;rule&gt;</code> uses the same grammar as the model’s rules, except that <code>IsOwner</code>
+is refused (<a href="ferra-forge-diagnostics.html#frg-118--isowner-in-a-projections-authorize"><code>FRG-118</code></a>):
+the rule is checked once per request, before any row is read. <code>authorize = inherit</code>
+declares that the model’s rules suffice. Before 0.13.0 the key was refused
+(<a href="ferra-forge-diagnostics.html#frg-105--authorize-on-a-projection-removed-in-090"><code>FRG-105</code></a>,
+retired): it used to be parsed and dropped.</p>
+<h3 id="field-rules"><a class="header" href="#field-rules">Field rules</a></h3>
+<p>A field can carry its own rule: <code>#[field(read = &lt;rule&gt;)]</code> says who may read it,
+<code>#[field(write = &lt;rule&gt;)]</code> who may write it (0.13.0). The grammar is the model’s, and
+<code>IsOwner</code> is allowed in a <code>read</code> rule only (a create has no owner yet,
+<a href="ferra-forge-diagnostics.html#frg-120--isowner-in-a-fields-write-rule"><code>FRG-120</code></a>). A field with no <code>read</code> rule is readable by everyone who can read the row, and one with no <code>write</code> rule is writable by everyone who can write it: a field with only a <code>write</code> rule is <strong>not</strong> hidden from readers.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "employees")]
+#[ferra(auth = "bearer")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub name: String,
+    #[field(read = HasRole("hr") | IsAdmin, write = HasRole("payroll"))]
+    pub salary: Option&lt;i64&gt;,
+    #[field(read = IsOwner | IsAdmin)]
+    pub phone: Option&lt;String&gt;,
+    #[field(owner)]
+    pub owner_id: Uuid,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Reads.</strong> A field the caller may not read is <strong>absent</strong> from every response: an item, a
+list, a create, an update, a restore. It is never <code>null</code>; <code>null</code> means the column is null
+and the caller may read it. An <code>IsOwner</code> rule is judged on each row alone, from the owner
+column already loaded (no query), so a list of rows of several owners shows each caller
+the fields of its own rows. A row whose owner is <code>NULL</code> has no owner. A field in two
+projections carries the same rule in both.</p>
+<p><strong>Writes.</strong> The body of a <code>POST</code> or a <code>PUT</code> is judged key by key, after the row is found
+(<code>404</code>), in this order:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>The key sent is…</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td>unknown, outside the write projection, <code>read_only</code>, or a field the caller may not read</td><td><code>422</code>, the same <code>unknown_field</code> entry for each, byte for byte as for a key that does not exist</td></tr>
+<tr><td>readable, but its <code>write</code> rule refuses the caller</td><td><code>403</code>, the fixed body, no field named</td></tr>
+<tr><td>readable and writable</td><td>validated and written</td></tr>
+</tbody>
+</table>
+</div>
+<p>One body that triggers several refusals gets the first of these (<code>404</code>, then <code>422</code>, then
+<code>403</code>), and nothing is written. The <code>422</code> lists the unknown and the unreadable keys together,
+sorted by JSON name, so the list never says which kind a key is. On a create the creator owns the row, so
+an <code>IsOwner</code> read rule never refuses the caller the field it sends.</p>
+<p>A gated field that a body omits is left alone: a <code>PUT</code> keeps the column as it is, for every caller (a nullable
+field without a rule is still reset to <code>NULL</code> by a <code>PUT</code> that omits it, and a required one is a <code>422</code>, as before), and a <code>POST</code> leaves it to its database
+default instead of writing <code>NULL</code>. Sending <code>null</code> sets it to <code>NULL</code>.</p>
+<p><strong>Filter and sort.</strong> A <code>filter[f]</code> or a <code>sort=f</code> on a field the caller may not read is refused
+as the same parameter on a field that is not filterable or sortable: same status, same body, and
+the <code>allowed</code> list names only the fields that caller may read. Without that, <code>filter[salary][gt]=…</code>
+would count the rows above a salary for a caller who may not read it. Through <code>Resource::list</code> and
+<code>list_cursor</code> the filter is refused alike, and a <code>sort</code> on such a field leaves the default order.
+A rule that cannot take effect is a compile error (<a href="ferra-forge-diagnostics.html#frg-119--a-field-rule-that-cannot-take-effect"><code>FRG-119</code></a>),
+and so is a rule on a field a write projection requires
+(<a href="ferra-forge-diagnostics.html#frg-133--a-field-rule-on-a-field-a-write-projection-requires"><code>FRG-133</code></a>):
+make such a field <code>Option&lt;T&gt;</code>.</p>
+<h2 id="programmatic-authority--ferraauthority"><a class="header" href="#programmatic-authority--ferraauthority">Programmatic authority — <code>#[ferra(authority)]</code></a></h2>
+<p><code>#[authorize(...)]</code> covers what a rule can say about the caller and the row’s owner. When access depends on
+something else (the team in a claim, a header, a column of the row), write the decision as code. The model
+opts in with <code>#[ferra(authority)]</code> and the application supplies two traits, which name no Sea-ORM, axum or
+<code>http</code> type:</p>
+<ul>
+<li><code>FerraAuthority::can(ctx, op, row)</code>: may the caller perform <code>op</code> on this row? Called for <code>get</code>, <code>update</code>,
+<code>delete</code> and <code>restore</code> on the loaded row, and for <code>create</code> on the row as inserted; <code>update</code> is also checked on
+the row as written. Never called on a list.</li>
+<li><code>FerraListAuthority::filter(ctx)</code>: the rows the caller may list, as a <code>Condition</code> (below). A model that serves
+<code>list</code> must implement it (<code>FRG-126</code>): a list with no condition would show every row. Keep it equal to what
+<code>can</code> allows for <code>get</code>: never more, never less (<a href="#writing-can-and-filter">Writing <code>can</code> and <code>filter</code></a>).</li>
+</ul>
+<p>Both are synchronous and take the <a href="#request-context"><code>RequestContext</code></a> (who the caller is: <code>subject()</code>,
+<code>claims::&lt;C&gt;()</code>, <code>header(..)</code>), and both return <code>Result&lt;_, AuthorityError&gt;</code>; an <code>Err</code> or a panic refuses the request (the status is in the table under Writes), and
+the reason reaches the log, never a response body.</p>
+<p>The authority adds to the declared rules, it never replaces them: the posture and <code>#[authorize]</code> run first,
+unchanged, and an authority that answers <code>true</code> does not override their 401, 403 or 404.</p>
+<p>The context is filled from the credential the request carries when the <code>Foundry</code> has <code>.with_auth()</code>, also on an
+<code>auth = "none"</code> model: a valid token gives the authority its claims, an invalid one is a <code>401</code> before <code>can</code> or
+<code>filter</code> run. Without <code>.with_auth()</code> the context is anonymous (no subject, no claims) whatever the caller sent.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>use ferra::authority::{AuthorityError, FerraAuthority, FerraListAuthority};
+use ferra::condition::Condition;
+use ferra::meta::Operation;
+use ferra::request_context::RequestContext;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "team_docs")]
+#[ferra(auth = "bearer", authority)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub team_id: i64,
+    pub title: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+/// The team of the caller, read from the claims `with_auth::&lt;MyClaims&gt;(..)` verified.
+struct MyClaims {
+    team_id: i64,
+}
+
+fn team(ctx: &amp;RequestContext) -&gt; Option&lt;i64&gt; {
+    ctx.claims::&lt;MyClaims&gt;().map(|claims| claims.team_id)
+}
+
+impl FerraAuthority for Model {
+    fn can(ctx: &amp;RequestContext, _op: Operation, row: &amp;Self) -&gt; Result&lt;bool, AuthorityError&gt; {
+        Ok(team(ctx) == Some(row.team_id))
+    }
+}
+
+impl FerraListAuthority for Model {
+    fn filter(ctx: &amp;RequestContext) -&gt; Result&lt;Condition&lt;Self&gt;, AuthorityError&gt; {
+        Ok(team(ctx).map_or_else(Condition::nothing, |team| Model::FIELDS.team_id.eq(team)))
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>Without the key the derive writes a <code>FerraAuthority</code> that allows everything, so an <code>impl FerraAuthority</code> on a
+model that lacks the key is E0119; the key without the <code>impl</code> is <code>FRG-128</code>.</p>
+<h3 id="writing-can-and-filter"><a class="header" href="#writing-can-and-filter">Writing <code>can</code> and <code>filter</code></a></h3>
+<ul>
+<li><strong>Keep <code>filter</code> equal to <code>can(Get)</code>.</strong> Never more: a list would show a row that <code>get</code> refuses. Never less: after a
+write, a row <code>can(Get)</code> allows but <code>filter</code> hides still gets a <code>self</code> link, and following it answers <code>404</code>.
+Ferra does not check this; test that a list and a <code>get</code> agree for each kind of caller.</li>
+<li><strong>Keep both pure.</strong> The same context and row give the same answer, with no write, no clock and no call out of
+the process. <code>filter</code> is called more than once per request (on the row lock, again for the links of the
+response), so a <code>filter</code> that is not pure gives answers that differ inside one request; <code>can</code> runs inside the
+write’s transaction.</li>
+<li><strong>Put no secret in an <code>AuthorityError</code>.</strong> Its text goes to the log, never to a response body, but a log is
+where secrets leak. The same holds for the message of a panic.</li>
+<li><strong><code>panic = "abort"</code> defeats the guard.</strong> Ferra catches a panic in <code>can</code> and <code>filter</code> and refuses the request as
+it does for an <code>Err</code>; with <code>panic = "abort"</code> in the release profile the process ends instead. The default panic
+hook writes the message to stderr, outside Ferra’s log.</li>
+<li><strong>Write both.</strong> Every model serves <code>list</code> (a rule set names all five operations, <a href="ferra-forge-diagnostics.html#frg-101--authorize-is-empty-or-incomplete"><code>FRG-101</code></a>), so <code>FerraListAuthority</code> is required (<a href="ferra-forge-diagnostics.html#frg-126--an-authority-without-a-list-condition"><code>FRG-126</code></a>) and <code>filter</code> runs on lists, item reads and write locks; <code>can</code> narrows inside it.</li>
+</ul>
+<h3 id="conditions-with-modelfields"><a class="header" href="#conditions-with-modelfields">Conditions with <code>Model::FIELDS</code></a></h3>
+<p>A <code>Condition</code> is data, built only from the typed handles of <code>Model::FIELDS</code> (one per scalar column), so a column
+name or a value type cannot be wrong at run time. Ferra turns it into SQL with bound values; there is no <code>LIKE</code>,
+no subquery, no join.</p>
+<p><code>Model::FIELDS</code> is a <code>{Model}Fields</code> struct (<code>ModelFields</code> for a <code>Model</code>) the derive generates next to the model:
+that name is reserved in the model’s module, so do not declare a type of the same name there.</p>
+<ul>
+<li>A handle compares: <code>eq</code>, <code>ne</code>, <code>lt</code>, <code>lte</code>, <code>gt</code>, <code>gte</code> (the value is anything <code>Into</code> the column’s type) and
+<code>is_in</code> (any iterator of values). On an <code>Option</code> column the comparisons take the inner type, and <code>NULL</code> is
+reached only through <code>is_null</code> and <code>is_not_null</code>. SQL comparisons never match <code>NULL</code>, which can only make a
+condition narrower.</li>
+<li><code>Condition::all</code>, <code>any</code> and <code>not</code> combine, <code>everything</code> and <code>nothing</code> are the constants. An empty <code>all</code> is
+<code>everything</code>; an empty <code>any</code>, and an <code>is_in</code> of no value, are <code>nothing</code>.</li>
+<li>The column types are <code>i32</code>, <code>i64</code>, <code>f64</code>, <code>bool</code>, <code>String</code>, <code>Uuid</code>, <code>Id</code>, <code>DateTime</code>, <code>Date</code> and <code>Time</code>. A
+computed field and a JSON field have no handle, and neither has the deletion column of a soft-delete model
+(nor the timestamp and blame columns a behavior owns): a condition cannot reach deleted rows.</li>
+<li>Bounds: 1 000 values in one <code>is_in</code>, 10 000 in the whole condition, 32 levels deep. A condition over a bound
+is refused (<code>AuthorityError::TooManyValues</code>, <code>TooDeep</code>), never truncated.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>use ferra::condition::Condition;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "team_docs")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub team_id: i64,
+    pub archived_at: Option&lt;String&gt;,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+fn visible_to(teams: Vec&lt;i64&gt;) -&gt; Condition&lt;Model&gt; {
+    Condition::all([
+        Model::FIELDS.team_id.is_in(teams),
+        Model::FIELDS.archived_at.is_null(),
+    ])
+}
+<span class="boring">fn main() {}</span></code></pre>
+<h3 id="lists-and-links"><a class="header" href="#lists-and-links">Lists and links</a></h3>
+<p><code>filter</code> is joined by AND to the owner scope and the soft-delete condition, before the page is cut, so the items,
+<code>total</code>, every offset page and both directions of a cursor walk see the same rows. A condition that matches nothing
+is a <code>200</code> with an empty page and <code>total: 0</code>, never a <code>403</code> or a <code>404</code>. <code>can</code> is never called on a list. When
+<code>filter</code> returns an <code>Err</code>, panics or is over a bound, the list is a <code>500</code> <code>internal</code> with one <code>error!</code> (the model and
+the operation, no row value, no header), never an empty page: an empty answer would look like a list with no rows.</p>
+<p>The links of a get or a list response are decided by the declared rules, <code>can</code> is never called to build one. A list
+item carries <code>self</code> and <code>collection</code> is present only when <code>filter</code> answers. That is exact as long as <code>filter</code> never
+matches more than <code>can</code> allows for <code>get</code> (the rule above) and never less: a row <code>can(Get)</code> allows but <code>filter</code> hides
+still gets a <code>self</code> link, and following it answers <code>404</code>. Keep <code>filter</code> equal to what <code>can</code> allows for <code>get</code>.</p>
+<h3 id="writes"><a class="header" href="#writes">Writes</a></h3>
+<p><code>create</code>, <code>update</code> and <code>restore</code> run the authority inside the write’s transaction. An <code>update</code> reads the row
+twice, like a Postgres <code>USING</code> / <code>WITH CHECK</code> pair: <code>can(Update)</code> on the row as it is (a refusal is the absent
+row, <code>404</code>), then on the row as written, after the <code>UPDATE</code> and before the commit, so a caller of team 1 cannot
+move a row to team 2 by writing <code>team_id = 2</code>. <code>create</code> judges the row as inserted. <code>restore</code> judges the row
+before only: <code>filter</code> cannot name the deletion column.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request</th><th>The authority says</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td><code>GET</code>, <code>PUT</code>, <code>DELETE</code>, <code>POST …/restore</code> on <code>/m/{id}</code></td><td><code>filter</code> excludes the row, or <code>can</code> is <code>false</code></td><td><code>404</code>, the same bytes as an absent row; the row is unchanged</td></tr>
+<tr><td><code>PUT /m/{id}</code></td><td>the row is allowed, <code>can(Update)</code> is <code>false</code> on the row as written</td><td><code>403</code> <code>forbidden</code>, rolled back</td></tr>
+<tr><td><code>POST /m</code></td><td><code>can(Create)</code> is <code>false</code> on the inserted row</td><td><code>403</code> <code>forbidden</code>, nothing written</td></tr>
+<tr><td>a row operation</td><td><code>Err</code> or a panic</td><td><code>404</code> as above, one <code>error!</code></td></tr>
+<tr><td><code>POST /m</code>, the <code>update</code> post-check, <code>GET /m</code></td><td><code>Err</code> or a panic</td><td><code>500</code> <code>internal</code>, one <code>error!</code>, rolled back</td></tr>
+<tr><td><code>POST /m</code>, <code>PUT /m/{id}</code></td><td>a unique constraint is violated</td><td><code>409</code> <code>conflict</code>, before the <code>403</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>409</code> comes first because the database refuses the value before <code>can</code> sees the row, so a caller can learn that
+a row it may not see holds a value. Make every unique constraint per tenant: a composite index with the column the
+authority scopes by (<code>UNIQUE (team_id, slug)</code>, not <code>UNIQUE (slug)</code>).</p>
+<p>The <code>self</code> link of a create, update or restore response also needs <code>can(Get)</code> on the row as returned, called once
+in memory after the commit. A write-only authority (<code>can(Create)</code> is <code>true</code>, <code>can(Get)</code> is <code>false</code>) gets <code>201</code>
+with no body and no <code>Location</code>, and <code>204</code> with an empty body on update and restore, whatever <code>Prefer</code> and <code>Accept</code>
+say: the row is written and nothing of it is sent. An <code>Err</code> or a panic in that call answers the same, with one
+<code>error!</code>, never a <code>500</code>: the write has happened, and a client that retries would write it twice. On a model that
+serves <code>list</code>, a row <code>can(Get)</code> allows but <code>filter</code> hides gets a <code>self</code> that answers <code>404</code>; keep <code>filter</code> equal to
+what <code>can</code> allows for <code>get</code>.</p>
+<h2 id="request-context"><a class="header" href="#request-context">Request context</a></h2>
+<p>An authority and a hook read the request through a <code>RequestContext</code>
+(<code>ferra::request_context::RequestContext</code>, full reference in <a href="ferra-core.html#requestcontext"><code>ferra-core.md</code></a>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Accessor</th><th>Answers</th></tr>
+</thead>
+<tbody>
+<tr><td><code>subject()</code></td><td>the caller’s <code>FerraIdentity::id()</code>, <code>None</code> when anonymous</td></tr>
+<tr><td><code>is_authenticated()</code>, <code>has_role(&amp;str)</code></td><td>a verified identity is present; it holds that role</td></tr>
+<tr><td><code>claims::&lt;C&gt;()</code></td><td>the claims of a bearer or cookie token, as the type given to <code>.with_auth::&lt;C&gt;()</code></td></tr>
+<tr><td><code>api_key()</code></td><td>the identity of the API key that authenticated the request</td></tr>
+<tr><td><code>header(&amp;str)</code></td><td>the first value of a request header, case-insensitive</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><strong><code>claims::&lt;C&gt;()</code> is <code>None</code> on a mismatch.</strong> An API key request, an anonymous one, and a <code>C</code> other than the
+<code>.with_auth</code> type all answer <code>None</code>: check it, and refuse when you needed the claims.</li>
+<li><strong>Credentials are not there.</strong> <code>Authorization</code>, <code>Proxy-Authorization</code>, <code>Cookie</code> and the <code>Foundry</code>’s API key
+header are dropped when the context is built, in any case: <code>header("Authorization")</code> is <code>None</code>, and <code>Debug</code>
+prints the subject and the header names, never a value.</li>
+<li><strong>Every other header is the client’s.</strong> <code>header("X-Team")</code> returns what the caller sent. Never authorize on
+<code>X-Forwarded-*</code>, <code>Forwarded</code>, <code>Host</code> or <code>Origin</code>: a client can set them, unless a proxy of yours overwrites
+them before the request reaches Ferra. Decide from the claims, which are signed.</li>
+<li><strong>Anonymous without <code>.with_auth()</code>.</strong> The context then has no subject and no claims, whatever the request
+carried.</li>
+<li><strong>Not <code>Copy</code>.</strong> <code>.clone()</code> it where 0.12 copied it
+(<a href="migrating-to-0.13.html#requestcontext-is-filled-and-is-no-longer-copy">migration note</a>).</li>
+</ul>
+<pre class="playground"><code class="language-rust">use ferra::request_context::RequestContext;
+
+struct MyClaims {
+    team_id: i64,
+}
+
+fn caller_team(ctx: &amp;RequestContext) -&gt; Option&lt;i64&gt; {
+    // `None` for an anonymous caller, an API key, or claims of another type.
+    ctx.claims::&lt;MyClaims&gt;().map(|claims| claims.team_id)
+}
+<span class="boring">fn main() {}</span></code></pre>
+<h2 id="compile-time-auth-defense"><a class="header" href="#compile-time-auth-defense">Compile-time auth defense</a></h2>
+<p>Three compile-time gates stand between a model and an unprotected route.</p>
+<ol>
+<li>
+<p><strong>At the model declaration — FRG-100.</strong> A model with neither <code>#[ferra(auth = ...)]</code>
+nor an <code>#[authorize(...)]</code> block does not compile. The error proposes, in order:
+<code>auth = "bearer"</code> with <code>.with_auth::&lt;YourClaims&gt;(jwt)</code>, <code>auth = "none"</code> for a
+deliberately public model, or an <code>#[authorize(...)]</code> block.</p>
+</li>
+<li>
+<p><strong>At the mount call site — FRG-150.</strong> <code>Foundry::mount::&lt;M&gt;()</code> requires
+<code>M: FerraAuthConfigured</code>, which <code>#[derive(FerraModel)]</code> implements for every model
+that declares a posture. It catches a hand-written <code>FerraModel</code> impl without one.</p>
+</li>
+<li>
+<p><strong>At the mount call site — FRG-151.</strong> A model whose rules need an identity —
+<code>auth = "bearer"</code>, or any rule other than <code>Anyone</code>, a projection’s <code>authorize</code> and
+a field’s <code>read</code> / <code>write</code> rule included — cannot be mounted on a chain
+without <code>.with_auth()</code>:</p>
+<pre><code class="language-text">error[E0277]: FRG-151: `Film` requires an identity, but this `Foundry` chain has no `.with_auth()`
+</code></pre>
+<p>The bad call is <code>Foundry::new(conn).mount::&lt;Film&gt;().build()</code>; the good one names the
+claims type (both, compiled, under
+<a href="ferra-forge-diagnostics.html#frg-151--mounting-without-with_auth-a-model-that-needs-an-identity"><code>FRG-151</code></a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::{FerraIdentity, FerraModel, Foundry, JwtConfig};
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">#[derive(Clone, Debug, Deserialize)]
+</span><span class="boring">struct MyClaims { sub: String }
+</span><span class="boring">impl FerraIdentity for MyClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) {
+</span>let app = Foundry::new(conn).with_auth::&lt;MyClaims&gt;(jwt).mount::&lt;Film&gt;().build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>A model declared <code>auth = "none"</code>, or whose <code>#[authorize]</code> rules are all <code>Anyone</code>,
+mounts on any chain.</p>
+</li>
+</ol>
+<p>Declarations that used to compile and enforce nothing are refused:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Declaration</th><th>Since 0.9.0</th></tr>
+</thead>
+<tbody>
+<tr><td><code>#[ferra(projection(..., authorize = ...))]</code> (refused 0.9.0 to 0.12.x)</td><td>FRG-105, retired in 0.13.0 — valid again, see § Projections and authorization</td></tr>
+<tr><td><code>#[ferra(exposure = "auto_*")]</code></td><td>FRG-106 — see <a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Removed in 0.9.0: exposure</td></tr>
+<tr><td><code>#[authorize()]</code> (empty)</td><td>FRG-101</td></tr>
+<tr><td><code>#[authorize(get = AuthRule::IsAdmin, ...)]</code> (qualified checker)</td><td>FRG-103 — write the bare <code>IsAdmin</code></td></tr>
+<tr><td><code>#[authorize(update = HasRole(""), ...)]</code> (empty or blank role)</td><td>FRG-101 — name the role</td></tr>
+<tr><td><code>#[operation(...)]</code></td><td>FRG-335 — see <a href="behaviors.html"><code>behaviors.md</code></a></td></tr>
+</tbody>
+</table>
+</div>
+<p>At runtime, <code>Foundry::build()</code> refuses to start (FRG-150) if a mounted model leaves an
+operation without a rule — a hand-written <code>FerraModel</code> impl is the only way to get
+there.</p>
+<h2 id="error-responses"><a class="header" href="#error-responses">Error responses</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Situation</th><th>Status</th><th><code>type</code> URI</th></tr>
+</thead>
+<tbody>
+<tr><td>No token where an identity is required</td><td><code>401</code> + <code>WWW-Authenticate: Bearer</code></td><td><code>https://ferra.rs/errors/unauthorized</code></td></tr>
+<tr><td>Token present but invalid — bad signature, expired, not yet valid (<code>nbf</code>), unknown <code>kid</code>, critical header, claims that will not deserialise, <code>iss</code>/<code>aud</code> mismatch</td><td><code>401</code> + <code>WWW-Authenticate: Bearer</code></td><td><code>https://ferra.rs/errors/unauthorized</code></td></tr>
+<tr><td>Two or more credentials (an <code>Authorization</code> header, an API key and the cookie, two of any, or two of one), whatever they hold</td><td><code>400</code></td><td><code>https://ferra.rs/errors/multiple_credentials</code></td></tr>
+<tr><td>API key refused — unknown prefix, wrong secret, revoked, expired, malformed</td><td><code>401</code> + <code>WWW-Authenticate: Bearer</code></td><td><code>https://ferra.rs/errors/unauthorized</code></td></tr>
+<tr><td>Key set or key store out of reach (no fresh key cached, database down)</td><td><code>503</code></td><td><code>https://ferra.rs/errors/identity_unavailable</code></td></tr>
+<tr><td>Valid token, but the operation’s predicate returned false</td><td><code>403</code></td><td><code>https://ferra.rs/errors/forbidden</code></td></tr>
+<tr><td>Write authenticated by the cookie, <code>Origin</code> missing, <code>null</code>, repeated or not listed (<a href="#cookie--a-token-from-a-single-page-app">Cookie</a>)</td><td><code>403</code></td><td><code>https://ferra.rs/errors/forbidden</code> (its own fixed <code>detail</code>)</td></tr>
+<tr><td>Valid token, the row belongs to someone else (<code>IsOwner</code> rule)</td><td><code>404</code></td><td><code>https://ferra.rs/errors/not_found</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The 401/403 split is load-bearing and worth stating plainly: <strong>401 means the framework
+could not establish who you are; 403 means it knows exactly who you are and the answer
+is still no.</strong> A <code>403</code> is therefore positive evidence that your token was accepted.</p>
+<p>A present-but-invalid token is refused 401 even on an operation whose rule is
+<code>Anyone</code> — presenting a broken credential is a failed authentication attempt, which
+is a different event from not presenting one at all. A tokenless request to an
+<code>Anyone</code> operation is served normally.</p>
+<p><strong>That rule only applies to models that wired the layer at all.</strong> On a model whose
+every rule is <code>Anyone</code> (or that declares <code>auth = "none"</code>), there is no layer, so
+nothing inspects the header and a broken token is simply ignored. The behaviour of
+an <code>Anyone</code> operation therefore depends on what its <em>sibling</em> operations declare:
+add <code>update = IsOwner</code> to an otherwise-public model and a stale token starts 401-ing
+on <code>list</code>, which previously ignored it. Worth knowing before you tighten one
+operation on a live model.</p>
+<p><code>403</code> responses do <strong>not</strong> carry <code>WWW-Authenticate</code> — that header is an authentication
+challenge, and the authentication already succeeded.</p>
+<p>All bodies are <code>application/problem+json</code> (RFC 9457):</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/forbidden",
+  "title": "Forbidden",
+  "status": 403,
+  "detail": "forbidden"
+}
+</code></pre>
+<p>None of them ever echo token bytes, decoded claims, <code>kid</code> values, or the row’s owner
+value — not in <code>detail</code>, not in <code>instance</code>, not in an extension field. Each carries a
+fixed, framework-authored <code>detail</code> string.</p>
+<p>That last property has a client-side cost worth planning for: the six distinct 401
+causes (no token, bad signature, expired, unknown <code>kid</code>, undeserialisable claims,
+<code>iss</code>/<code>aud</code> mismatch) are deliberately indistinguishable on the wire, and the
+<code>WWW-Authenticate</code> value carries no RFC 6750 <code>error</code> parameter. A client cannot tell
+“expired, refresh and retry” from “misconfigured, retrying will never work” — so cap
+automatic refresh-and-replay at one attempt rather than looping.</p>
+<p><strong>A row you may not see returns 404, not 403.</strong> When an <code>IsOwner</code> rule refuses a
+row that belongs to someone else, the answer is the 404 a missing row gets, byte
+for byte, so the caller cannot learn that the row exists. A 403 remains the
+answer for a model rule that does not depend on ownership (<code>IsAdmin</code>, <code>HasRole("…")</code>),
+or when the caller owns the row but fails another part of the rule
+(<code>IsOwner + HasRole("editor")</code>); a caller that the rule of the projection under a prefix
+refuses gets the 404 first (see Projections and authorization). A soft-deleted row is a 404 on <code>get</code>, <code>update</code>
+and <code>delete</code>; <code>restore</code> reads it on purpose and applies the same 404 rule.</p>
+<h2 id="where-auth-sits-in-the-request-pipeline"><a class="header" href="#where-auth-sits-in-the-request-pipeline">Where auth sits in the request pipeline</a></h2>
+<p>Outermost first, as a request traverses it:</p>
+<pre><code class="language-text">CORS  →  auth  →  body-size limit  →  tracing  →  route  →  rate limit (mutations)
+      →  handler: #[authorize] check  →  body parse  →  validation  →  database
+</code></pre>
+<p>Two consequences worth planning around:</p>
+<ul>
+<li><strong>Authentication precedes body parsing and validation.</strong> An unauthenticated caller
+gets 401 without the framework reading their body, so probing for schema shape
+through validation errors requires a valid token first.</li>
+<li><strong>The per-operation <code>#[authorize]</code> check runs inside the handler, before the body is
+parsed.</strong> An unauthorised caller never receives validation detail about a resource
+they may not touch.</li>
+</ul>
+<p><strong>CORS answers the preflight before authentication runs.</strong> A browser sends <code>OPTIONS</code> with no
+<code>Authorization</code> header — the Fetch spec forbids attaching one — so the CORS layer sits
+outside the auth layer and answers the preflight itself; the request never reaches
+authentication. Without that order every browser client of a bearer-protected model
+would break on the preflight, before the real request was ever sent. The same order
+lets a listed origin read the 401, 400 and 403 of the layers inside.</p>
+<p>The preflight is answered with headers only, and it cannot reach a CRUD handler because
+the routes register GET/POST/PUT/DELETE, so any other <code>OPTIONS</code> falls through to 405.</p>
+<p>Note that Ferra’s default CORS posture is restrictive (<code>CorsLayer::new()</code> denies all
+cross-origin). Reaching a browser client takes an explicit CORS configuration through
+<code>FerraLayer</code> — see <a href="foundry.html"><code>foundry.md</code></a>.</p>
+<h2 id="testing-authenticated-routes"><a class="header" href="#testing-authenticated-routes">Testing authenticated routes</a></h2>
+<p>A test goes through the same JWT layer as production: it sends a real token, signed
+with the secret of its own test configuration. <code>ferra::testing::bearer</code> signs one and
+returns the <code>Authorization</code> header value — no JWT crate to add to your project:</p>
+<pre class="playground"><code class="language-rust">use ferra::testing::bearer;
+use ferra::{ClaimCheck, Foundry, HmacAlgorithm, JwtConfig};
+<span class="boring">use ferra::{FerraIdentity, FerraModel};
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod article {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "articles")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">#[derive(Clone, Serialize, Deserialize)]
+</span><span class="boring">pub struct MyClaims {
+</span><span class="boring">    pub sub: String,
+</span><span class="boring">    pub roles: Vec&lt;String&gt;,
+</span><span class="boring">    pub exp: usize,
+</span><span class="boring">}
+</span><span class="boring">impl FerraIdentity for MyClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, role: &amp;str) -&gt; bool { self.roles.iter().any(|r| r == role) }
+</span><span class="boring">}
+</span>
+const KID: &amp;str = "test-key";
+const SECRET: &amp;str = "test-secret-test-secret-test-secret!";
+
+// HS256 needs a secret of at least 32 bytes. The test tokens carry no `iss`
+// and no `aud`: say so. With `ClaimCheck::expect(...)`, put the claim in them.
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let jwt = JwtConfig::single_secret(KID, SECRET.to_owned(), HmacAlgorithm::Hs256, ClaimCheck::Skip, ClaimCheck::Skip)?;
+let app = Foundry::new(conn).with_auth::&lt;MyClaims&gt;(jwt).mount::&lt;article::Model&gt;().build();
+
+let alice = MyClaims { sub: "0190a4a0-0000-7000-8000-0000000000a1".into(), roles: vec![], exp: 4_102_444_800 };
+let authorization = bearer(KID, SECRET, HmacAlgorithm::Hs256, &amp;alice)?; // "Bearer eyJ…"
+// send requests with `.header("authorization", &amp;authorization)`
+<span class="boring">let _ = (app, authorization);
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><code>bearer(kid, secret, algorithm, &amp;claims)</code> takes your own claims type (anything
+<code>Serialize</code>) and returns <code>Result&lt;String, ferra::testing::TokenSigningError&gt;</code>. The
+token must satisfy the configuration like any other: <code>exp</code> in the future (the value
+above is 2100-01-01), and the <code>iss</code> / <code>aud</code> the <code>JwtConfig</code> expects, if any. The router you
+exercise is the real one, JWT layer included.</p>
+<p><strong>There is no way to hand the framework an identity without a token.</strong> The
+authorization checkpoint and <code>CurrentUser</code> only trust an identity the layer built
+from a verified token: neither a test helper nor a middleware of yours can slip one
+in. <code>bearer</code> is not a bypass — a token signed with another secret is refused — so
+it needs no Cargo feature and cannot weaken a release build.</p>
+<p>Two consequences to know:</p>
+<ul>
+<li>
+<p><strong>A custom handler is tested without a token.</strong> <code>CurrentUser</code> is a plain tuple
+struct: call your handler directly with <code>CurrentUser(claims)</code>.</p>
+<pre class="playground"><code class="language-rust">use axum::http::StatusCode;
+use ferra::{CurrentUser, FerraError};
+<span class="boring">#[derive(Clone, Debug)]
+</span><span class="boring">struct MyClaims { sub: String }
+</span><span class="boring">async fn publish_film(CurrentUser(user): CurrentUser&lt;MyClaims&gt;) -&gt; Result&lt;StatusCode, FerraError&gt; {
+</span><span class="boring">    let _ = user.sub;
+</span><span class="boring">    Ok(StatusCode::NO_CONTENT)
+</span><span class="boring">}
+</span><span class="boring">async fn demo(alice: MyClaims) -&gt; Result&lt;(), FerraError&gt; {
+</span>let status = publish_film(CurrentUser(alice)).await?;
+<span class="boring">let _ = status;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+</li>
+<li>
+<p><strong>Ferra’s checkpoint has one source of identity in 0.9.0: its JWT layer, with a
+shared HMAC secret</strong> (HS256, HS384, HS512). You cannot plug another authenticator
+— an RS256 / JWKS verifier, a session cookie — into the generated routes or into
+<code>CurrentUser</code>; JWKS is out of scope for 0.9.0. Put such a scheme in front of your
+own handlers with your own extractor, or exchange its credential for an HMAC token
+your service signs.</p>
+</li>
+</ul>
+<p>To craft tokens <code>bearer</code> does not produce (a custom header, a broken signature), sign
+them yourself with the JWT crate Ferra uses, declared exactly like this in
+<code>[dev-dependencies]</code>:</p>
+<pre><code class="language-toml">jsonwebtoken = { version = "11.1", default-features = false, features = ["rust_crypto"] }
+</code></pre>
+<p>Another backend (<code>aws_lc_rs</code>) or another major version leaves <code>jsonwebtoken</code> without
+a single crypto provider, and the first signature panics with « Could not
+automatically determine the process-level CryptoProvider ».</p>
+<h2 id="related-pages"><a class="header" href="#related-pages">Related pages</a></h2>
+<ul>
+<li><a href="ferra-error-handling.html"><code>ferra-error-handling.md</code></a> — the full typed-error surface
+and the closed <code>ERROR_TYPES</code> namespace.</li>
+<li><a href="projections-and-routing.html"><code>projections-and-routing.md</code></a> — projection URLs and field sets; a projection route follows the model’s rules and, with <code>authorize</code>, its own.</li>
+<li><a href="foundry.html"><code>foundry.md</code></a> — mounting, versioning, and transport-layer composition.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="pagination.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ferra-openapi.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="pagination.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ferra-openapi.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,7 +196,7 @@ one of two things:</p>
 <ol>
 <li><strong>Direct re-export</strong> — when an upstream crate already offers a stable,
 namespaced surface, Ferra simply re-exports it under <code>ferra::*</code>. You import
-<code>ferra::sea_orm::DatabaseConnection</code>, <code>ferra::biscuit_quote::check</code>, and
+<code>ferra::sea_orm::DatabaseConnection</code>, <code>ferra::garde::Validate</code>, and
 you call them with the API the upstream crate documents. There is no
 Ferra-renamed equivalent.</li>
 <li><strong>Default-locking + opt-in feature</strong> — when an upstream crate is correct
@@ -207,12 +207,12 @@ only lands when you opt in.</li>
 <p>Ferra introduces a wrapper or a Ferra-defined trait <strong>only</strong> when one of
 three things is true:</p>
 <ul>
-<li>There is concrete behaviour to inject at the call site (logging,
-validation, span propagation).</li>
+<li>There is concrete behaviour to inject at the call site (authorization,
+validation, links, error mapping).</li>
 <li>A typed Ferra newtype prevents misuse that the upstream type does not
-catch (<code>Email</code>, <code>UserId</code>).</li>
-<li>A Ferra trait abstracts over multiple backends with build-time or
-runtime swap-out (<code>FerraAuthProvider</code>, <code>RateLimitStore</code>).</li>
+catch (<code>Id</code>, <code>DateTime</code>, <code>Date</code>, <code>Time</code>).</li>
+<li>A Ferra trait is the seam an application plugs into (<code>FerraIdentity</code>, which
+turns your token claims into an identity).</li>
 </ul>
 <p>If none of those apply, the upstream surface is exposed verbatim and the
 upstream documentation is the canonical reference.</p>
@@ -227,19 +227,23 @@ upstream documentation is the canonical reference.</p>
 </thead>
 <tbody>
 <tr><td><code>ferra::Foundry</code></td><td>The router builder — <code>Foundry::new(conn).mount::&lt;M&gt;().build()</code>.</td></tr>
-<tr><td><code>ferra::Id</code></td><td>The framework’s identifier type used by <code>#[id]</code> fields.</td></tr>
-<tr><td><code>ferra::Router</code></td><td>The composed Axum router returned by <code>Foundry::build()</code>.</td></tr>
+<tr><td><code>ferra::Id</code></td><td>The framework’s identifier type (a UUID v7), usable as a key.</td></tr>
 <tr><td><code>ferra::FerraError</code></td><td>The framework-wide error enum surfaced in HTTP responses.</td></tr>
 <tr><td><code>ferra::FerraLayer</code></td><td>The Tower layer composition entry point.</td></tr>
+<tr><td><code>ferra::JwtConfig</code></td><td>The JWT configuration handed to <code>.with_auth</code>.</td></tr>
+<tr><td><code>ferra::FerraIdentity</code></td><td>The trait your token claims implement: an id and a role test.</td></tr>
+<tr><td><code>ferra::Resource</code></td><td>A model’s rows from a route of your own, under its rules.</td></tr>
 <tr><td><code>#[derive(FerraModel)]</code></td><td>The proc-macro that turns a struct into a Ferra resource.</td></tr>
 <tr><td><code>#[ferra(...)]</code></td><td>The attribute namespace for Ferra-specific concerns.</td></tr>
-<tr><td><code>#[id]</code>, <code>#[field(...)]</code></td><td>Field-level attributes for primary keys and projection rules.</td></tr>
+<tr><td><code>#[field(...)]</code></td><td>Field-level attributes: validation, filter, sort, owner.</td></tr>
+<tr><td><code>#[behavior(...)]</code></td><td>Struct-level behaviors: <code>soft_delete</code>, <code>timestampable</code>.</td></tr>
 <tr><td><code>#[authorize(...)]</code></td><td>Operation-level authorization rules.</td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>Ingot</code>, <code>ferra-forge</code>, <code>ferra-anvil</code> thematic names belong to internal
-documentation. You will not see them in your application code.</p>
+<p>The names of the implementation crates (<code>ferra-core</code>, <code>ferra-forge</code>, <code>ferra-db</code>,
+<code>ferra-http</code>, <code>ferra-openapi</code>) belong to the framework’s own sources. You will not
+see them in your application code.</p>
 <h3 id="re-exported-upstream-surface"><a class="header" href="#re-exported-upstream-surface">Re-exported upstream surface</a></h3>
 <p>The rest of <code>ferra::*</code> is re-exports. The biggest namespaces:</p>
 <div class="table-wrapper">
@@ -249,66 +253,69 @@ documentation. You will not see them in your application code.</p>
 </thead>
 <tbody>
 <tr><td><code>ferra::sea_orm</code></td><td>All of <code>sea_orm</code></td><td><a href="https://docs.rs/sea-orm"><code>sea_orm</code> docs.rs</a></td></tr>
-<tr><td><code>ferra::biscuit_quote</code></td><td>All of <code>biscuit-quote</code></td><td><a href="https://docs.rs/biscuit-quote"><code>biscuit-quote</code> docs.rs</a></td></tr>
-<tr><td><code>ferra::tracing</code></td><td>All of <code>tracing</code></td><td><a href="https://docs.rs/tracing"><code>tracing</code> docs.rs</a></td></tr>
+<tr><td><code>ferra::garde</code></td><td>All of <code>garde</code></td><td><a href="https://docs.rs/garde"><code>garde</code> docs.rs</a></td></tr>
 </tbody>
 </table>
 </div>
 <p>When you write:</p>
-<pre><code class="language-rust ignore">use ferra::sea_orm::Database;
+<pre class="playground"><code class="language-rust no_run">use ferra::sea_orm::Database;
 
-let conn = Database::connect("postgres://...").await?;</code></pre>
+<span class="boring">async fn demo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let conn = Database::connect("postgres://localhost/films").await?;
+<span class="boring">let _ = conn;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>…you are calling <code>sea_orm::Database::connect</code>. The upstream documentation
 applies verbatim. There is no Ferra-side wrapping.</p>
-<h3 id="crate-graph-modules-pubcrate-items-glob-exported-at-root"><a class="header" href="#crate-graph-modules-pubcrate-items-glob-exported-at-root">Crate graph: modules <code>pub(crate)</code>, items glob-exported at root</a></h3>
-<p>Every framework implementation crate (<code>ferra-core</code>, <code>ferra-db</code>,
-<code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>) keeps its modules
-<code>pub(crate)</code> and re-exports its public items at its crate root. The
-facade then writes <code>pub use ferra_&lt;crate&gt;::*;</code> once per implementation
-crate. A consequence is that two implementation crates can share a
-module name (<code>emit</code>, <code>routes</code>, <code>schema</code>, …) without collisions: only
-the items at each crate’s root reach the facade, and the items
-themselves are uniquely named across the workspace.</p>
-<p>This rule is enforced mechanically. The <code>cargo clippy --workspace -- -D ambiguous_glob_reexports</code> lint fires the moment two glob
-re-exports in the facade name the same item from different sources;
-CI gates the lint as a release-blocker (FR-024). A future regression
-that exposes a sub-module from any implementation crate as <code>pub</code>
-would be caught the next time the facade picks up a sibling-crate
-item with the same name.</p>
-<p>If you are reading the source code: prefer the absence of <code>pub mod</code>
-on every implementation crate’s <code>lib.rs</code>. The single exception is
-<code>ferra::prelude</code> on the facade itself — the prelude is intended to be
-opened directly by consumers, so its module visibility is <code>pub</code> (FR-025).</p>
+<p><strong>The documented way is a direct dependency.</strong> An application declares <code>sea-orm</code>
+next to <code>ferra</code>, at the same major version, and writes <code>sea_orm::…</code>
+(<a href="./getting-started.html#create-the-project">Getting started</a>); the re-export is
+offered, supported and tested, for an application that would rather declare
+none. Both write the same derive: Sea-ORM’s derives expand to <code>sea_orm::…</code> with
+no leading <code>::</code>, so the name <code>sea_orm</code> has to be in scope of every file that
+uses one, which is why <code>use ferra::sea_orm;</code> (or <code>use ferra::prelude::*;</code>) opens
+a file written the re-export way. A project with a direct <code>sea-orm</code> of another
+major is refused by <a href="./ferra-forge-diagnostics.html#frg-400--two-copies-of-sea-orm"><code>FRG-400</code></a>.</p>
+<h3 id="crate-graph-an-explicit-list-at-the-root"><a class="header" href="#crate-graph-an-explicit-list-at-the-root">Crate graph: an explicit list at the root</a></h3>
+<p>The <code>ferra</code> facade exports a fixed list of names, each one chosen: no
+<code>pub use ferra_&lt;crate&gt;::*</code> glob, so an item added to an implementation crate
+does not reach your code by accident. The list is the public contract
+(<code>api/ferra.txt</code>, <a href="stability.html"><code>stability.md</code></a>); everything else in the
+implementation crates is <code>#[doc(hidden)]</code> or not public at all, and may change
+without notice. <code>ferra::sea_orm</code> and <code>ferra::garde</code> are the exceptions in the
+other direction: those two are the upstream crates, whole.</p>
+<p><code>ferra::prelude</code> is the module meant to be opened with a glob: the derive, the
+time types, <code>Foundry</code>, the typed extractors and Sea-ORM’s entity prelude.</p>
 <hr>
 <h2 id="cargo-feature-surface"><a class="header" href="#cargo-feature-surface">Cargo feature surface</a></h2>
-<p>Ferra’s default dependency graph is intentionally lean. Heavy or
-audience-partial features are opt-in.</p>
+<p>An application enables features on <code>ferra</code>, never on an implementation crate.
+Both are off by default.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature flag</th><th>What it enables</th><th>When you want it</th></tr>
+<tr><th>Feature</th><th>What it enables</th><th>When you want it</th></tr>
 </thead>
 <tbody>
-<tr><td><em>(default)</em></td><td>Core framework + <code>tracing</code> + structured stderr JSON logging</td><td>Always.</td></tr>
-<tr><td><code>otel</code></td><td>OpenTelemetry SDK + OTLP/HTTP exporter (locked to upstream-default transport)</td><td>You run an OTel collector and want OTLP exports.</td></tr>
-<tr><td><code>otel-grpc</code></td><td><code>otel</code> + gRPC transport (instead of HTTP/protobuf)</td><td>Your collector requires gRPC and your ingress preserves HTTP/2.</td></tr>
-<tr><td><code>otel-fips</code></td><td><code>otel</code> + runtime-installed FIPS-compliant rustls <code>CryptoProvider</code></td><td>FIPS-compliant deployments.</td></tr>
+<tr><td><em>(default)</em></td><td>The whole framework, with <code>tracing</code> events</td><td>Always.</td></tr>
+<tr><td><code>observability</code></td><td>A <code>metrics</code> counter, <code>ferra.sunset.post_sunset_hits</code>, for the requests that reach a deprecated API version after its sunset date</td><td>You run a <code>metrics</code> recorder.</td></tr>
+<tr><td><code>test-support</code></td><td><code>MountedRoute</code> and <code>FoundryBuilder::route_table</code>, to enumerate the mounted routes in a test</td><td><code>[dev-dependencies]</code> only.</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="activating-a-feature"><a class="header" href="#activating-a-feature">Activating a feature</a></h3>
 <pre><code class="language-toml">[dependencies]
-ferra = { package = "ferra-rs", version = "0.x", features = ["otel"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1", features = ["observability"] }
 </code></pre>
-<blockquote>
-<p>The <code>package = "ferra-rs"</code> alias is required because the <code>ferra</code> name
-on crates.io is owned by an unrelated project; the framework’s facade
-is published as <code>ferra-rs</code>. See <a href="./getting-started.html#important-the-crate-is-published-as-ferra-rs">Getting Started</a>
-for full details.</p>
-</blockquote>
-<p>Adding the feature pulls the locked OTel SDK pin into your build; without
-the feature, none of those crates compile. There is no runtime check —
-the choice is at compile time.</p>
+<p>The implementation crates have features of their own that you do not set:</p>
+<ul>
+<li><code>ferra-core/sea-orm</code> — implements Sea-ORM’s value traits for <code>Id</code>, <code>DateTime</code>,
+<code>Date</code> and <code>Time</code>, so that they are columns. <code>ferra-db</code> enables it: it is on in
+every application that uses <code>ferra</code>. It is tied to Sea-ORM 2.x, adds no I/O
+dependency to <code>ferra-core</code>, and goes away the day Sea-ORM reads <code>jiff</code> itself.</li>
+<li><code>ferra-core/openapi</code> — the OpenAPI schemas of the date types; <code>ferra-openapi</code>
+enables it.</li>
+</ul>
+<p>There is no OpenTelemetry feature in 0.9.0.</p>
 <hr>
 <h2 id="where-to-look-for-documentation"><a class="header" href="#where-to-look-for-documentation">Where to look for documentation</a></h2>
 <div class="table-wrapper">
@@ -318,10 +325,10 @@ the choice is at compile time.</p>
 </thead>
 <tbody>
 <tr><td>How do I declare a model?</td><td>This user guide → <a href="./ferra-forge.html"><code>ferra-forge.md</code></a></td></tr>
-<tr><td>What does <code>Foundry::new(...)</code> do?</td><td>This user guide → <a href="./ferra-http.html"><code>ferra-http.md</code></a></td></tr>
+<tr><td>What does <code>Foundry::new(...)</code> do?</td><td>This user guide → <a href="./foundry.html"><code>foundry.md</code></a></td></tr>
 <tr><td>How do I run a database query?</td><td>Upstream — <code>sea_orm</code> docs.rs (Ferra re-exports verbatim)</td></tr>
-<tr><td>What are valid Datalog rules in <code>#[authorize]</code>?</td><td>Upstream — <code>biscuit</code> documentation + the rule grammar reference</td></tr>
-<tr><td>How do I configure tracing subscribers?</td><td>Upstream — <code>tracing-subscriber</code> docs.rs (Ferra re-exports verbatim)</td></tr>
+<tr><td>What are valid rules in <code>#[authorize]</code>?</td><td><a href="./ferra-auth.html"><code>ferra-auth.md</code></a></td></tr>
+<tr><td>How do I configure tracing subscribers?</td><td>Upstream — <code>tracing-subscriber</code> docs.rs (Ferra emits <code>tracing</code> events)</td></tr>
 </tbody>
 </table>
 </div>
@@ -334,41 +341,55 @@ makes a Ferra application legible to AI agents trained on the broader
 Rust ecosystem.</p>
 <hr>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
-<p>A complete Ferra application demonstrating both halves of the principle:</p>
-<pre><code class="language-rust ignore">// Cargo.toml:
-//   ferra = { package = "ferra-rs", version = "0.x", features = ["otel"] }
+<p>A complete Ferra application written the re-export way, with no <code>sea-orm</code> of its
+own, demonstrating both halves of the principle:</p>
+<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+// (plus tokio, axum and serde, as in Getting started)
 
-// Direct re-export (Half A): upstream `sea_orm` reached without renaming.
-use ferra::sea_orm::Database;
-
-// Direct re-export (Half A): upstream `biscuit-quote::check` for compile-time
-// Datalog. A typo here is a `cargo build` error, not a runtime panic.
-use ferra::biscuit_quote::check;
+// Direct re-export (half A): upstream `sea_orm` reached without renaming.
+use ferra::sea_orm::{self, Database};
+use ferra::sea_orm::entity::prelude::*;
 
 // Ferra-defined surface: the model derive, the router builder.
-use ferra::{Foundry, FerraModel, Id};
+use ferra::{FerraModel, Foundry};
+use serde::{Deserialize, Serialize};
 
-#[derive(FerraModel)]
-struct Film {
-    #[id]
-    id: Id,
-    title: String,
+mod film {
+    use super::*;
+
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "none")] // deliberately public: this example has no JWT
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub title: String,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
 }
 
 #[tokio::main]
-async fn main() -&gt; anyhow::Result&lt;()&gt; {
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // Upstream API (sea_orm): no Ferra-side wrapper.
     let conn = Database::connect("postgres://localhost/films").await?;
 
     // Ferra-defined: the router composition surface.
-    let app = Foundry::new(conn).mount::&lt;Film&gt;().build();
+    let app = Foundry::new(conn).mount::&lt;film::Model&gt;().build();
 
-    // Upstream API (axum / hyper): Ferra returns a standard Axum Router.
-    axum::serve(tokio::net::TcpListener::bind("0.0.0.0:3000").await?, app).await?;
+    // Upstream API (axum): Ferra returns a standard axum Router.
+    axum::serve(
+        tokio::net::TcpListener::bind("0.0.0.0:3000").await?,
+        app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;(),
+    )
+    .await?;
     Ok(())
 }</code></pre>
-<p>The same application without the <code>otel</code> feature compiles to a smaller
-binary; the OTel SDK is not in the dependency graph at all.</p>
+<p>The <code>observability</code> feature (a <code>metrics</code> counter for post-sunset requests) is
+off by default: without it, the <code>metrics</code> crate is not in the dependency graph.</p>
 <hr>
 <h2 id="when-you-need-a-ferra-wrapper-that-does-not-yet-exist"><a class="header" href="#when-you-need-a-ferra-wrapper-that-does-not-yet-exist">When you need a Ferra wrapper that does not yet exist</a></h2>
 <p>If you find yourself wanting a Ferra-side wrapper around an upstream
@@ -423,11 +444,11 @@ that point. Until then, the upstream surface is the documented path.</p>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

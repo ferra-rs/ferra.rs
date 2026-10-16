@@ -1,0 +1,724 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Pagination - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-5b3de983.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/pagination.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="pagination--collection-read-parameters"><a class="header" href="#pagination--collection-read-parameters"><code>pagination</code> — collection-read parameters</a></h1>
+<p><em>Filterable, sortable, page- and cursor-paginated collection reads derived from a single Sea-ORM entity with the <code>FerraModel</code> derive: declare the safelist in the type system, get parameterised SQL, a documented OpenAPI surface and HAL navigation links for free.</em></p>
+<p>This page is the <strong>authoritative user-guide</strong> for the collection-read query parameters: <code>filter[&lt;field&gt;]</code>, <code>sort</code>, <code>page</code>, <code>per_page</code>, and <code>cursor</code>. A reader with only this page plus standard Rust knowledge produces a working filterable / sortable / cursor-paginated endpoint on the first attempt — no ADR, no constitution, and no framework source is required.</p>
+<p>The two related pages — <a href="ferra-http.html"><code>ferra-http.md</code></a> (the handler layer) and <a href="ferra-openapi.html"><code>ferra-openapi.md</code></a> (the API specification surface) — describe the broader CRUD shape and the OpenAPI emission respectively. This page focuses exclusively on the collection-read parameter surface.</p>
+<hr>
+<p><strong>Dependencies.</strong> The examples on this page assume the dependencies of
+<a href="getting-started.html">Getting started</a>:</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
+<h2 id="zero-to-filter-in-two-lines"><a class="header" href="#zero-to-filter-in-two-lines">Zero-to-filter in two lines</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(filterable)]               // ← that's the whole opt-in
+    pub title: String,
+    #[field(filterable)]
+    pub director: String,
+    pub release_year: i32,             // not filterable — no attribute
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>Mount the model and issue a filtered request:</p>
+<pre><code class="language-bash">GET /films?filter[director]=Alice
+</code></pre>
+<p>You get a parameterised <code>WHERE director = $1</code> SQL statement (<code>Alice</code> is bound, never interpolated), a 200 response carrying only Alice’s films, and an OpenAPI <code>filter[director]</code> query parameter on <code>/docs/openapi.json</code> describing the surface to consumers.</p>
+<p>A request naming a non-safelisted field (<code>?filter[release_year]=1999</code>) returns HTTP 400 with <code>application/problem+json</code>:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/validation",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "filter field `release_year` is not filterable; allowed: director, title"
+}
+</code></pre>
+<p>No database statement is issued for the rejected request — the safelist gate fires inside the extractor, before the handler runs.</p>
+<hr>
+<h2 id="filtering"><a class="header" href="#filtering">Filtering</a></h2>
+<h3 id="the-fieldfilterable-marker"><a class="header" href="#the-fieldfilterable-marker">The <code>#[field(filterable)]</code> marker</a></h3>
+<p>Apply <code>#[field(filterable)]</code> to every field that should accept a <code>filter[&lt;field-name&gt;]=&lt;value&gt;</code> query parameter. The marker is the <strong>complete opt-in</strong>: a field with no marker accepts no filter. Per Constitution §I, the framework’s default posture is restrictive — a <code>Film</code> model that marks zero fields filterable accepts no <code>filter[...]</code> parameter; every request carrying <code>?filter[anything]=...</code> returns 400 before any SQL is issued.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(filterable)]
+    pub title: String,
+    #[field(filterable)]
+    pub director: String,
+    pub internal_note: String,         // not exposed as a filter
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>Multiple filter parameters compose as a single <code>AND</code>-joined <code>WHERE</code>:</p>
+<pre><code class="language-bash">GET /films?filter[director]=Alice&amp;filter[title]=Citizen%20Kane
+</code></pre>
+<p>emits</p>
+<pre><code class="language-sql">SELECT ... FROM films
+ WHERE director = $1 AND title = $2
+ ORDER BY id ASC
+ LIMIT $3
+</code></pre>
+<p>with <code>$1</code>=<code>Alice</code> and <code>$2</code>=<code>Citizen Kane</code> bound as typed Postgres parameters.</p>
+<p>The parameter uses the field’s wire name: on a model that declares
+<code>#[ferra(rename_all = "camelCase")]</code>, write <code>filter[releaseYear]=…</code> and
+<code>sort=-releaseYear</code> (see <a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Field names on the wire).</p>
+<h3 id="allowed-types"><a class="header" href="#allowed-types">Allowed types</a></h3>
+<p>The filter wire shape carries a single string value per key, type-coerced at the extractor against the field’s underlying Rust type:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rust type</th><th>Accepted value shape</th><th>Failure → rejection</th></tr>
+</thead>
+<tbody>
+<tr><td><code>String</code></td><td>any string (incl. empty)</td><td>never</td></tr>
+<tr><td><code>i32</code> / <code>i64</code></td><td>base-10 integer literal</td><td><code>field … expects integer, received …</code></td></tr>
+<tr><td><code>f64</code></td><td>base-10 number literal</td><td><code>field … expects number, received …</code></td></tr>
+<tr><td><code>bool</code></td><td><code>"true"</code> / <code>"false"</code></td><td><code>field … expects boolean, received …</code></td></tr>
+<tr><td><code>uuid::Uuid</code> / <code>Id</code></td><td>RFC 4122 hyphenated UUID</td><td><code>field … expects uuid, received …</code></td></tr>
+<tr><td><code>Option&lt;T&gt;</code> (for the above)</td><td>same as <code>T</code>; empty rejected¹</td><td>same shape</td></tr>
+</tbody>
+</table>
+</div>
+<p>¹ Empty strings on <code>String</code> / <code>Option&lt;String&gt;</code> are accepted as the empty string. Empty strings on every other type are a type-coercion failure per FR-007a’s closing clause.</p>
+<p><code>ferra::DateTime</code>, <code>ferra::Date</code> and <code>ferra::Time</code> fields (and their <code>Option</code>) are
+filtered like the others, and also with comparison operators (next section).</p>
+<h3 id="operators-and-date-fields"><a class="header" href="#operators-and-date-fields">Operators and date fields</a></h3>
+<p><code>filter[&lt;field&gt;]=&lt;v&gt;</code> is equality; it is the same as <code>filter[&lt;field&gt;][eq]=&lt;v&gt;</code>. On a
+<code>ferra::DateTime</code>, <code>Date</code> or <code>Time</code> field (and their <code>Option</code>), four comparison
+operators are available as well: <code>gt</code>, <code>gte</code>, <code>lt</code>, <code>lte</code>.</p>
+<pre><code class="language-bash">GET /events?filter[starts_at][gte]=2026-10-03T00:00:00Z&amp;filter[starts_at][lt]=2026-10-04T00:00:00Z
+GET /events?filter[day]=2026-10-03
+</code></pre>
+<p>Two operators on one field are two parameters, so a range is
+<code>filter[f][gt]=…&amp;filter[f][lt]=…</code>. A comparison on any other type
+(<code>filter[title][gt]=a</code>), or an operator that does not exist (<code>filter[f][between]=…</code>),
+is 400 with the code <code>unsupported_operator</code>; so is empty brackets, <code>filter[f][]=v</code>, which is not equality (the error names the declared field, <code>filter[f][]</code>, after the filter safelist has accepted <code>f</code>). A <code>NULL</code> matches no comparison.</p>
+<p>The values have one spelling each, so a client does not depend on what a date library
+happens to accept:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Accepted</th><th>Refused (400 <code>invalid_date</code>)</th></tr>
+</thead>
+<tbody>
+<tr><td><code>DateTime</code></td><td>RFC 3339 in UTC: <code>2026-10-03T10:00:00Z</code> or <code>2026-10-03T10:00:00+00:00</code> (<code>+</code> is <code>%2B</code> in a URL), with an optional fraction</td><td>any other offset (<code>+01:00</code>), <code>-00:00</code>, a lowercase <code>t</code> or <code>z</code>, a space for the <code>T</code>, a <code>[Europe/Paris]</code> annotation, a date alone</td></tr>
+<tr><td><code>Date</code></td><td><code>2026-10-03</code></td><td>a date-time, a date that does not exist</td></tr>
+<tr><td><code>Time</code></td><td><code>10:00:00</code> or <code>10:00:00.25</code></td><td>any offset, <code>Z</code>, a missing seconds part</td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>DateTime</code> is stored to the microsecond, and a filter value is cut to the
+microsecond, like the values a model writes.</p>
+<h3 id="rejection-shapes"><a class="header" href="#rejection-shapes">Rejection shapes</a></h3>
+<p>The extractor produces one of two rejection shapes, both with <code>application/problem+json</code> content type and <code>type: https://ferra.rs/errors/validation</code>:</p>
+<p><strong>Unsafelisted filter field</strong> (<code>?filter[release_year]=1999</code> on a model that does not mark <code>release_year</code> as filterable):</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/validation",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "filter field `release_year` is not filterable; allowed: director, title"
+}
+</code></pre>
+<p><code>detail</code> names the rejected field AND lists the allowed filterable set in stable alphabetical order. A model that marks zero fields filterable rejects every <code>?filter[...]=</code> request with <code>"no fields on this resource are filterable"</code>.</p>
+<p>A field with a <code>#[field(read = …)]</code> rule (0.13.0) is in the allowed set of the callers who may read it only: a caller who may not read <code>salary</code> gets this same rejection for <code>?filter[salary]=…</code> and for <code>?sort=salary</code>, with an <code>allowed</code> list that leaves <code>salary</code> out, byte for byte what a model without the field answers. See <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Field rules.</p>
+<p><strong>Filter value type-coercion failure</strong> (<code>?filter[release_year]=not-a-number</code> when <code>release_year</code> is <code>i32</code>):</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/validation",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "field `release_year` expects integer, received `not-a-number`"
+}
+</code></pre>
+<p><code>detail</code> names the field AND the expected JSON-schema type. The framework MUST NOT issue any database statement for either rejection shape — the gate runs inside the extractor.</p>
+<h3 id="compile-time-gates"><a class="header" href="#compile-time-gates">Compile-time gates</a></h3>
+<p>A field marked <code>#[field(filterable)]</code> AND <code>#[ferra(skip)]</code> simultaneously fails to compile with diagnostic FRG-350
+(<a href="ferra-forge-diagnostics.html#frg-350--fieldfilterable--fieldsortable-on-a-ferraskip-field">bad and good example, compiled</a>):</p>
+<pre><code class="language-text">error: FRG-350: field `internal_note` cannot be both `#[ferra(skip)]` and `#[field(filterable)]`
+         help: remove `#[ferra(skip)]` to expose the field, or remove the `filterable` / `sortable` marker to keep the field internal
+         note: a field invisible to the API surface cannot be addressable from the API surface as a filter or sort key; see Spec 011 FR-003
+  --&gt; src/models/task.rs:18:9
+   |
+18 |     pub internal_note: String,
+   |         ^^^^^^^^^^^^^
+</code></pre>
+<p>A field invisible to the API surface cannot be addressable from the API surface as a filter key — the contradiction is decidable from the field’s declaration alone, so it lives at compile time per Constitution §III.</p>
+<h3 id="openapi-surface"><a class="header" href="#openapi-surface">OpenAPI surface</a></h3>
+<p>Every filterable field surfaces in the generated OpenAPI document as a query parameter on the model’s <code>GET /{resource}</code> operation:</p>
+<pre><code class="language-yaml">parameters:
+  - name: filter[director]
+    in: query
+    required: false
+    schema:
+      type: string
+    description: Filter on `director` (exact-match equality predicate). See …
+  - name: filter[title]
+    in: query
+    required: false
+    schema:
+      type: string
+    description: Filter on `title` (exact-match equality predicate). See …
+</code></pre>
+<p>Parameters appear in stable alphabetical order by field name. Adding a new <code>#[field(filterable)]</code> to a model automatically widens the OpenAPI parameter set on the next emission — no parallel parameter list to maintain.</p>
+<h3 id="edge-cases"><a class="header" href="#edge-cases">Edge cases</a></h3>
+<ul>
+<li><strong>Duplicate keys</strong>: a key Ferra reads (<code>filter[…]</code>, <code>sort</code>, <code>page</code>, <code>per_page</code>, <code>cursor</code>) that appears twice, after percent-decoding, is 400 with the code <code>duplicate_parameter</code>, and no statement runs. <code>filter[title]</code> and <code>filter[title][eq]</code> are one key; <code>filter[at][gt]</code> and <code>filter[at][lt]</code> are two. A key Ferra does not read (<code>?utm=a&amp;utm=b</code>) is left alone. Before 0.11.0 the last value won.</li>
+<li><strong><code>filter[f][]=v</code></strong>: empty brackets are the operator <code>[]</code>, which no field supports: 400 <code>unsupported_operator</code>, raised after the safelist check, naming only the declared field. Before 0.12.0 it read as equality. In Rust, <code>CollectionQuery::with_filter("f[eq]", v)</code> filters by equality like <code>filter[f][eq]=v</code> (it used to fail).</li>
+<li><strong><code>page=abc</code></strong>: a <code>page</code> or <code>per_page</code> that is not a non-negative integer is 400 with the code <code>invalid_parameter</code>, naming the parameter. Before 0.11.0 it fell back to the default. A valid number out of range is still clamped (<code>page=0</code> is <code>1</code>, <code>per_page</code> above 100 is 100; no <code>Warning</code> header since 0.12.0, the body’s <code>per_page</code> is the applied value).</li>
+<li><strong>Filter on a <code>cursor</code>-mode model</strong>: filter parameters compose with cursor pagination — the §Cursor pagination section (added at US3) describes the composition.</li>
+<li><strong>Composite-PK models</strong>: filter parameters address individual columns, not the composite key. Filtering on a composite PK column works the same as filtering on any other field.</li>
+</ul>
+<hr>
+<h2 id="sorting"><a class="header" href="#sorting">Sorting</a></h2>
+<h3 id="the-fieldsortable-marker"><a class="header" href="#the-fieldsortable-marker">The <code>#[field(sortable)]</code> marker</a></h3>
+<p>Apply <code>#[field(sortable)]</code> to every field that should accept a <code>sort=&lt;field-name&gt;</code> (ascending) or <code>sort=-&lt;field-name&gt;</code> (descending) query parameter. The marker is the <strong>complete opt-in</strong> — a field with no marker is not addressable as a sort key. Per Constitution §I, the default posture is restrictive.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(filterable, sortable)]
+    pub title: String,
+    #[field(sortable)]
+    pub release_year: i32,
+    pub director: String,           // not sortable
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>The parameter uses the field’s wire name: on a model that declares
+<code>#[ferra(rename_all = "camelCase")]</code>, write <code>filter[releaseYear]=…</code> and
+<code>sort=-releaseYear</code> (see <a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Field names on the wire).</p>
+<h3 id="direction-marker"><a class="header" href="#direction-marker">Direction marker</a></h3>
+<p>The single <code>sort</code> query parameter encodes both the field name and the direction via a leading-minus convention:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Wire form</th><th>SQL emission</th></tr>
+</thead>
+<tbody>
+<tr><td><code>?sort=title</code></td><td><code>ORDER BY title ASC</code></td></tr>
+<tr><td><code>?sort=-title</code></td><td><code>ORDER BY title DESC</code></td></tr>
+<tr><td><code>?sort=-release_year</code></td><td><code>ORDER BY release_year DESC</code></td></tr>
+<tr><td><em>(omitted)</em></td><td><code>ORDER BY &lt;primary-key&gt; ASC</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The omitted-sort default is deterministic: <code>ORDER BY &lt;primary-key-col&gt; ASC</code>. Repeated identical requests return rows in identical order. Two rows whose sort-column values are equal are tiebroken by the primary-key default. Composite-PK models tiebreak on <code>primary_key_fields[0]</code> per the declaration-order rule pinned in ADR-0029.</p>
+<h3 id="rejection-shape"><a class="header" href="#rejection-shape">Rejection shape</a></h3>
+<p>A request naming a non-safelisted sort field (<code>?sort=director</code> when <code>director</code> is not marked sortable) returns HTTP 400 with <code>application/problem+json</code>:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/validation",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "sort field `director` is not sortable; allowed: release_year, title"
+}
+</code></pre>
+<p><code>detail</code> names the rejected field AND lists the allowed sortable set in stable alphabetical order. No fuzzy matching — a typo on the field name (<code>?sort=titles</code>) lands here too, not as a closest-match substitution.</p>
+<h3 id="compile-time-gate"><a class="header" href="#compile-time-gate">Compile-time gate</a></h3>
+<p>A field marked <code>#[field(sortable)]</code> AND <code>#[ferra(skip)]</code> simultaneously fails to compile with the same FRG-350 diagnostic the filterable+skip case produces — the two markers share the same gate per FR-003.</p>
+<h3 id="openapi-surface-1"><a class="header" href="#openapi-surface-1">OpenAPI surface</a></h3>
+<p>Every sortable field surfaces in the generated OpenAPI document as a single enum-constrained <code>sort</code> parameter on the model’s <code>GET /{resource}</code> operation. The enum carries both the bare-name and leading-minus form for every sortable field, alphabetised across field names:</p>
+<pre><code class="language-yaml">parameters:
+  - name: sort
+    in: query
+    required: false
+    schema:
+      type: string
+      enum:
+        - release_year
+        - "-release_year"
+        - title
+        - "-title"
+    description: Sort the collection by one of 2 fields (ascending by default; leading `-` selects descending). When omitted, results are ordered by the model's primary-key column ascending. See …
+</code></pre>
+<p>Adding a new <code>#[field(sortable)]</code> to a model automatically widens this enum on the next emission — no parallel enum to maintain.</p>
+<h3 id="composition-with-filtering"><a class="header" href="#composition-with-filtering">Composition with filtering</a></h3>
+<p>Filter and sort parameters compose in a single SQL statement:</p>
+<pre><code class="language-bash">GET /films?filter[director]=Alice&amp;sort=-release_year
+</code></pre>
+<p>emits</p>
+<pre><code class="language-sql">SELECT ... FROM films
+ WHERE director = $1
+ ORDER BY release_year DESC
+ LIMIT $2
+</code></pre>
+<p>with <code>$1</code>=<code>Alice</code> bound as a typed parameter. The composition is <code>WHERE &lt;filter-predicates-AND-composed&gt; ORDER BY &lt;sort-col&gt; &lt;direction&gt;</code> in deterministic order.</p>
+<p><strong>Order is always total.</strong> Without <code>sort</code>, a collection is ordered by primary key.
+With <code>sort</code>, rows with equal sort values are ordered by primary key. The same request
+therefore returns the same rows in the same order, page after page.</p>
+<p>Filters and sorts name the field; the SQL uses the field’s column, including one
+renamed with <code>#[sea_orm(column_name = "...")]</code>.</p>
+<hr>
+<h2 id="pagination-modes"><a class="header" href="#pagination-modes">Pagination modes</a></h2>
+<p>Every Ferra model carries one of three pagination postures, set via the model-level <code>#[ferra(pagination = …)]</code> attribute. The posture controls which query-string parameters the collection endpoint accepts:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Mode</th><th>Accepted parameters</th><th>Default?</th><th>When to use</th></tr>
+</thead>
+<tbody>
+<tr><td><code>page</code></td><td><code>?page=</code>, <code>?per_page=</code>, <code>?filter[...]</code>, <code>?sort=</code></td><td><strong>yes</strong> (absent attribute)</td><td>Small collections, admin UIs needing page numbers / total counts.</td></tr>
+<tr><td><code>cursor</code></td><td><code>?per_page=</code>, <code>?cursor=</code>, <code>?filter[...]</code>, <code>?sort=</code></td><td>no</td><td>Deep-pageable collections, infinite-scroll UIs, AI agents traversing data.</td></tr>
+<tr><td><code>both</code></td><td>All of the above (mutually exclusive: <code>?cursor</code> and <code>?page</code> cannot co-occur)</td><td>no</td><td>Public APIs that need to serve both paging shapes without versioning.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>page</code> is the framework default to preserve byte-identical behaviour for collections that existed before 0.7.5. Opting into <code>cursor</code> or <code>both</code> is a single line:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[ferra(pagination = "cursor")]    // ← opt-in
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(cursor_key)]            // ← exactly one field
+    pub created_id: i64,
+    pub title: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>The framework rejects mismatched parameters at the extractor boundary — no SQL is issued for the rejected request. Each rejection surfaces with <code>https://ferra.rs/errors/validation</code>:</p>
+<ul>
+<li><code>?cursor=…</code> on a <code>page</code>-mode model →
+<code>detail: "model effective pagination mode is page; cursor parameter is not accepted"</code>.</li>
+<li><code>?page=2</code> on a <code>cursor</code>-mode model →
+<code>detail: "model effective pagination mode is cursor; page parameter is not accepted"</code>.</li>
+<li><code>?cursor=…&amp;page=2</code> on a <code>both</code>-mode model →
+<code>detail: "cursor and page are mutually exclusive on this collection"</code>.</li>
+</ul>
+<hr>
+<h2 id="cursor-pagination"><a class="header" href="#cursor-pagination">Cursor pagination</a></h2>
+<p>Cursor pagination (also called <strong>keyset</strong> pagination) tracks the boundary of the previous page via an opaque cursor token instead of an offset. It has two qualities <code>page</code> pagination lacks:</p>
+<ol>
+<li><strong>O(log N) on every page.</strong> The SQL emits <code>WHERE &lt;cursor-key&gt; &gt; $1 OR (&lt;cursor-key&gt; = $1 AND &lt;pk&gt; &gt; $2) ORDER BY &lt;cursor-key&gt; ASC, &lt;pk&gt; ASC LIMIT N</code>, which traverses the cursor-key index directly. A cursor read walks the collection in cursor-key order, ascending or, with <code>sort=-&lt;key&gt;</code>, descending; a descending walk emits <code>WHERE &lt;cursor-key&gt; &lt; $1 OR (&lt;cursor-key&gt; = $1 AND &lt;pk&gt; &lt; $2) ORDER BY &lt;cursor-key&gt; DESC, &lt;pk&gt; DESC LIMIT N</code>. Deep pages cost the same as the first page — no <code>OFFSET</code> cliff.</li>
+<li><strong>Stable under concurrent inserts.</strong> A row inserted between two requests appears at its correct keyset position; no row disappears, no row duplicates. Page-mode <code>?page=2</code> shifts every row by one when a new row is inserted ahead of the page boundary.</li>
+</ol>
+<h3 id="accepted-cursor-key-shapes"><a class="header" href="#accepted-cursor-key-shapes">Accepted cursor-key shapes</a></h3>
+<p>The <code>#[field(cursor_key)]</code> marker names the column the framework orders by. The
+accepted types are <code>ferra::Id</code> / <code>Uuid</code>, <code>i64</code>, and (0.11.0) <code>ferra::DateTime</code>,
+<code>ferra::Date</code> and <code>ferra::Time</code>; a <code>cursor_key</code> field of any other type fails to
+compile with <code>FRG-351</code>. A date key pages in time order, newest first with
+<code>sort=-&lt;key&gt;</code>; it need not be unique (the primary key breaks ties, below), and the
+cursor brings the key back to the microsecond the database keeps. The model’s
+<code>ferra::Id</code> key, which the server generates as a UUID v7, still sorts by creation time.</p>
+<p>Keys need not be unique: on a model with a single-column primary key, the cursor
+carries the boundary row’s key <strong>and</strong> primary key, and rows with equal keys are
+ordered by primary key — no row is skipped or repeated between pages.</p>
+<h3 id="cursor-token-opacity"><a class="header" href="#cursor-token-opacity">Cursor token opacity</a></h3>
+<p>The token is a URL-safe base64 string. Consumers MUST treat it as a single opaque value — pass it through unmodified, don’t parse it, don’t reconstruct it. The framework reserves the right to change the internal encoding in a future minor release while continuing to accept previously-issued tokens for one release window. Since 0.11.0 a token also carries the direction of the walk; a token issued by 0.10.0 is read as an ascending one, so a walk in flight when a server is upgraded goes on. The token is not signed, so a caller can build one by hand. A token of the right shape is read, and all it does is choose the row after which the page starts. It cannot widen what the caller may see: the caller’s authorization scope and the request’s filters are applied to every row returned, whatever the token says.</p>
+<p>A malformed cursor produces HTTP 400 with the dedicated URI:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/invalid_cursor",
+  "title": "Invalid Cursor",
+  "status": 400,
+  "detail": "the supplied cursor token is invalid; drop the `cursor` query parameter and restart pagination"
+}
+</code></pre>
+<p>A cursor that decodes but does not fit the collection — a key of the wrong type, or a token issued before 0.9.0 — is refused the same way, before any query runs.</p>
+<p>The framework never echoes the bad cursor bytes back to the consumer — the <code>detail</code> is a fixed recovery hint regardless of which decode step failed (base64 decode, JSON parse, shape mismatch, or unknown version byte). The recovery is always the same: drop the <code>cursor</code> parameter and restart pagination from the first page.</p>
+<hr>
+<h2 id="cursor--filter-trade-off"><a class="header" href="#cursor--filter-trade-off">Cursor + filter trade-off</a></h2>
+<p>Cursor and filter compose in a single SQL statement:</p>
+<pre><code class="language-bash">GET /films?filter[director]=Alice&amp;cursor=&lt;token&gt;&amp;per_page=20
+</code></pre>
+<p>emits</p>
+<pre><code class="language-sql">SELECT ... FROM films
+ WHERE deleted_at IS NULL       -- inherited from #[behavior(soft_delete)]
+   AND (created_id &gt; $1 OR (created_id = $2 AND id &gt; $3))  -- cursor predicate: [key, primary key]
+   AND director = $4            -- filter predicate
+ ORDER BY created_id ASC, id ASC
+ LIMIT $5
+</code></pre>
+<p>On a descending walk (<code>?sort=-created_id</code>) the two comparisons of the cursor predicate are <code>&lt;</code> and the order is <code>created_id DESC, id DESC</code>.</p>
+<p>The trade-off: cursor <em>stability</em> is per-request, not cross-request. A cursor issued on a request with <code>?filter[director]=Alice</code> addresses “the next row after the boundary, filtered to Alice’s films”. If a follow-up request changes the filter to <code>?filter[director]=Bob</code>, the same cursor is still meaningful — it addresses the next row after the <code>(created_id, id)</code> boundary — but the resulting page is filtered to Bob’s films, which may overlap, undershoot, or overshoot the originally-intended traversal. Consumers traversing a filtered cursor stream should keep the filter constant for the duration of the traversal.</p>
+<hr>
+<h2 id="cursor--sort-restriction"><a class="header" href="#cursor--sort-restriction">Cursor + sort restriction</a></h2>
+<p>A cursor-paginated read walks the collection in the order of its cursor key:
+ascending by default, descending with a leading <code>-</code>. Whenever the cursor path
+serves the request (a <code>cursor</code>-mode model, or a <code>both</code>-mode model called with
+<code>?cursor=…</code>) the <code>sort</code> parameter, if present, must name the cursor key:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td><code>?cursor=&lt;token&gt;</code></td><td>200, ascending by the cursor key</td></tr>
+<tr><td><code>?cursor=&lt;token&gt;&amp;sort=created_id</code></td><td>200, same order</td></tr>
+<tr><td><code>?cursor=&lt;token&gt;&amp;sort=-created_id</code></td><td>200, descending, if the token was issued for a descending walk</td></tr>
+<tr><td><code>?cursor=&lt;ascending token&gt;&amp;sort=-created_id</code></td><td><strong>400</strong> <code>invalid_cursor</code>: the token is for the other direction</td></tr>
+<tr><td><code>?cursor=&lt;token&gt;&amp;sort=title</code></td><td><strong>400</strong> — <code>title</code> is not the cursor key</td></tr>
+</tbody>
+</table>
+</div>
+<p>A descending walk starts without a cursor: <code>?sort=-created_id</code>. The <code>next</code> link of a
+page carries <code>sort</code> and the request’s <code>filter[...]</code>, so following it continues the
+walk. When you build the next request yourself from <code>next_cursor</code> (the flat
+representation has no links), repeat <code>sort</code> and the filters: a token keeps the
+direction it was issued for, and a request that sorts the other way is refused with
+the same <code>invalid_cursor</code> as a malformed token.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/validation",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "sort field `title` does not match the cursor key `created_id`; cursor pagination requires `sort` to target the cursor key when present"
+}
+</code></pre>
+<p>The request is refused rather than answered in another order than the one it asked
+for. The OpenAPI document of a <code>cursor</code>-mode model lists the cursor key and its
+<code>-</code> form as the only <code>sort</code> values.</p>
+<hr>
+<h2 id="cursor--soft-delete-composition"><a class="header" href="#cursor--soft-delete-composition">Cursor + soft-delete composition</a></h2>
+<p>A model enrolled in <code>#[behavior(soft_delete)]</code> automatically excludes soft-deleted rows from every framework-generated <code>SELECT</code> — the same predicate composition that protects <code>find_by_id</code> and the page-mode <code>find_collection</code> applies to the cursor path by construction:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[ferra(pagination = "cursor")]
+#[behavior(soft_delete)]               // ← inherited filter
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(cursor_key)]
+    pub created_id: i64,
+    pub title: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>The cursor-mode SQL emits <code>WHERE deleted_at IS NULL AND created_id &gt; $1</code> automatically — soft-deleted rows are invisible to the cursor traversal. Restoring a soft-deleted row inserts it back into the cursor stream at its <code>created_id</code> position; subsequent cursor walks include it.</p>
+<hr>
+<h2 id="cursor-compile-time-diagnostics"><a class="header" href="#cursor-compile-time-diagnostics">Cursor compile-time diagnostics</a></h2>
+<p>The cursor surface is compile-checked end-to-end. Four diagnostics surface at <code>cargo check</code>:</p>
+<ul>
+<li>
+<p><strong><code>FRG-351</code> — cursor-key type not in the accepted set.</strong> Fires when <code>#[field(cursor_key)]</code> is applied to a <code>String</code>, a custom struct, or any type outside the closed list above (<code>Id</code>, <code>Uuid</code>, <code>i64</code>, <code>DateTime</code>, <code>Date</code>, <code>Time</code>). The diagnostic names the accepted shapes.</p>
+</li>
+<li>
+<p><strong><code>FRG-352</code> — cursor-key field is <code>Option&lt;T&gt;</code> (or a tuple with an <code>Option&lt;T&gt;</code> component).</strong> A nullable cursor key would silently drop rows whose key is <code>NULL</code> from the keyset traversal — the equality-vs-NULL three-valued logic puts those rows in an indeterminate state. Remove the <code>Option&lt;...&gt;</code> wrapper, or move the cursor key to a NOT-NULL sibling column.</p>
+</li>
+<li>
+<p><strong><code>FRG-353</code> — cursor-mode cardinality.</strong> A model declared <code>#[ferra(pagination = "cursor")]</code> or <code>#[ferra(pagination = "both")]</code> requires <em>exactly one</em> <code>#[field(cursor_key)]</code> field. Zero cursor-key fields surfaces on the <code>pagination</code> attribute value; more than one surfaces on every extra cursor-key field.</p>
+</li>
+<li>
+<p><strong><code>FRG-356</code> — a projection hides the cursor key.</strong> The cursor token carries the cursor key, and the primary key when it breaks ties. A model in <code>cursor</code> or <code>both</code> mode whose named projection lists <code>read = [...]</code> without one of them, or whose cursor key is <code>#[ferra(skip)]</code>, does not compile: the diagnostic names the projection and the field. Add the field to <code>read</code>, or choose another cursor key. A write-only cursor key is <code>FRG-354</code>.</p>
+</li>
+</ul>
+<p>The compile gates are release-blocker tests in the framework’s <code>trybuild</code> UI cohort — every diagnostic ships with a pinned <code>.stderr</code> golden so the text never drifts unannounced.</p>
+<hr>
+<h2 id="ferrawrite_only-fields-are-not-queryable"><a class="header" href="#ferrawrite_only-fields-are-not-queryable"><code>#[ferra(write_only)]</code> fields are not queryable</a></h2>
+<p>A <code>#[ferra(write_only)]</code> field cannot be <code>filterable</code>, <code>sortable</code> or a <code>cursor_key</code>
+(FRG-354): the rows a filter selects, or the order a sort gives, would reveal the
+value the API never returns — a password hash could be read back one prefix at a
+time. Filter, sort and page on fields the API returns.</p>
+<hr>
+<h2 id="hypermedia-links-in-cursor-mode"><a class="header" href="#hypermedia-links-in-cursor-mode">Hypermedia links in cursor mode</a></h2>
+<p>A cursor-mode collection response carries a <code>_links</code> shape distinct from page mode — the deliberate absence of <code>first</code> and <code>last</code> is a compile-time invariant of the framework’s <code>CursorCollectionLinks</code> type:</p>
+<pre><code class="language-json">{
+  "items": [ ... ],
+  "per_page": 20,
+  "next_cursor": "&lt;next-token&gt;",
+  "_links": {
+    "self": { "href": "/films?cursor=&lt;token&gt;&amp;per_page=20" },
+    "next": { "href": "/films?cursor=&lt;next-token&gt;&amp;per_page=20" },
+    "prev": { "href": "/films?per_page=20" }
+  }
+}
+</code></pre>
+<p>Behaviour:</p>
+<ul>
+<li><code>next_cursor</code> is in the body in both representations: the cursor of <code>_links.next</code>, or <code>null</code> on the last page (the key is always there). The flat representation carries it without <code>_links</code>.</li>
+<li>Every link repeats the request’s <code>filter[...]</code> and <code>sort</code>. A <code>both</code>-mode collection refuses <code>cursor</code> beside <code>per_page</code>, so its cursor links carry no <code>per_page</code>.</li>
+<li><code>_links.self.href</code> always present.</li>
+<li><code>_links.next.href</code> present if more rows exist beyond the current page (framework uses an over-fetch peek — <code>LIMIT N + 1</code> — to decide). Absent on the natural last page.</li>
+<li><code>_links.prev.href</code> present iff the current request carried an inbound <code>?cursor=…</code>; absent on the first request. At 0.7.5 the <code>prev</code> href points at the bare collection URL (drop the cursor to restart from the first page); a future widening will materialise an inverse-direction cursor for <code>prev</code>.</li>
+<li><strong><code>_links.first</code> and <code>_links.last</code> MUST NOT appear</strong> — the framework structurally cannot emit them in cursor mode. Consumers detecting the natural last page rely on the absence of <code>_links.next</code>, not on <code>_links.last</code>.</li>
+</ul>
+<p>The HAL response Content-Type is <code>application/hal+json</code> per ADR-0014; the flat one is <code>application/json</code> (<a href="ferra-http.html#response-representations"><code>ferra-http.md</code></a>).</p>
+<hr>
+<p><em>Cross-references: the OpenAPI emission of <code>?cursor</code> uses the <code>ferra-cursor</code> format identifier — see <a href="ferra-openapi.html"><code>ferra-openapi.md</code> § Collection operations</a>. The <code>https://ferra.rs/errors/invalid_cursor</code> URI is the ninth entry in the framework’s closed <code>ERROR_TYPES</code> namespace per <a href="../decision-record/0026-error-types-closed-namespace.html">ADR-0026</a>; the matching response row is in <a href="ferra-error-handling.html"><code>ferra-error-handling.md</code></a>.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="behaviors.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="ferra-auth.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="behaviors.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="ferra-auth.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

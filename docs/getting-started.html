@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,107 +182,80 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="getting-started-with-ferra"><a class="header" href="#getting-started-with-ferra">Getting started with Ferra</a></h1>
-<p>Ferra is a Rust framework for building HTTP APIs from a single
-<code>#[model]</code> source of truth. One model annotation gives you a CRUD
-router, an OpenAPI 3.1 spec, a Swagger / Scalar UI, hypermedia
-responses, and typed RFC 7807 errors — all derived at compile time.</p>
-<p>This page walks you from <code>cargo new</code> to a running, documented API. If
-you only have five minutes, read <strong>Add Ferra to your project</strong>, <strong>The
-five-line CRUD</strong>, and <strong>Run it</strong>.</p>
+<p>Ferra is a Rust framework for building HTTP APIs from a single Sea-ORM entity
+and one derive, <code>#[derive(FerraModel)]</code>. The entity gives you a CRUD router,
+an OpenAPI 3.2 document, a Scalar documentation page, hypermedia responses
+and typed RFC 7807 errors, all derived at compile time, with every route
+behind an authorization check that refuses by default.</p>
+<p>This page takes you from <code>cargo new</code> to a running, protected, documented API.
+Every step below is run, as written, against a real database, by the
+<code>cold_start</code> check of the Ferra repository: if a step on this page is wrong,
+that check fails. Five minutes is the target, most of it spent compiling.</p>
 <hr>
-<h2 id="important-the-crate-is-published-as-ferra-rs"><a class="header" href="#important-the-crate-is-published-as-ferra-rs">Important: the crate is published as <code>ferra-rs</code></a></h2>
-<p>The <code>ferra</code> name on crates.io belongs to an unrelated project, so the
-framework’s facade crate is published as <strong><code>ferra-rs</code></strong>. To keep your
-Rust code idiomatic, use Cargo’s <code>package</code> alias — declare the
-dependency under the local name <code>ferra</code> while pulling <code>ferra-rs</code> from
-crates.io:</p>
-<pre><code class="language-toml">[dependencies]
-ferra = { package = "ferra-rs", version = "0.5" }
+<h2 id="create-the-project"><a class="header" href="#create-the-project">Create the project</a></h2>
+<!-- cold-start: run -->
+<pre><code class="language-bash">cargo new my-api
+cd my-api
 </code></pre>
-<p>The alias is invisible from this point forward. Every <code>use ferra::...</code>
-import, every example in this guide, every doc snippet on docs.rs uses
-the <code>ferra</code> name — Cargo handles the indirection.</p>
-<blockquote>
-<p><strong><code>ferra.rs</code> (the domain) and <code>ferra-rs</code> (the crate) are two
-different identifiers.</strong> The framework’s official domain is
-<a href="https://ferra.rs"><code>ferra.rs</code></a> — that’s where the documentation site
-lives and where the closed error-type namespace
-(<code>https://ferra.rs/errors/&lt;variant&gt;</code>) resolves. The crate name on
-crates.io is <code>ferra-rs</code> (with a hyphen), because the dotless <code>ferra</code>
-name was already taken. Both are correct and authoritative; do not
-substitute one for the other.</p>
-</blockquote>
-<blockquote>
-<p><strong>If you see a plain <code>ferra = "..."</code> line in older snippets</strong> (with
-no <code>package = "ferra-rs"</code> key), that’s pre-rename documentation.
-Replace it with the form above — the plain line resolves to a
-different, unrelated crate on crates.io.</p>
-</blockquote>
-<hr>
-<h2 id="add-ferra-to-your-project"><a class="header" href="#add-ferra-to-your-project">Add Ferra to your project</a></h2>
-<p>A consumer crate built on Ferra needs <strong>one</strong> direct framework
-dependency plus the surrounding async / HTTP / serde stack:</p>
+<p>Ferra is not published on crates.io: an application depends on a <strong>tag of the
+Ferra Git repository</strong>. Replace the <code>Cargo.toml</code> that <code>cargo new</code> wrote with:</p>
+<!-- cold-start: file Cargo.toml -->
 <pre><code class="language-toml">[package]
 name    = "my-api"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ferra = { package = "ferra-rs", version = "0.5" }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-axum  = "0.8"
-serde = { version = "1", features = ["derive"] }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1", features = ["test-support"] }
 </code></pre>
-<p>That is the entire framework dep surface. <code>ferra-core</code>, <code>ferra-db</code>,
-<code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>, and the surrounding
-<code>sea-orm</code> ORM are all reached through the <code>ferra</code> facade — they do
-<strong>not</strong> appear as direct dependencies. Adding them directly fights the
-facade’s cohabitation guarantees and is flagged by the framework’s
-example dep-shape gate.</p>
-<h3 id="the-one-line-opener"><a class="header" href="#the-one-line-opener">The one-line opener</a></h3>
-<p>Open every Ferra source file with a single glob over the prelude:</p>
-<pre><code class="language-rust ignore">use ferra::prelude::*;</code></pre>
-<p>That brings into scope, in one line:</p>
-<ul>
-<li>The <code>#[derive(FerraModel)]</code> derive — the model annotation.</li>
-<li>The typed time newtypes <code>Date</code> and <code>DateTime</code>.</li>
-<li>The typed error type <code>FerraError</code>.</li>
-<li>The runtime state and router primitives <code>FerraState</code>, <code>ferra_router</code>,
-and the <code>Foundry</code> builder.</li>
-<li>The typed-extraction wrappers <code>FerraJson</code>, <code>FerraPath</code>.</li>
-<li>The response envelopes <code>ItemResponse</code>, <code>CollectionResponse</code> and the
-<code>PaginationParams</code> extractor.</li>
-<li>Sea-ORM’s entity-derive prelude (<code>DeriveEntityModel</code>, <code>EntityTrait</code>,
-<code>ColumnTrait</code>, <code>Uuid</code>, …) reached via the cohabitation re-export.</li>
-<li><code>serde::{Deserialize, Serialize}</code> so model structs declare their
-derive set with no extra imports.</li>
-</ul>
-<h3 id="reaching-sea-orm-through-the-facade"><a class="header" href="#reaching-sea-orm-through-the-facade">Reaching Sea-ORM through the facade</a></h3>
-<p>When you need Sea-ORM types directly — typically the
-<code>Database::connect(...)</code> constructor, or the <code>#[sea_orm(...)]</code>
-attribute namespace on a model struct — write <code>ferra::sea_orm::...</code>:</p>
-<pre><code class="language-rust ignore">let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;</code></pre>
-<p>The prelude glob already brings the <code>sea_orm</code> module name into scope,
-so the standard sibling-derive pair <code>#[derive(DeriveEntityModel, FerraModel)]</code> works with no extra <code>use sea_orm::entity::prelude::*;</code>
-line.</p>
+<p><code>ferra</code> is the only Ferra crate you declare: <code>ferra-core</code>, <code>ferra-db</code>,
+<code>ferra-forge</code>, <code>ferra-http</code> and <code>ferra-openapi</code> are reached through it, and the
+repository’s own examples are held to that by the <code>dep_gate</code> check. The
+repository is private until the first release: your Git credentials must give
+Cargo access to it, for example with <code>net.git-fetch-with-cli = true</code> in
+<code>.cargo/config.toml</code>.</p>
+<p><code>sea-orm</code> is the one dependency you also declare yourself, with the <strong>same
+major version as Ferra</strong> (each release of Ferra names the major in its
+<code>CHANGELOG.md</code>). A different major is a second copy of the
+crate, and <code>#[derive(FerraModel)]</code> refuses it with
+<a href="ferra-forge-diagnostics.html#frg-400--two-copies-of-sea-orm"><code>FRG-400</code></a>.
+<code>cargo tree -d -i sea-orm</code> prints nothing when there is a single copy. The
+facade also re-exports Sea-ORM whole, so an application may declare none and
+write <code>ferra::sea_orm::…</code>; <a href="architecture.html">Architecture</a> shows that form.</p>
+<p>The <code>test-support</code> feature, in <code>[dev-dependencies]</code> only, gives the example
+below the helper that signs a token; it is not in your application.</p>
 <hr>
-<h2 id="the-five-line-crud"><a class="header" href="#the-five-line-crud">The five-line CRUD</a></h2>
-<p>The smallest meaningful Ferra application — one resource, full CRUD,
-auto-generated OpenAPI spec, Scalar docs UI, and HAL hypermedia
-responses — fits in this <code>src/main.rs</code>:</p>
-<pre><code class="language-rust ignore">use ferra::prelude::*;
+<h2 id="the-model-and-the-server"><a class="header" href="#the-model-and-the-server">The model, and the server</a></h2>
+<p>A Ferra model is a Sea-ORM entity with the <code>FerraModel</code> derive next to
+<code>DeriveEntityModel</code>, and <strong>a posture</strong>: <code>#[ferra(auth = "bearer")]</code> says every
+operation requires a valid bearer token. A model with no posture does not
+compile (<a href="ferra-forge-diagnostics.html#frg-100--model-declares-no-authorization-posture"><code>FRG-100</code></a>):
+Ferra never decides for you between a public and a protected API.</p>
+<p>Put this in <code>src/main.rs</code>:</p>
+<!-- cold-start: file src/main.rs -->
+<pre class="playground"><code class="language-rust no_run">use ferra::{ClaimCheck, FerraIdentity, FerraModel, Foundry, HmacAlgorithm, JwtConfig};
+use sea_orm::entity::prelude::*;
+use sea_orm::{ConnectionTrait, Schema};
+use serde::{Deserialize, Serialize};
 
 mod film {
-    use ferra::prelude::*;
+    use super::*;
 
-    #[derive(Clone, Debug, PartialEq, Eq,
-             DeriveEntityModel, FerraModel,
-             Serialize, Deserialize)]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
     #[sea_orm(table_name = "films")]
+    #[ferra(auth = "bearer")]
     pub struct Model {
         #[sea_orm(primary_key)]
         pub id: i32,
         #[sea_orm(unique)]
+        #[field(filterable, sortable)]
         pub title: String,
         pub director: String,
         pub year: Option&lt;i32&gt;,
@@ -294,83 +267,178 @@ mod film {
     impl ActiveModelBehavior for ActiveModel {}
 }
 
-pub use film::Model as Film;
+// What the token says about its bearer. Ferra needs two things of it:
+// a stable id and a role test.
+#[derive(Clone, Debug, Deserialize)]
+struct Claims {
+    sub: String,
+    #[serde(default)]
+    roles: Vec&lt;String&gt;,
+}
+
+impl FerraIdentity for Claims {
+    fn id(&amp;self) -&gt; &amp;str {
+        &amp;self.sub
+    }
+    fn has_role(&amp;self, role: &amp;str) -&gt; bool {
+        self.roles.iter().any(|r| r == role)
+    }
+}
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    let database_url = std::env::var("DATABASE_URL")?;
-    let conn = ferra::sea_orm::Database::connect(&amp;database_url).await?;
-    let app = Foundry::new(conn).mount::&lt;Film&gt;().with_docs().build();
+    let conn = sea_orm::Database::connect(std::env::var("DATABASE_URL")?).await?;
+
+    // Development only: create the table when it is missing. A real
+    // application owns its schema with `sea-orm-migration`.
+    let table = Schema::new(conn.get_database_backend())
+        .create_table_from_entity(film::Entity)
+        .if_not_exists()
+        .to_owned();
+    conn.execute(&amp;table).await?;
+
+    // The secret comes from the environment, never from the source: at least
+    // 32 bytes for HS256. A token must name this issuer and this audience.
+    let jwt = JwtConfig::single_secret(
+        "key-1",
+        std::env::var("JWT_SECRET")?,
+        HmacAlgorithm::Hs256,
+        ClaimCheck::expect("https://auth.example.com/"),
+        ClaimCheck::expect("my-api"),
+    )?;
+
+    let app = Foundry::new(conn)
+        .with_auth::&lt;Claims&gt;(jwt)
+        .mount::&lt;film::Model&gt;()
+        // Public in development: /docs needs no token (see `with_docs_protected` in ferra-openapi.md).
+        .with_docs()
+        .build();
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    axum::serve(listener, app).await?;
+    eprintln!("listening on 0.0.0.0:3000");
+    // Serve with the peer address: the rate limiter keys on it, and the bare
+    // router would answer every write with a 500.
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;(),
+    )
+    .await?;
     Ok(())
 }</code></pre>
-<p>What you get on <code>cargo run</code>:</p>
+<p>What you get:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>URL</th><th>Behaviour</th></tr>
 </thead>
 <tbody>
-<tr><td><code>GET    /films</code></td><td>Paginated list of films with HAL <code>_links</code>.</td></tr>
-<tr><td><code>GET    /films/{id}</code></td><td>Single film + self-link.</td></tr>
-<tr><td><code>POST   /films</code></td><td>Create — validates, returns <code>201 Created</code>.</td></tr>
-<tr><td><code>PUT    /films/{id}</code></td><td>Update.</td></tr>
+<tr><td><code>GET    /films</code></td><td>Paginated list (HAL <code>_links</code>, or flat JSON on <code>Accept: application/json</code>).</td></tr>
+<tr><td><code>GET    /films/{id}</code></td><td>One film and its self-link.</td></tr>
+<tr><td><code>POST   /films</code></td><td>Create: validates, answers <code>201 Created</code>. The server chooses <code>id</code>.</td></tr>
+<tr><td><code>PUT    /films/{id}</code></td><td>Update the row named by the path.</td></tr>
 <tr><td><code>DELETE /films/{id}</code></td><td>Delete.</td></tr>
-<tr><td><code>GET    /docs/openapi.json</code></td><td>Generated OpenAPI 3.1 spec — schema names <code>Film</code>, <code>CreateFilmInput</code>, <code>UpdateFilmInput</code>, <code>FilmCollection</code>, <code>ProblemDetails</code>.</td></tr>
-<tr><td><code>GET    /docs</code></td><td>Interactive Scalar UI rendered from the spec.</td></tr>
+<tr><td><code>GET    /docs/openapi.json</code></td><td>The generated OpenAPI 3.2 document.</td></tr>
+<tr><td><code>GET    /docs</code></td><td>The Scalar page rendered from it.</td></tr>
 </tbody>
 </table>
 </div>
-<p>Errors come back as RFC 7807 <code>application/problem+json</code> with typed
-<code>type</code> URIs from a closed namespace (<code>https://ferra.rs/errors/&lt;variant&gt;</code>).</p>
-<blockquote>
-<p>The example in <code>examples/hello-ferra/</code> in the framework repository
-matches this layout one-to-one and is the canonical reference. If
-you’re reading this through docs.rs, the same example is published
-under that name on the Ferra repository.</p>
-</blockquote>
+<p>The URL segment (<code>films</code>) is the model’s table name. To serve a table under another
+name, say so: <code>#[ferra(resource = "movies")]</code> on the model.</p>
+<p>Errors come back as RFC 7807 <code>application/problem+json</code>, with a <code>type</code> from the
+closed namespace <code>https://ferra.rs/errors/&lt;name&gt;</code>.</p>
+<hr>
+<h2 id="a-token-to-call-it-with"><a class="header" href="#a-token-to-call-it-with">A token to call it with</a></h2>
+<p>Ferra validates tokens; it does not issue them (your identity provider does).
+For development, sign one yourself with the helper of the <code>test-support</code> feature.
+Put this in <code>examples/token.rs</code>:</p>
+<!-- cold-start: file examples/token.rs -->
+<pre class="playground"><code class="language-rust no_run">use ferra::HmacAlgorithm;
+use ferra::testing::bearer;
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct Claims {
+    sub: String,
+    iss: &amp;'static str,
+    aud: &amp;'static str,
+    exp: u64,
+}
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
+    let claims = Claims {
+        sub: "alice".to_owned(),
+        iss: "https://auth.example.com/",
+        aud: "my-api",
+        exp: now.as_secs() + 3600,
+    };
+    let secret = std::env::var("JWT_SECRET")?;
+    // Prints `Bearer eyJ…`, valid for an hour.
+    println!("{}", bearer("key-1", &amp;secret, HmacAlgorithm::Hs256, &amp;claims)?);
+    Ok(())
+}</code></pre>
 <hr>
 <h2 id="run-it"><a class="header" href="#run-it">Run it</a></h2>
-<p>You need PostgreSQL reachable at <code>DATABASE_URL</code>. The fastest local
-setup uses Podman or Docker:</p>
+<p>You need PostgreSQL reachable at <code>DATABASE_URL</code>. The fastest local setup uses
+Podman or Docker:</p>
+<!-- cold-start: run -->
 <pre><code class="language-bash">podman run --rm -d --name pg \
   -e POSTGRES_USER=ferra -e POSTGRES_PASSWORD=ferra \
   -e POSTGRES_DB=my_api \
   -p 5432:5432 \
-  postgres:16
+  postgres:17
 
 export DATABASE_URL=postgres://ferra:ferra@localhost:5432/my_api
+export JWT_SECRET=a-development-secret-of-at-least-32-bytes
 </code></pre>
-<p>Apply your schema migrations (Sea-ORM CLI) and start the server:</p>
+<p>Start the server (the first build is the long part of the five minutes):</p>
+<!-- cold-start: serve -->
 <pre><code class="language-bash">cargo run
 </code></pre>
-<p>You should see <code>listening on 0.0.0.0:3000</code> — open <code>http://localhost:3000/docs</code>
-in a browser.</p>
+<p>You should see <code>listening on 0.0.0.0:3000</code>; open <code>http://localhost:3000/docs</code>
+in a browser. In another terminal, from the same directory, ask for a token and
+call the API. A request with no token is refused, before anything about it is
+read:</p>
+<!-- cold-start: request -->
+<pre><code class="language-bash">curl -s -i http://localhost:3000/films                                        # expect: 401
+</code></pre>
+<!-- cold-start: run -->
+<pre><code class="language-bash">export TOKEN=$(cargo run -q --example token)
+</code></pre>
+<!-- cold-start: request -->
+<pre><code class="language-bash">curl -s -i -H "Authorization: $TOKEN" http://localhost:3000/films             # expect: 200
+curl -s -X POST -H "Authorization: $TOKEN" -H "Content-Type: application/json" -d '{"title":"Alien","director":"Ridley Scott","year":1979}' http://localhost:3000/films   # expect: 201 contains "Alien"
+curl -s -H "Authorization: $TOKEN" http://localhost:3000/films/1              # expect: 200 contains "Ridley Scott"
+curl -s -X PUT -H "Authorization: $TOKEN" -H "Content-Type: application/json" -d '{"title":"Alien","director":"Ridley Scott","year":1980}' http://localhost:3000/films/1   # expect: 200 contains "1980"
+curl -s -X DELETE -H "Authorization: $TOKEN" http://localhost:3000/films/1    # expect: 204
+curl -s -i -H "Authorization: $TOKEN" http://localhost:3000/films/1           # expect: 404
+curl -s http://localhost:3000/docs/openapi.json                               # expect: 200 contains "openapi"
+</code></pre>
+<p>The <code># expect: …</code> comments say the status each line answers; the check that
+runs this page reads them.</p>
 <hr>
 <h2 id="msrv-and-toolchain"><a class="header" href="#msrv-and-toolchain">MSRV and toolchain</a></h2>
-<p>Ferra’s MSRV is <strong>Rust 1.88</strong> (edition 2024, resolver v3). <code>let</code>
-chains, native async fn in traits, and the rest of the modern Rust
-feature surface this guide assumes are stable on 1.88+.</p>
-<p>You don’t need a pinned development toolchain in your own project —
-any stable Rust at or above 1.88 works. The framework itself pins a
-specific toolchain in its repository for reproducible CI; that pin
-does not propagate to consumers.</p>
+<p>Ferra’s MSRV is <strong>Rust 1.94</strong> (edition 2024, resolver v3), set by the
+<code>sea-orm</code> dependency, which declares <code>rust-version = "1.94.0"</code> itself. Any
+stable Rust at or above 1.94 works in your project; the pinned toolchain of
+the Ferra repository (<code>rust-toolchain.toml</code>) does not propagate to you.
+Building on an older one fails inside <code>sea-orm</code>, not in Ferra.</p>
 <hr>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
 <ul>
-<li><strong><a href="./foundry.html">Foundry</a></strong> — the router-assembly facade. Multi-resource
-chains, API versioning, the <code>with_docs_protected(...)</code> auth-gated
-docs variant.</li>
-<li><strong><a href="./ferra-forge.html">Ferra Forge</a></strong> — the <code>#[derive(FerraModel)]</code> derive
-grammar; the full attribute set on model structs and fields.</li>
-<li><strong><a href="./ferra-openapi.html">Ferra OpenAPI</a></strong> — what the generated spec
-contains, schema-name derivation, and how SDK generators consume it.</li>
-<li><strong><a href="./custom-handlers.html">Custom Handlers</a></strong> — drop down to your own
-Axum handler when Ferra’s defaults don’t fit a specific endpoint.</li>
-<li><strong><a href="./ferra-error-handling.html">Error Handling</a></strong> — the closed
-<code>https://ferra.rs/errors/&lt;variant&gt;</code> namespace, the <code>ProblemDetails</code>
-shape, and consumer-side branching.</li>
+<li><strong><a href="./foundry.html">Foundry</a></strong>: the router builder. Several models, API
+versioning, the auth-gated docs.</li>
+<li><strong><a href="./ferra-auth.html">Authentication and Authorization</a></strong>: tokens, postures,
+<code>#[authorize]</code> rules, owned rows.</li>
+<li><strong><a href="./ferra-forge.html">Ferra Forge</a></strong>: the full attribute set of the derive.</li>
+<li><strong><a href="./ferra-forge-diagnostics.html">Compile-time diagnostics</a></strong>: every <code>FRG-NNN</code>
+code, with its bad and good example.</li>
+<li><strong><a href="./custom-handlers.html">Custom Handlers</a></strong>: your own axum handler beside the
+generated ones.</li>
+<li><strong><a href="./ferra-error-handling.html">Error Handling</a></strong>: the <code>https://ferra.rs/errors/&lt;name&gt;</code>
+namespace and the <code>ProblemDetails</code> shape.</li>
+<li><strong><a href="./stability.html">Stability policy</a></strong>: what the 0.9 contract is, and how to
+update a tag.</li>
 </ul>
 
                     </main>
@@ -417,11 +485,11 @@ shape, and consumer-side branching.</li>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

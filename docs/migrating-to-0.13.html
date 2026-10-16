@@ -1,0 +1,427 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Migrating from 0.12 to 0.13 - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-5b3de983.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/migrating-to-0.13.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="migrating-from-012-to-013"><a class="header" href="#migrating-from-012-to-013">Migrating from 0.12 to 0.13</a></h1>
+<p>0.13.0 (Engraving) changes what a projection, a field and a response may say.
+Each entry below is a change that can stop a 0.12 application from compiling or
+alter an answer; read the entries, then update the application’s git dependency
+to <code>v0.13.0</code>. <a href="../../CHANGELOG.html">CHANGELOG.md</a> lists every change.</p>
+<h2 id="a-projection-names-the-deletion-column-in-read-frg-357"><a class="header" href="#a-projection-names-the-deletion-column-in-read-frg-357">A projection names the deletion column in <code>read</code> (FRG-357)</a></h2>
+<p><strong>Before.</strong> <code>read = [id, title, deleted_at]</code> on a <code>#[behavior(soft_delete)]</code>
+model compiled, and the response silently carried neither the column nor an
+error.</p>
+<p><strong>After.</strong> It does not compile: <a href="ferra-forge-diagnostics.html#frg-357--the-deletion-column-is-named-in-a-read-projection-or-a-field-takes-its-json-name"><code>FRG-357</code></a>.</p>
+<p><strong>Migration.</strong> Remove the deletion column from <code>read = [...]</code>. The response is
+the same as before, since the column was never served.</p>
+<h2 id="a-projection-names-a-ferraskip-field-in-read-frg-358"><a class="header" href="#a-projection-names-a-ferraskip-field-in-read-frg-358">A projection names a <code>#[ferra(skip)]</code> field in <code>read</code> (FRG-358)</a></h2>
+<p><strong>Before.</strong> <code>read = [id, title, audit_blob]</code> with <code>audit_blob</code> declared
+<code>#[ferra(skip)]</code> compiled, and the projection’s routes served the field.</p>
+<p><strong>After.</strong> It does not compile:
+<a href="ferra-forge-diagnostics.html#frg-358--a-read-projection-names-a-skipped-field"><code>FRG-358</code></a>.</p>
+<p><strong>Migration.</strong> Remove the field from <code>read = [...]</code> (the routes then stop
+serving it), or remove <code>#[ferra(skip)]</code> from the field if the API should serve it.</p>
+<h2 id="_linksrestore-is-gone-from-served-rows"><a class="header" href="#_linksrestore-is-gone-from-served-rows"><code>_links.restore</code> is gone from served rows</a></h2>
+<p><strong>Before.</strong> Every live row of a soft-delete model carried
+<code>_links.restore.href</code>, a link that answered 404 on that live row.</p>
+<p><strong>After.</strong> A served row has no <code>restore</code> link. <code>restore</code> is still a route and is
+still in the OpenAPI document.</p>
+<p><strong>Migration.</strong> Build <code>{prefix}/{resource}/{id}/restore</code> yourself, or read it from
+OpenAPI, and call it on a row you know was deleted. Do not derive it from
+<code>_links.self</code>, which can be absent (next entry).</p>
+<h2 id="_linksself-and-_linkscollection-can-be-absent"><a class="header" href="#_linksself-and-_linkscollection-can-be-absent"><code>_links.self</code> and <code>_links.collection</code> can be absent</a></h2>
+<p><strong>Before.</strong> Every item carried <code>_links.self</code> and <code>_links.collection</code>, and the
+HAL item schema required <code>self</code>.</p>
+<p><strong>After.</strong> <code>_links.self</code> is present only if the caller may <code>GET</code> the row, and
+<code>_links.collection</code> only if the caller may <code>list</code> the collection. A caller who
+may list but not read a row gets the row without <code>self</code>. The HAL item schema no
+longer requires <code>self</code>.</p>
+<p><strong>Migration.</strong> A client or a generated SDK that assumed <code>self</code> must handle its
+absence. Under a projection prefix the links now carry the prefix (a fix: they
+pointed at the bare path before).</p>
+<h2 id="a-create-the-caller-may-not-read-answers-201-with-no-body"><a class="header" href="#a-create-the-caller-may-not-read-answers-201-with-no-body">A create the caller may not read answers <code>201</code> with no body</a></h2>
+<p><strong>Before.</strong> A caller who may <code>create</code> but not <code>GET</code> the new row received the row
+(its id, its stamps) and a <code>Location</code> header, or <code>204</code> and <code>Location</code> under
+<code>Prefer: return=minimal</code>.</p>
+<p><strong>After.</strong> Such a caller receives <code>201 Created</code> with no body and no <code>Location</code>,
+also under <code>Prefer: return=minimal</code>. An admitted caller keeps the representation,
+or <code>204</code> under <code>return=minimal</code>, and its <code>Location</code> is the <code>self</code> link of the row.
+This closes a leak (SEC-008 bis): the id and the server-set values of a row the
+caller may not read.</p>
+<p><strong>Migration.</strong> A client that creates and then reads the <code>Location</code> must be
+allowed to <code>GET</code> the row, or look the row up by other means. Allow <code>get</code> for the
+roles that create, if they should read what they create.</p>
+<h2 id="an-update-or-a-restore-the-caller-may-not-read-answers-204-with-no-body"><a class="header" href="#an-update-or-a-restore-the-caller-may-not-read-answers-204-with-no-body">An update or a restore the caller may not read answers <code>204</code> with no body</a></h2>
+<p><strong>Before.</strong> A caller who may <code>PUT</code> or restore a row but not <code>GET</code> it received the row
+(its id, its stamps, its author) in the <code>200</code>.</p>
+<p><strong>After.</strong> Such a caller receives <code>204 No Content</code> with no body, whatever <code>Prefer</code>
+asked, and the write is done. An admitted caller keeps the <code>200</code> with the row, or
+<code>204</code> under <code>return=minimal</code>. <code>Preference-Applied: return=minimal</code> is echoed only when
+<code>return=minimal</code> was asked. This closes the same leak as the create (SEC-008 bis).</p>
+<p><strong>Migration.</strong> A client that reads the answer of a <code>PUT</code> or a restore must be allowed
+to <code>GET</code> the row, or read it separately. Allow <code>get</code> for the roles that write, if they
+should read what they write. A hand-written route on <code>Resource::update</code> serves what it
+chooses.</p>
+<h2 id="a-hand-written-model-must-carry-the-hook-slot"><a class="header" href="#a-hand-written-model-must-carry-the-hook-slot">A hand-written model must carry the hook slot</a></h2>
+<p><strong>Before.</strong> A hand-written <code>FerraModel</code> (no derive) that satisfied <code>Mountable</code> could be
+mounted.</p>
+<p><strong>After.</strong> <code>Mountable</code> also requires the hidden hook slot <code>FerraDraft</code>, with a runner for
+its <code>Hooks</code>. The derive writes it for every model, so a derived model changes nothing.</p>
+<p><strong>Migration.</strong> Add to a hand-written, mounted model:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::ferra_core::hooks::{FerraDraft, NoHooks};
+
+struct Film;
+
+impl FerraDraft for Film {
+    type Draft = ();
+    type Hooks = NoHooks;
+}
+<span class="boring">}</span></code></pre>
+<p><code>Draft = ()</code> also satisfies the bound <code>Mountable</code> puts on the draft (<code>ApplyDraft</code> for the entity’s active
+model, <code>DeserializeOwned</code> and <code>Send</code>). A model that is only derived needs nothing. Hand-writing a model is outside the
+contract, which is the derive (see <a href="stability.html"><code>stability.md</code></a>).</p>
+<h2 id="a-hand-written-model-must-carry-the-authority-traits"><a class="header" href="#a-hand-written-model-must-carry-the-authority-traits">A hand-written model must carry the authority traits</a></h2>
+<p><strong>Before.</strong> A hand-written <code>FerraModel</code> (no derive) that satisfied <code>Mountable</code> could be
+mounted.</p>
+<p><strong>After.</strong> <code>Mountable</code> also requires <code>FerraAuthority</code> and the hidden <code>FerraAuthorityScope</code>.
+The derive writes both for every model (an authority that allows everything without
+<code>#[ferra(authority)]</code>), so a derived model changes nothing.</p>
+<p><strong>Migration.</strong> Add to a hand-written, mounted model:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::authority::{AuthorityError, FerraAuthority};
+use ferra::condition::Condition;
+use ferra::ferra_core::authority::FerraAuthorityScope;
+use ferra::meta::Operation;
+use ferra::request_context::RequestContext;
+
+struct Film;
+
+impl FerraAuthority for Film {
+    fn can(_: &amp;RequestContext, _: Operation, _: &amp;Self) -&gt; Result&lt;bool, AuthorityError&gt; {
+        Ok(true)
+    }
+}
+
+impl FerraAuthorityScope for Film {
+    fn scope_filter(_: &amp;RequestContext) -&gt; Option&lt;Result&lt;Condition&lt;Self&gt;, AuthorityError&gt;&gt; {
+        None
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>Ok(true)</code> and <code>None</code> are what the derive writes without <code>#[ferra(authority)]</code>: no authority, no
+condition. Hand-writing a model is outside the contract, which is the derive (see
+<a href="stability.html"><code>stability.md</code></a>).</p>
+<h2 id="a-hand-written-model-must-carry-the-owner-chain-and-the-derived-views"><a class="header" href="#a-hand-written-model-must-carry-the-owner-chain-and-the-derived-views">A hand-written model must carry the owner chain and the derived views</a></h2>
+<p><strong>Before.</strong> A hand-written <code>FerraModel</code> could be mounted without <code>FerraOwnerChain</code>, and
+could implement <code>FerraViews</code> by hand.</p>
+<p><strong>After.</strong> <code>Mountable</code> also requires the hidden <code>FerraOwnerChain</code>, and <code>FerraViews</code> has a
+required hidden method <code>read_object</code>. The derive writes both, so a derived model changes
+nothing.</p>
+<p><strong>Migration.</strong> Add to a hand-written, mounted model without <code>owner(from = ..)</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::ferra_core::meta::FerraOwnerChain;
+
+struct Film;
+
+impl FerraOwnerChain for Film {
+    type Parent = Self;
+    const FOREIGN_KEY: Option&lt;&amp;'static str&gt; = None;
+}
+<span class="boring">}</span></code></pre>
+<p><code>FerraViews</code> cannot be written by hand any more: derive <code>FerraModel</code>. Hand-writing a
+model is outside the contract, which is the derive (see <a href="stability.html"><code>stability.md</code></a>).</p>
+<h2 id="new-ferrahooks-application-code-inside-a-write"><a class="header" href="#new-ferrahooks-application-code-inside-a-write">New: <code>#[ferra(hooks)]</code> (application code inside a write)</a></h2>
+<p>Nothing changes for a model that does not declare it. To run your own code inside the write’s transaction,
+add <code>#[ferra(hooks)]</code> to the model and write <code>impl ferra::hooks::FerraHooks for Model</code> (every hook has a
+default that does nothing). The key without the impl, and the impl without the key, are <code>FRG-129</code>; a key inside
+<code>hooks(...)</code> is <code>FRG-132</code>. <code>before_save</code> rewrites <code>ModelDraft</code>, which the derive writes for the model. See
+<a href="behaviors.html#hooks"><code>behaviors.md</code></a>.</p>
+<h2 id="new-get-me"><a class="header" href="#new-get-me">New: <code>GET /me</code></a></h2>
+<p>Nothing changes for a model that does not declare it. To serve the caller’s own row at <code>GET /me</code>, add
+<code>#[ferra(me)]</code> to the model that has a unique root <code>#[field(owner)]</code> (<code>#[sea_orm(unique)]</code> on it, or the
+single-column primary key: <code>FRG-131</code> otherwise) and mount it with <code>.with_auth()</code> (<code>FRG-151</code> otherwise). One
+model per <code>Foundry</code>, and no model whose resource (its URL segment: the <code>table_name</code>, or <code>#[ferra(resource = "...")]</code>) is <code>me</code>: <code>build()</code> panics with a message that names the models. A <code>.route("/me", ...)</code> of your own
+now conflicts with it, and <code>build()</code> panics on that too. See
+<a href="projections-and-routing.html#me"><code>projections-and-routing.md</code></a>.</p>
+<h2 id="new-behaviorblameable-blame-columns"><a class="header" href="#new-behaviorblameable-blame-columns">New: <code>#[behavior(blameable)]</code> (blame columns)</a></h2>
+<p>Nothing changes for a model that does not enrol it. To record who wrote a row, add
+<code>#[behavior(blameable)]</code> and two <code>TEXT NOT NULL</code> columns to the table (<code>created_by</code>,
+<code>updated_by</code>; the names are configurable). The migration, who may read the columns
+(<code>read = &lt;rule&gt;</code>, <code>Authenticated</code> by default) and the compile error for an operation an
+anonymous caller may call (<code>FRG-121</code>) are in <a href="behaviors.html#behaviorblameable"><code>behaviors.md</code></a>.
+Give your identity type’s <code>FerraIdentity::id()</code> (conventionally the JWT <code>sub</code>, see
+<a href="ferra-auth.html"><code>ferra-auth.md</code></a>) a verified, stable, non-empty value: a write with no subject
+is a 500 and nothing is written.</p>
+<h2 id="a-projection-widens-exposure-without-authorize-frg-117"><a class="header" href="#a-projection-widens-exposure-without-authorize-frg-117">A projection widens exposure without <code>authorize</code> (FRG-117)</a></h2>
+<p><strong>Before.</strong> A projection could list in <code>read</code> or <code>write</code> a field the bare path does
+not expose or accept, with nothing saying who may use it: its routes followed the
+model’s rules, as the bare path does.</p>
+<p><strong>After.</strong> It does not compile:
+<a href="ferra-forge-diagnostics.html#frg-117--a-projection-widens-exposure-without-authorize"><code>FRG-117</code></a>.
+A projection that shows or accepts less than the bare path, or the same, is
+unaffected, with one exception. If you promoted a projection to the bare path
+(<code>default = true</code>) and gave it an <code>authorize</code> rule, that rule protects the bare path only;
+every other projection of the model must then declare its own <code>authorize</code> (a rule, or
+<code>inherit</code>), whatever fields it shows.</p>
+<p><strong>Migration.</strong> Add <code>authorize = &lt;rule&gt;</code> to the projection (for example
+<code>authorize = HasRole("editor") | IsAdmin</code>; the rule grammar is in
+<a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Authorization rules): the rule is added to the model’s rule of
+each operation, and a caller it refuses gets a 404. If the model’s rules are enough,
+write <code>authorize = inherit</code> to keep the 0.12 behavior knowingly.</p>
+<h2 id="requestcontext-is-filled-and-is-no-longer-copy"><a class="header" href="#requestcontext-is-filled-and-is-no-longer-copy"><code>RequestContext</code> is filled and is no longer <code>Copy</code></a></h2>
+<p><strong>Before.</strong> <code>RequestContext</code> was an empty <code>Copy</code> marker: <code>let c = ctx;</code> left <code>ctx</code>
+usable, and the type was <code>UnwindSafe</code> and <code>RefUnwindSafe</code>.</p>
+<p><strong>After.</strong> It carries the caller (<code>subject()</code>, <code>is_authenticated()</code>, <code>has_role()</code>,
+<code>claims::&lt;C&gt;()</code>, <code>api_key()</code>) and the request headers (<code>header()</code>). It owns an <code>Arc</code> and a
+header list, so it is <code>Clone</code> but no longer <code>Copy</code>, <code>UnwindSafe</code> or <code>RefUnwindSafe</code>.
+<code>Authorization</code>, <code>Proxy-Authorization</code>, <code>Cookie</code> and the <code>Foundry</code>’s API key header are
+dropped when it is built, so <code>header()</code> answers <code>None</code> for them and <code>Debug</code> prints the
+subject and the header names, never a value. Every other header is client-supplied
+(<code>X-Forwarded-*</code>, <code>Host</code>, <code>Origin</code> as sent). See
+<a href="ferra-core.html#requestcontext"><code>ferra-core.md</code></a>.</p>
+<p><strong>Migration.</strong> Code that copied a <code>RequestContext</code> (<code>let c = *ctx;</code>, a <code>Copy</code> bound, a
+<code>const</code> fixture used twice) calls <code>.clone()</code> instead. The <code>FerraComputed</code> signatures take
+<code>&amp;RequestContext</code> and do not change. Code that moved one across <code>catch_unwind</code> needs
+<code>AssertUnwindSafe</code>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="migrating-to-0.14.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="migrating-to-0.12.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="migrating-to-0.14.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="migrating-to-0.12.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,11 +184,44 @@
                         <h1 id="foundry"><a class="header" href="#foundry"><code>Foundry</code></a></h1>
 <p><code>Foundry</code> is Ferra’s router-assembly facade. One chain — beginning
 with a Sea-ORM <code>DatabaseConnection</code> and ending with <code>.build()</code> —
-declares every resource on your API, mounts the <code>OpenAPI</code> 3.1 docs
+declares every resource on your API, mounts the OpenAPI 3.2 docs
 surface, applies version prefixes, and produces the final
 <code>axum::Router</code>.</p>
-<pre><code class="language-rust ignore">use ferra::*;
-
+<pre class="playground"><code class="language-rust no_run">use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">mod actor {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "actors")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use actor::Model as Actor;
+</span>
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let conn = sea_orm::Database::connect(&amp;std::env::var("DATABASE_URL")?).await?;
@@ -198,19 +231,31 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
         .with_docs()
         .build();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
     Ok(())
 }</code></pre>
-<p>The chain replaces the per-resource
-<code>conn.clone() + FerraState::new + ferra_router::&lt;M&gt; + Router::merge</code>
-boilerplate. Two compile-time invariants are enforced by the type
-system: no duplicate <code>.mount::&lt;M&gt;()</code> calls, and no mixing of
-un-versioned with versioned mounts on a single chain.</p>
+<p>The chain is the only way to mount a model: it applies each model’s
+authorization rules and the JWT layer. The type system enforces one
+ordering rule at compile time: the chain-wide settings (<code>.with_auth()</code>,
+<code>.api_version()</code>, <code>.layer()</code>) come before the first <code>.mount()</code>, which
+also rules out mixing un-versioned with versioned mounts on a single
+chain. Mounting the same model twice is refused when the chain is
+assembled, before the server starts (see below).</p>
 <p><code>Foundry::build() -&gt; axum::Router</code> is the <em>sole</em> method whose return
 type names an <code>axum::*</code> type. Every intermediate value is a
 Foundry-defined builder. Consumer-added <code>.layer()</code> calls on the
 returned router land outside the framework’s Tower stack.</p>
 <hr>
+<p><strong>Dependencies.</strong> The examples on this page assume the dependencies of
+<a href="getting-started.html">Getting started</a>:</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
 <h2 id="the-chain-at-a-glance"><a class="header" href="#the-chain-at-a-glance">The chain at a glance</a></h2>
 <div class="table-wrapper">
 <table>
@@ -219,60 +264,108 @@ returned router land outside the framework’s Tower stack.</p>
 </thead>
 <tbody>
 <tr><td><code>Foundry::new(conn)</code></td><td>begins the chain</td><td>—</td></tr>
-<tr><td><code>.mount::&lt;M&gt;()</code></td><td>mounts the model’s CRUD on <code>/{resource}</code></td><td><code>.mount_with::&lt;M&gt;(state)</code> (custom <code>FerraState</code>)</td></tr>
-<tr><td><code>.with_docs()</code></td><td>publishes <code>/docs/openapi.json</code> + <code>/docs</code> (Scalar UI)</td><td><code>.with_docs_at(path)</code></td></tr>
+<tr><td><code>.with_auth::&lt;Claims&gt;(jwt)</code></td><td>configures JWT bearer validation; required to mount a model whose rules need an identity (without it, <code>.mount::&lt;M&gt;()</code> is a compile error, FRG-151 — see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Compile-time auth defense)</td><td>—</td></tr>
+<tr><td><code>.with_api_keys(keys)</code></td><td>accepts API keys next to the JWT (after <code>.with_auth()</code>; see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>)</td><td>—</td></tr>
+<tr><td><code>.api_version("v1")?</code></td><td>nests every route under <code>/v1/</code></td><td>—</td></tr>
+<tr><td><code>.default_representation(Representation::Flat)</code></td><td>the shape of a 2xx for a client that states no <code>Accept</code> preference (<code>Hal</code> unless set); see <a href="ferra-http.html#response-representations"><code>ferra-http.md</code></a></td><td>—</td></tr>
+<tr><td><code>.layer(layer)</code></td><td>per-application transport settings</td><td><code>.mount_with_layer::&lt;M&gt;(layer)</code></td></tr>
+<tr><td><code>.mount::&lt;M&gt;()</code></td><td>mounts the model’s routes on <code>/{resource}</code></td><td><code>.mount_and_handle::&lt;M&gt;()</code> (also returns a <code>ResourceHandle&lt;M&gt;</code>)</td></tr>
+<tr><td><code>.deprecated(since, sunset)?</code></td><td>versioned chains only: <code>Deprecation:</code> and <code>Sunset:</code> headers + <code>deprecated: true</code> + <code>x-sunset</code> in the spec</td><td>—</td></tr>
+<tr><td><code>.with_base_url(origin)</code></td><td>absolute <code>_links</code> and <code>Location</code> on <code>origin</code> (<code>https://…</code>); relative links otherwise</td><td>—</td></tr>
+<tr><td><code>.with_docs()</code></td><td>publishes <code>/docs/openapi.json</code> + <code>/docs</code> (Scalar UI); <code>/docs/v1/…</code> on a versioned chain</td><td><code>.with_docs_at(path)</code></td></tr>
+<tr><td><code>.with_docs_info(title, version)</code></td><td><code>info.title</code> / <code>info.version</code> of the served document and the Scalar page title (default <code>"API"</code>, <code>"1"</code>)</td><td>—</td></tr>
 <tr><td><code>.with_docs_protected(verifier)</code></td><td>gates docs behind the verifier (RFC 7807 401 on rejection)</td><td><code>.with_docs_protected_at(path, verifier)</code></td></tr>
-<tr><td><code>.api_version("v1")?</code></td><td>transitions to a versioned chain (paths under <code>/v1/</code>)</td><td>—</td></tr>
-<tr><td><code>.deprecated(date)</code></td><td>adds <code>Sunset:</code> header + <code>deprecated: true</code> + <code>x-sunset</code> to the spec</td><td>—</td></tr>
 <tr><td><code>.build()</code></td><td>finalizes the chain into <code>axum::Router</code></td><td>—</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>api_version</code> returns <code>Result&lt;VersionedFoundryBuilder, ApiVersionError&gt;</code>
-— prefixes that are empty, contain <code>/</code>, contain whitespace, or
-contain characters unsafe in a URL path segment are rejected at
-construction time.</p>
+<p><code>.with_auth()</code>, <code>.with_api_keys()</code> (after <code>.with_auth()</code>), <code>.api_version()</code>, <code>.default_representation()</code> and <code>.layer()</code> come before the first <code>.mount()</code>, in
+any order among themselves; the JWT configuration survives <code>.api_version()</code>.
+<code>.with_auth()</code> is called at most once per chain. Call <code>.with_docs()</code> after
+<code>.api_version()</code>: it picks its default path (<code>/docs</code> or <code>/docs/v1</code>) when it is called.</p>
+<p><code>api_version</code> returns <code>Result&lt;FoundryBuilder&lt;…&gt;, ApiVersionError&gt;</code> — prefixes that are
+empty, contain <code>/</code>, contain whitespace, or contain characters unsafe in a URL path
+segment are rejected at construction time.</p>
 <hr>
 <h2 id="the-no-duplicate-mount-rule"><a class="header" href="#the-no-duplicate-mount-rule">The no-duplicate-mount rule</a></h2>
-<p>Mounting the same model twice is a compile error. The
-typestate-tracked <code>Set: NotMounted&lt;M&gt;</code> bound forecloses route
-shadowing at the type level (FR-012a, ADR-0025). The
-<code>#[diagnostic::on_unimplemented]</code> message names the duplicated type:</p>
-<pre><code class="language-text">error[E0277]: the model `Film` is already mounted on this Foundry chain
-   --&gt; src/main.rs:5:33
-    |
-5 |         .mount::&lt;Film&gt;().mount::&lt;Film&gt;().build();
-    |                          ^^^^^^^^^^^^^ duplicate `.mount::&lt;Film&gt;()` —
-    |                                        remove this call or rename the model
-    |
-    = note: see https://ferra.rs/guide/foundry#duplicate-mount for the supported pattern
+<p>Mounting the same model twice <strong>panics when the chain is assembled</strong>, at the second
+<code>.mount::&lt;M&gt;()</code> call — before the server starts:</p>
+<pre><code class="language-text">the model `Film` is already mounted on this Foundry chain — remove the duplicate
+`.mount::&lt;Film&gt;()` or rename the model. See https://ferra.rs/guide/foundry#duplicate-mount.
 </code></pre>
-<p>If you genuinely need two different shapes for the same underlying
-type, define two distinct Rust types — Ferra’s metadata travels with
-the type, not with the resource name.</p>
+<p>Stable Rust cannot express “<code>M</code> is not already mounted on this chain” as a trait bound, so the
+check runs at assembly time rather than at <code>cargo build</code>. If you need two shapes of
+the same underlying type, define two Rust types.</p>
+<p><code>.mount_with_layer::&lt;M&gt;(layer)</code> and <code>.mount_and_handle::&lt;M&gt;()</code> follow the same rule.</p>
+<hr>
+<h2 id="mount_and_handle--mount-and-get-a-handle-for-routes-of-your-own"><a class="header" href="#mount_and_handle--mount-and-get-a-handle-for-routes-of-your-own"><code>mount_and_handle</code> — mount, and get a handle for routes of your own</a></h2>
+<p><code>.mount_and_handle::&lt;M&gt;()</code> mounts <code>M</code> exactly as <code>.mount::&lt;M&gt;()</code> does — same routes, same JWT layer, same compile-time gates (FRG-150, FRG-151), same duplicate-mount panic — and returns, next to the builder, a <code>ResourceHandle&lt;M&gt;</code>. Keep the handle in the state of the routes you write yourself, and extract <code>Resource&lt;M&gt;</code> in their handlers: it reaches <code>M</code>’s rows under the rules of the generated routes (<a href="custom-handlers.html">Custom handlers</a>, <a href="ferra-http.html#resourcem--a-models-rows-from-a-route-of-your-own"><code>Resource&lt;M&gt;</code></a>).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span>use ferra::Foundry;
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let (foundry, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+let app = foundry.build(); // the generated routes; merge your own router with `.with_state(films)`
+<span class="boring">let _ = (app, films);
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>The handle holds the connection of the mounted routes and, after <code>.with_auth()</code>, what verifies a bearer token. A model that is not mounted has no handle: a handler that extracts <code>Resource&lt;M&gt;</code> from a state without one does not compile (<code>FRG-152</code>).</p>
 <hr>
 <h2 id="the-no-mixed-mode-rule"><a class="header" href="#the-no-mixed-mode-rule">The no-mixed-mode rule</a></h2>
 <p><code>.api_version(...)</code> is callable only on an empty chain. Mounting an
 un-versioned model first and then calling <code>.api_version("v1")</code> is a
-compile error (FR-014a, ADR-0025):</p>
-<pre><code class="language-text">error[E0277]: `.api_version(...)` cannot be called after un-versioned `.mount(...)` calls
-   --&gt; src/main.rs:6:14
-    |
+compile error (FR-014a, ADR-0025). The same error, with the same text,
+covers <code>.with_auth(...)</code> and <code>.layer(...)</code> called after a mount:</p>
+<pre><code class="language-text">error[E0277]: `.api_version(...)`, `.with_auth(...)` and `.layer(...)` must come before the first `.mount(...)`
+ --&gt; src/main.rs:6:10
+  |
 6 |         .api_version("v1")?
-    |          ^^^^^^^^^^^^^^^^ this builder already has un-versioned mounts
-    |
-    = note: to ship mixed-mode (legacy + versioned) routes, build two
-            assemblies and merge them via `axum::Router::merge`. See
-            https://ferra.rs/guide/foundry#mixed-mode for a worked example.
+  |          ^^^^^^^^^^^ this builder already has mounted models
+  |
+  = help: the trait `IsEmpty` is not implemented for `Mounted`
+  = note: these are chain-wide settings: move the call before the first `.mount(...)` of the chain
+  = note: to ship mixed-mode (legacy + versioned) routes, build two assemblies and merge them via `axum::Router::merge`. See https://ferra.rs/guide/foundry#mixed-mode for a worked example.
 </code></pre>
 <h3 id="mixed-mode-pattern-two-assemblies-merged"><a class="header" href="#mixed-mode-pattern-two-assemblies-merged">Mixed-mode pattern: two assemblies merged</a></h3>
 <p>If you want a top-level <code>/films</code> <em>and</em> a <code>/v1/films</code>, build two
 Foundry chains and merge them with <code>axum::Router::merge</code>:</p>
-<pre><code class="language-rust ignore">use ferra::*;
-
-let conn = /* … */;
-
-let legacy = Foundry::new(conn.clone())
+<pre class="playground"><code class="language-rust">use ferra::{Foundry, date};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let legacy = Foundry::new(conn.clone())
     .mount::&lt;Film&gt;()
     .with_docs() // serves /docs/openapi.json
     .build();
@@ -280,11 +373,15 @@ let legacy = Foundry::new(conn.clone())
 let v1 = Foundry::new(conn)
     .api_version("v1")?
     .mount::&lt;Film&gt;()
-    .deprecated(date!(2027-01-05))
+    .deprecated(date!(2026-07-01), date!(2027-01-05))?
     .with_docs() // serves /docs/v1/openapi.json
     .build();
 
-let app: axum::Router = legacy.merge(v1);</code></pre>
+let app: axum::Router = legacy.merge(v1);
+<span class="boring">let _ = app;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>Each <code>Foundry::build()</code> produces its own <code>axum::Router</code>; merging
 them is the supported way to expose multiple-version surfaces from
 a single binary. The <code>OpenAPI</code> documents stay separate — one per
@@ -294,22 +391,88 @@ build.</p>
 <p><code>.api_version("v1")?</code> nests every mounted resource under <code>/v1/</code>,
 prefixes every operationId with <code>v1.</code>, and serves the spec at
 <code>/docs/v1/openapi.json</code>.</p>
-<p><code>.deprecated(date)</code> activates two parallel signals:</p>
-<ul>
-<li>a <code>Sunset: YYYY-MM-DD</code> HTTP header on every response under the
-version (RFC 8594);</li>
-<li><code>deprecated: true</code> + <code>x-sunset: YYYY-MM-DD</code> on every operation in
-the emitted spec, plus an <code>info.x-sunset</code> mirror at the document
-root (ADR-0027).</li>
-</ul>
-<pre><code class="language-rust ignore">use ferra::*;
-
-let v1 = Foundry::new(conn)
+<p>A versioned chain is authenticated like any other: every model mounted on it gets the
+same JWT layer and the same authorization rules as on an un-versioned chain.</p>
+<pre class="playground"><code class="language-rust">use ferra::{Foundry, JwtConfig};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">#[derive(Clone, Debug, Deserialize)]
+</span><span class="boring">struct MyClaims { sub: String }
+</span><span class="boring">impl ferra::FerraIdentity for MyClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let v1 = Foundry::new(conn)
+    .with_auth::&lt;MyClaims&gt;(jwt)   // before or after `.api_version(...)`
     .api_version("v1")?
     .mount::&lt;Film&gt;()
-    .deprecated(date!(2027-01-05))
+    .build();
+<span class="boring">let _ = v1;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><code>.deprecated(since, sunset)</code> takes two dates: the day the version was
+deprecated, and the last day it is served as documented. It returns
+<code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused
+(<code>DeprecationError::SunsetBeforeDeprecation</code>). It activates these signals:</p>
+<ul>
+<li>a <code>Deprecation: @&lt;seconds&gt;</code> header on every response under the
+version (RFC 9745): the start of <code>since</code>, 00:00:00 UTC, in Unix
+seconds — <code>@1782864000</code> for <code>2026-07-01</code>;</li>
+<li>a <code>Sunset: &lt;HTTP-date&gt;</code> header on every response under the version
+(RFC 8594): the last second of <code>sunset</code>, in the IMF-fixdate form —
+<code>Tue, 05 Jan 2027 23:59:59 GMT</code> for <code>2027-01-05</code>;</li>
+<li><code>deprecated: true</code> + <code>x-sunset: YYYY-MM-DD</code> on every operation in
+the emitted spec, plus an <code>info.x-sunset</code> mirror at the document
+root.</li>
+</ul>
+<pre class="playground"><code class="language-rust">use ferra::{Foundry, date};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let v1 = Foundry::new(conn)
+    .api_version("v1")?
+    .mount::&lt;Film&gt;()
+    .deprecated(date!(2026-07-01), date!(2027-01-05))?
     .with_docs()
-    .build();</code></pre>
+    .build();
+<span class="boring">let _ = v1;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>The <code>date!</code> macro validates the calendar date at compile time; an
 invalid month or day fails <code>cargo build</code> rather than panicking at
 startup. See <code>ferra-core.md</code> §“Time vocabulary”.</p>
@@ -335,7 +498,7 @@ the two signals always travel together.</p>
 <tr><td><code>sunset</code></td><td>string</td><td>the declared sunset date in <code>YYYY-MM-DD</code> form</td></tr>
 <tr><td><code>days_overdue</code></td><td>i64</td><td>whole days from <code>sunset</code> to <code>today_utc</code></td></tr>
 <tr><td><code>http.method</code></td><td>string</td><td>the inbound request method, upper-cased</td></tr>
-<tr><td><code>http.target</code></td><td>string</td><td>the inbound <code>path?query</code> (includes the version prefix)</td></tr>
+<tr><td><code>http.target</code></td><td>string</td><td>the inbound path, without the query string (includes the version prefix; ADR-0076)</td></tr>
 </tbody>
 </table>
 </div>
@@ -365,7 +528,7 @@ is configured the same way.</p>
 <p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
 When the <code>observability</code> feature is enabled:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = { package = "ferra-rs", version = "0.7", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1", features = ["observability"] }
 </code></pre>
 <p>the framework also advances a <code>metrics::counter!</code> named
 <code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,
@@ -384,7 +547,7 @@ shipped at 0.7.0.</p>
 under <code>200 ns</code> on the CI reference runner and is informational-tier
 under <code>100 ns</code>. The framework’s first build-gating performance
 contract enforces this: a regression past <code>200 ns</code> fails the build
-(<code>scripts/bench/check_sunset_ceiling.sh</code> against
+(<code>cargo run -p xtask --bin check_sunset_ceiling</code> against
 <code>cargo bench --bench sunset_comparator</code>). The two-tier discipline is
 documented in ADR-0039 as the pattern for future hot-path additions.</p>
 <hr>
@@ -401,18 +564,41 @@ consumer.</p>
 inbound request and returns <code>bool</code>; a <code>false</code> produces an RFC 7807
 <code>401 Unauthorized</code> response with
 <code>type: "https://ferra.rs/errors/unauthorized"</code>:</p>
-<pre><code class="language-rust ignore">use ferra::*;
-use axum::http::header::AUTHORIZATION;
-
+<pre class="playground"><code class="language-rust">use axum::http::header::AUTHORIZATION;
+use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>// Constant time: `==` on a secret stops at the first differing byte, and the delay tells it.
+fn same(a: &amp;[u8], b: &amp;[u8]) -&gt; bool {
+    a.len() == b.len() &amp;&amp; a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
 let app = Foundry::new(conn)
     .mount::&lt;Film&gt;()
     .with_docs_protected(|req: &amp;axum::extract::Request| {
-        req.headers()
-            .get(AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            == Some("Bearer secret")
+        let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
+        same(sent, b"Bearer secret")
     })
-    .build();</code></pre>
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>The verifier runs synchronously and MUST NOT perform I/O — the
 underlying primitive does not yet integrate with the
 <code>ferra-auth</code> provider chain (that landing is scheduled for 0.8.5
@@ -421,16 +607,17 @@ will be additive.</p>
 <hr>
 <h2 id="layer-ordering-invariance"><a class="header" href="#layer-ordering-invariance">Layer-ordering invariance</a></h2>
 <p>Every resource mounted through <code>Foundry</code> carries the per-resource
-Tower stack <code>ferra_router::&lt;M&gt;</code> builds: CORS (restrictive default),
+Tower stack: CORS (restrictive default),
 the 413-mapping middleware, the 1 MiB body limit, tracing with body
 sampling off, and per-route rate limiting on mutation endpoints.
 Foundry does not reorder, replace, or remove any of these layers.</p>
 <p>Consumer-added <code>.layer(...)</code> calls on the value <code>Foundry::build()</code>
 returns land <em>outside</em> the framework’s stack — the standard Tower
 composition rule. If you need a layer to wrap framework layers, add
-it on the returned router; if you need it to sit beneath the
-framework layers, fork to <code>mount_with::&lt;M&gt;(state)</code> and pre-compose
-on the state’s <code>ferra_router::&lt;M&gt;</code> output.</p>
+it on the returned router. Beneath the framework layers, each model’s
+routes accept only the knobs of <code>.mount_with_layer::&lt;M&gt;(layer)</code> (see
+§“Transport-layer overrides”): there is no hook to insert an arbitrary
+layer inside a model’s stack.</p>
 <p>Cross-reference: <code>ferra-http.md</code> §“Tower layer-ordering notation”
 documents the exact stack order.</p>
 <hr>
@@ -444,7 +631,7 @@ ADR and no framework source is required.</p>
 </blockquote>
 <p>The framework’s secure Tower stack (CORS deny-by-default, 1 MiB body
 cap, <code>{ per_second: 2, burst_size: 5 }</code> mutation rate-limit, tracing
-with body sampling off) is the right default for the vast majority of
+of one <code>INFO</code> event per request) is the right default for the vast majority of
 APIs. Some shapes — file uploads, high-volume mutation endpoints,
 sub-path deployments behind a reverse proxy — need narrow overrides.
 Use the <strong><code>FerraLayer</code></strong> builder for those.</p>
@@ -457,8 +644,8 @@ Use the <strong><code>FerraLayer</code></strong> builder for those.</p>
 <tbody>
 <tr><td>CORS</td><td><code>CorsLayer::new()</code> (deny by default)</td><td><code>.cors(cors_layer)</code></td></tr>
 <tr><td>Body cap</td><td>1 MiB</td><td><code>.body_limit(bytes)</code></td></tr>
-<tr><td>Rate-limit (mutations only)</td><td><code>RateLimitRule::new(2, 5)</code> (2/sec, burst 5)</td><td><code>.rate_limit(RateLimitRule::new(per_second, burst_size))</code></td></tr>
-<tr><td>Tracing</td><td><code>TraceLayer::new_for_http()</code> with body sampling off</td><td><code>.trace_layer(layer)</code></td></tr>
+<tr><td>Rate-limit (mutations only)</td><td>2/sec, burst 5</td><td><code>.rate_limit(RateLimitRule::new(per_second, burst_size)?)</code></td></tr>
+<tr><td>Tracing</td><td>one <code>INFO</code> event per request: method, path, status, latency, and the <code>credential</code> (<code>token</code> or <code>api_key</code>) and <code>api_key.prefix</code> of an accepted request; never the query string, headers or body</td><td><code>.trace_layer(layer)</code></td></tr>
 <tr><td>Base path for <code>_links</code></td><td>none</td><td><code>.base_path("/api")</code></td></tr>
 </tbody>
 </table>
@@ -467,12 +654,10 @@ Use the <strong><code>FerraLayer</code></strong> builder for those.</p>
 (<code>FerraLayer::new().build()</code>) reproduces the framework stack
 byte-for-byte — the override surface is <strong>silent when unused</strong>.</p>
 <blockquote>
-<p><strong><code>RateLimitRule</code> construction.</strong> Always use the <code>RateLimitRule::new(per_second, burst_size)</code> constructor.
-The struct carries <code>#[non_exhaustive]</code> to accommodate future
-additive knobs (e.g., per-key extractor selection, per-method
-overrides) without breaking downstream construction sites; direct
-struct-literal construction (<code>RateLimitRule { per_second: 2, burst_size: 5 }</code>) is rejected by the compiler from outside the
-crate.</p>
+<p><strong><code>RateLimitRule</code> construction.</strong> Build a rule with <code>RateLimitRule::new(per_second, burst_size)?</code>
+(or <code>RateLimitRule::default()</code>, 2 per second, burst 5) and read it with
+<code>.per_second()</code> and <code>.burst_size()</code>. The fields are private: a checked rule cannot
+be changed into an invalid one afterwards.</p>
 </blockquote>
 <h3 id="per-app-vs-per-model--replace-not-merge"><a class="header" href="#per-app-vs-per-model--replace-not-merge">Per-app vs per-model — REPLACE not merge</a></h3>
 <p><code>FerraLayer</code> applies at two scopes:</p>
@@ -499,7 +684,43 @@ the per-model layer for <code>Document</code> does NOT explicitly call
 default</strong>, not the 5 MiB per-app value. The rule is auditable
 by <code>grep</code>: every override is explicit at its declaration site.</p>
 </blockquote>
-<pre><code class="language-rust ignore">let global = FerraLayer::new()
+<pre class="playground"><code class="language-rust">use ferra::{FerraLayer, Foundry};
+use tower_http::cors::CorsLayer;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">mod document {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "documents")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use document::Model as Document;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, permissive_cors: CorsLayer) {
+</span>let global = FerraLayer::new()
     .body_limit(5 * 1024 * 1024)         // 5 MiB
     .build();
 let document = FerraLayer::new()
@@ -510,7 +731,10 @@ let app = Foundry::new(conn)
     .layer(global)                       // 5 MiB on every model …
     .mount_with_layer::&lt;Document&gt;(document) // … EXCEPT Document
     .mount::&lt;Film&gt;()
-    .build();</code></pre>
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>Observable behaviour:</p>
 <ul>
 <li><code>Film</code> routes: body limit <strong>5 MiB</strong> (from <code>global</code>), CORS
@@ -552,12 +776,35 @@ fire at compile time, not at proc-macro time. If your deployment
 needs multiple prefixes simultaneously, declare a separate
 <code>FerraLayer</code> per-deployment-target.</p>
 </blockquote>
-<pre><code class="language-rust ignore">let app = Foundry::new(conn)
+<pre class="playground"><code class="language-rust">use ferra::{FerraLayer, Foundry};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let app = Foundry::new(conn)
     .layer(FerraLayer::new().base_path("/api").build())
     .mount::&lt;Film&gt;()
-    .build();</code></pre>
-<p>Every <code>_links.*.href</code> (self, collection, restore, named-operation
-links) now carries the <code>/api</code> prefix:</p>
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>Every <code>_links.*.href</code> (self, collection, and <code>restore</code> on a soft-delete
+model) now carries the <code>/api</code> prefix:</p>
 <ul>
 <li><code>_links.self.href</code> → <code>https://api.example.com/api/films/42</code></li>
 <li><code>_links.collection.href</code> → <code>https://api.example.com/api/films</code></li>
@@ -566,35 +813,85 @@ links) now carries the <code>/api</code> prefix:</p>
 <strong>MUST start with <code>/</code></strong> and <strong>MUST NOT end with <code>/</code></strong>. Malformed
 literals produce a compile error at the call site when the value
 is reachable in <code>const</code> context:</p>
-<pre><code class="language-rust ignore">.base_path("api")        // compile error — no leading `/`
-.base_path("/api/")      // compile error — trailing `/`
-.base_path("")           // compile error — empty</code></pre>
+<pre><code class="language-text">.base_path("api")        // compile error — no leading `/`    (FRG-340)
+.base_path("/api/")      // compile error — trailing `/`      (FRG-341)
+.base_path("")           // compile error — empty             (FRG-342)
+</code></pre>
+<p>Each is a section of the diagnostics page, with its bad example compiled and its good
+one: <a href="ferra-forge-diagnostics.html#frg-340--base_path-has-no-leading-slash"><code>FRG-340</code></a>,
+<a href="ferra-forge-diagnostics.html#frg-341--base_path-has-a-trailing-slash"><code>FRG-341</code></a>,
+<a href="ferra-forge-diagnostics.html#frg-342--base_path-is-empty"><code>FRG-342</code></a>.</p>
 <p>The <code>base_path</code> declaration applies <strong>only to hypermedia link
 generation</strong>. The framework does not assume the prefix is present in
 the inbound request URI — if the reverse proxy strips <code>/api</code> before
 forwarding, no further configuration is needed. To mount under the
 prefix internally as well, compose with <code>axum::Router::nest("/api", foundry.build())</code>.</p>
 <h3 id="rate-limit-override"><a class="header" href="#rate-limit-override">Rate-limit override</a></h3>
-<pre><code class="language-rust ignore">use ferra::{FerraLayer, RateLimitRule};
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{FerraLayer, RateLimitError, RateLimitRule};
 
-let layer = FerraLayer::new()
-    .rate_limit(RateLimitRule::new(10, 20))   // 10/sec, burst 20
-    .build();</code></pre>
-<p>The constructor signature is <code>RateLimitRule::new(per_second: u32, burst_size: u32) -&gt; Self</code>. <code>burst_size</code> is the bucket depth (peak
-concurrent mutations); <code>per_second</code> is the steady-state refill rate.
+fn layer() -&gt; Result&lt;ferra::FerraLayer, RateLimitError&gt; {
+    Ok(FerraLayer::new()
+        .rate_limit(RateLimitRule::new(10, 20)?) // 10/sec, burst 20
+        .build())
+}
+<span class="boring">}</span></code></pre>
+<p>The constructor signature is <code>RateLimitRule::new(per_second: u32, burst_size: u32) -&gt; Result&lt;RateLimitRule, RateLimitError&gt;</code>. <code>burst_size</code>
+is the bucket depth (peak concurrent mutations); <code>per_second</code> is the
+steady-state refill rate: one token every <code>1 / per_second</code> seconds.
 At <code>RateLimitRule::new(10, 20)</code> a client may issue 20 mutations in
-burst, then 10/second steady-state. The key extractor at 0.7.0 is
-fixed to peer socket IP; richer extractor selection (proxy-aware
-keying, custom keying) composes on top in a later release. The
-<code>#[non_exhaustive]</code> attribute on <code>RateLimitRule</code> ensures additive
-knobs ship without breaking downstream construction sites — always
-use the <code>::new(...)</code> constructor rather than struct-literal
-construction.</p>
+burst, then 10/second steady-state. A zero <code>per_second</code> or
+<code>burst_size</code> is refused with <code>RateLimitError::ZeroRate</code> or
+<code>RateLimitError::ZeroBurst</code> (such a rule would never let a mutation
+through), and a <code>per_second</code> above 1 000 000 000 with
+<code>RateLimitError::RateTooHigh</code>. A throttled request gets <code>429 Too Many Requests</code> with a
+<code>Retry-After</code> of at least 1 second.</p>
+<p><code>FerraLayer::new().no_rate_limit().build()</code> disables both the governor and
+its 429 mapper, so mutations need no <code>ConnectInfo</code>, and the OpenAPI document
+declares no 429 on the model’s mutations. It is const-callable;
+the last <code>rate_limit</code> or <code>no_rate_limit</code> call wins. Per-model replacement
+still applies: an unchanged per-model layer restores the framework default.</p>
+<p>Choose the application-wide key before the first mount:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{Foundry, RateLimitKey, TrustedProxies, TrustedProxiesError};
+fn proxy(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), TrustedProxiesError&gt; {
+    let _foundry = Foundry::new(conn).rate_limit_key(
+        RateLimitKey::forwarded_for(TrustedProxies::new(["10.0.0.0/8", "192.0.2.7"])?),
+    );
+    Ok(())
+}
+<span class="boring">}</span></code></pre>
+<p>The default <code>RateLimitKey::PeerAddr</code> needs
+<code>into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()</code>; a missing
+peer with an enabled limiter answers 500. Forwarded extraction reads
+<code>X-Forwarded-For</code> only from a trusted peer, walks all header lines right to
+left, and chooses the first untrusted IP. A malformed or empty entry before
+that IP, an all-trusted chain, or an untrusted peer falls back to the socket
+IP. Ports/brackets are stripped and IPv4-mapped IPv6 addresses normalized.
+An empty trust list ignores the header. Name another header with
+<code>RateLimitKey::forwarded_for(trusted).header(HeaderName::from_static("x-real-chain"))</code>.</p>
+<p><code>RateLimitKey::from_fn</code> accepts <code>fn(&amp;http::request::Parts) -&gt; Option&lt;IpAddr&gt;</code>.
+Its use case is a platform that gives the client address otherwise: Lambda
+Web Adapter relays <code>requestContext.http.sourceIp</code> in the
+<code>x-amzn-request-context</code> header. Parse only the deployment’s verified header
+shape and return the client IP; <code>None</code> shares one bucket (<code>0.0.0.0</code>), so
+extraction failures remain throttled. Ferra does not check where such a
+header comes from: a client can set <code>x-amzn-request-context</code> itself, so a
+<code>from_fn</code> reading it is forgeable unless every request reaches the service
+through the adapter that overwrites it.</p>
+<p>On Lambda the buckets belong to one execution environment, not the whole
+API. Disable the in-process limiter and configure API Gateway throttling;
+the Lambda template uses burst 20, rate 10 requests/second.</p>
 <h3 id="custom-cors--tracing-layers"><a class="header" href="#custom-cors--tracing-layers">Custom CORS + tracing layers</a></h3>
 <p><code>.cors(cors_layer)</code> and <code>.trace_layer(trace_layer)</code> accept the
 underlying [<code>tower_http</code>] types verbatim — the framework does not
 wrap them. To configure CORS for a specific allowed origin:</p>
-<pre><code class="language-rust ignore">use tower_http::cors::{AllowOrigin, CorsLayer};
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 let cors = CorsLayer::new()
     .allow_origin(AllowOrigin::list(["https://app.example.com".parse().unwrap()]))
@@ -602,13 +899,57 @@ let cors = CorsLayer::new()
         axum::http::Method::GET,
         axum::http::Method::POST,
     ]));
-let layer = FerraLayer::new().cors(cors).build();</code></pre>
-<p>The accepted <code>TraceLayer</code> type at 0.7.0 is the default
-<code>TraceLayer&lt;HttpMakeClassifier&gt;</code> shape returned by
-<code>TraceLayer::new_for_http()</code>. Consumers who need a custom classifier
-or per-handler customisation that changes the layer’s generic
-parameters compose on top of <code>Foundry::build()</code> with a regular
-<code>.layer(...)</code> call.</p>
+let layer = FerraLayer::new().cors(cors).build();
+<span class="boring">let _ = layer;
+</span><span class="boring">}</span></code></pre>
+<h4 id="the-trace-slot-accepts-any-tracelayer-shape-080"><a class="header" href="#the-trace-slot-accepts-any-tracelayer-shape-080">The trace slot accepts any <code>TraceLayer</code> shape (0.8.0)</a></h4>
+<p>Through 0.7.x the trace slot held one concrete type — the
+<code>TraceLayer&lt;HttpMakeClassifier&gt;</code> that <code>TraceLayer::new_for_http()</code>
+returns — so a custom classifier or custom span fields could not reach
+it without forking the builder.</p>
+<p>The slot is now a <strong>type-erased closure</strong>
+(<code>Arc&lt;dyn Fn(Router) -&gt; Router + Send + Sync&gt;</code>), and <code>FerraLayer</code> stays
+non-generic. <code>.trace_layer(...)</code> is generic over the full
+<code>TraceLayer&lt;C, M, OnReq, OnResp, OnBody, OnEos, OnFail&gt;</code> shape: pass your
+configured layer verbatim, whatever its classifier, <code>make_span_with</code>, or
+<code>on_request</code> / <code>on_response</code> / <code>on_failure</code> handlers, and the builder
+boxes it.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraLayer;
+use tower_http::trace::TraceLayer;
+use tracing::Level;
+
+let custom_trace = TraceLayer::new_for_http().make_span_with(
+    |req: &amp;axum::http::Request&lt;axum::body::Body&gt;| {
+        tracing::span!(Level::INFO, "http_request", method = %req.method())
+    },
+);
+let layer = FerraLayer::new().trace_layer(custom_trace).build();
+<span class="boring">}</span></code></pre>
+<p>Two consequences of the erasure worth knowing:</p>
+<ul>
+<li><strong><code>FerraLayer</code> carries no static evidence of which trace shape is
+mounted.</strong> Reading the type alone will not tell you whether the
+framework default or your layer is in the slot. <code>Debug</code> renders the
+slot as <code>Some("&lt;trace closure&gt;")</code> or <code>None</code>.</li>
+<li><strong>The framework default is not stored in the slot.</strong> It defaults to
+<code>None</code>, and the default layer (one <code>INFO</code> event per request: method, path
+without query string, status, latency) is produced on demand at router-construction time. That is what
+keeps <code>build()</code> callable from a <code>const</code> context:</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraLayer;
+
+const APP_LAYER: FerraLayer = FerraLayer::new()
+    .body_limit(7 * 1024 * 1024)
+    .base_path("/api")
+    .build();
+<span class="boring">}</span></code></pre>
+<p>A <code>const</code> layer makes every builder validation run during <code>rustc</code> rather
+than at startup — a malformed <code>base_path</code> becomes a compile error at the
+literal, not a panic on the first request.</p>
 <h3 id="composition-order--preserved"><a class="header" href="#composition-order--preserved">Composition order — preserved</a></h3>
 <p>The constitutional Tower stack order is preserved regardless of
 which knobs are overridden:</p>
@@ -627,40 +968,146 @@ which knobs are overridden:</p>
 <p><code>FerraLayer</code> does not reorder, add, or remove layers — only swaps
 the parameters / values that flow into the existing slots.</p>
 <h3 id="typestate-guard--layer-before-mount"><a class="header" href="#typestate-guard--layer-before-mount">Typestate guard — <code>.layer(...)</code> before <code>.mount(...)</code></a></h3>
-<p><code>.layer(...)</code> carries the same <code>Set: IsEmpty</code> typestate bound as
-<code>.api_version(...)</code>. Calling it after a model has been mounted
-produces a compile error pointing at the merge-two-assemblies
-pattern (the same diagnostic shape documented in §“The
-no-mixed-mode rule” above).</p>
+<p><code>.layer(...)</code> carries the same typestate bound as <code>.api_version(...)</code>
+and <code>.with_auth(...)</code>. Calling it after a model has been mounted
+produces the compile error documented in §“The no-mixed-mode rule”
+above.</p>
 <p><code>.mount_with_layer::&lt;M&gt;(layer)</code> follows the same no-duplicate-mount
 rule as <code>.mount::&lt;M&gt;()</code>.</p>
 <hr>
+<h2 id="request-time-budget"><a class="header" href="#request-time-budget">Request time budget</a></h2>
+<p>Call <code>.request_budget(Duration::from_secs(25))</code> before the first mount.
+No budget applies by default. The setting survives <code>.with_auth()</code> and
+<code>.api_version()</code> in either order.</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::Foundry;
+use std::time::Duration;
+
+fn configure(conn: sea_orm::DatabaseConnection) {
+    let _router = Foundry::new(conn)
+        .request_budget(Duration::from_secs(25))
+        .route("/live", axum::routing::get(|| async { "ok" }))
+        .build();
+}
+<span class="boring">}</span></code></pre>
+<p>If the budget expires before a Ferra repository commit starts, the
+request answers 503 <code>application/problem+json</code>, with type
+<code>https://ferra.rs/errors/timeout</code> and no <code>Retry-After</code>. Its unfinished
+transaction rolls back. Create, update, delete, soft delete and restore
+all use this boundary.</p>
+<p>Once any commit starts, the commit is never cancelled and never answered
+503 <code>timeout</code>: the handler finishes and returns its own response. The gate
+stays set until the request ends, so your own work in that handler is not cut.
+One thing is bounded: a model’s <code>after_commit</code> hook, which runs after the
+commit and before the response, gets the budget that is left. When that runs
+out the hook is dropped and the request answers 500 <code>internal</code>; the commit
+stands (see <a href="behaviors.html#after-commit">Behaviors</a>). A gateway or process
+timeout can still interrupt the connection; choose a budget below that
+infrastructure timeout.</p>
+<p>Generated routes use the budget automatically. To include your own
+<code>Resource&lt;M&gt;</code> route, obtain its handle with <code>.mount_and_handle::&lt;M&gt;()</code>,
+then declare the route on the builder before <code>.build()</code>:
+<code>.route("/films/{id}/publish", post(publish).with_state(films))</code>. Call
+<code>.route</code> once per path, every method of the path in one <code>MethodRouter</code>
+(<code>get(a).post(b)</code>); a path declared twice panics. Nested routers and
+<code>nest_service</code> are not accepted. Merging routes into the finished router
+afterwards (axum’s <code>.merge</code> or <code>.route</code> on the value <code>build()</code> returns)
+does not give those routes the budget, and escapes the conflict check
+below too.
+Writes through an application-owned raw <code>DatabaseConnection</code> are outside
+this guarantee.</p>
+<p>Declared routes mount at the root, outside the <code>.api_version(...)</code> prefix:
+a <code>/live</code> probe or a webhook keeps its URL when the version changes, and
+gets no <code>Deprecation</code> or <code>Sunset</code> header. They receive only the
+chain-wide layers: the request budget and the cache default (<code>Cache-Control: no-store</code>, a merged <code>Vary</code>). To cache one of them, set its own <code>Cache-Control</code> with
+a layer on its <code>MethodRouter</code>: see
+<a href="ferra-http.html#caching"><code>ferra-http.md</code> § Caching</a>.</p>
+<p><strong>Ferra does not authenticate a declared route by itself.</strong> Ferra’s JWT
+authentication, authorization, mutation rate limiter, body limit and
+CORS apply to model routes only. A declared route that reads no caller
+answers a request that carries no token, and ignores every credential:
+a webhook with its own <code>Authorization</code> scheme, or two of them, is the
+handler’s own answer. Declared routes appear neither in the OpenAPI
+document nor in <code>route_table()</code>.</p>
+<h3 id="who-is-calling-a-declared-route"><a class="header" href="#who-is-calling-a-declared-route">Who is calling a declared route</a></h3>
+<p>A handler that wants the caller says so with an extractor, and the
+extractor reads the credential itself, with the rules of the model
+routes, before the handler body runs:</p>
+<ul>
+<li><code>Principal&lt;Claims&gt;</code> is the JWT’s claims or the API key’s identity;
+<code>CurrentUser&lt;Claims&gt;</code> is the JWT only, and answers 401 on a key;
+<code>Resource&lt;M&gt;</code> binds the caller for <code>M</code>’s rules.</li>
+<li>Two credentials answer 400 <code>multiple_credentials</code>; one that is invalid
+answers 401; an identity source out of reach (key set, key store)
+answers 503 <code>identity_unavailable</code>.</li>
+<li><code>Option&lt;Principal&lt;Claims&gt;&gt;</code> and <code>Option&lt;CurrentUser&lt;Claims&gt;&gt;</code> are <code>None</code>
+only when no credential was sent: an invalid one is still a 401, never
+an anonymous request.</li>
+<li>The credential is verified once per request: <code>Resource&lt;M&gt;</code> and
+<code>Principal&lt;Claims&gt;</code> in one handler share one API key lookup.</li>
+<li>The request span’s <code>credential</code> field is set on model routes only: on a declared
+route the credential is checked at extraction, after any span was created, so the
+span does not carry it.</li>
+</ul>
+<p>On a chain without <code>.with_auth()</code> there is no credential to read:
+<code>Principal</code> and <code>CurrentUser</code> answer 401 and their <code>Option</code> forms are
+<code>None</code>.</p>
+<p>A declared path that overlaps a model route or the docs page (same path,
+or a <code>{param}</code> segment that matches it), whatever the method, makes
+<code>.build()</code> panic at startup with a message naming both paths, for example
+<code>the route `/films/{key}` declared with `FoundryBuilder::route` conflicts with `/films/{id}` </code>. A custom <code>PATCH /films/{id}</code> beside a <code>films</code> model
+is refused too. Give the declared route a path no model and no docs page
+use. A root catch-all <code>/{*rest}</code> and any path under the docs page
+(<code>/docs/...</code>) are refused as well; for a SPA fallback, call
+<code>Router::fallback</code> on the router <code>build()</code> returns (outside the budget)
+or serve the SPA under a dedicated prefix such as <code>/app/{*rest}</code>. The
+check compares a chain’s declared routes with that chain’s models only:
+in an assembly merged from two chains, a route declared on one is not
+compared with the models of the other.</p>
+<p><code>.build()</code> also panics at startup, with a message that says how to fix it:</p>
+<ul>
+<li>when the key-set fetch timeout (<code>JwtConfig::with_key_set_timeout</code>) is
+not below the request budget: the fetch runs inside the request, so lower
+the timeout or raise <code>.request_budget(...)</code>;</li>
+<li>when the cookie credential is configured and a custom
+<code>FerraLayer::cors</code> sits on the chain’s <code>.layer(...)</code> or on a
+<code>mount_with_layer</code>: the origins given to <code>JwtConfig::with_cookie</code> drive
+CORS, so remove the custom CORS layer;</li>
+<li>with <code>.with_docs*()</code>, when a pass over the <code>OpenAPI</code> document finds the
+part it edits missing: <code>build()</code> panics with “the OpenAPI document lost the
+part the <code>&lt;stage&gt;</code> pass edits, so it would be served without that content — this
+is a Ferra bug, please report it”. It is a Ferra bug, not something to fix in
+your chain. The server does not start with a document that silently lost part
+of its content; please report it.</li>
+</ul>
+<hr>
 <h2 id="escape-hatches"><a class="header" href="#escape-hatches">Escape hatches</a></h2>
 <ul>
-<li><strong><code>mount_with::&lt;M&gt;(state)</code></strong> — supply a caller-built <code>FerraState&lt;M&gt;</code>
-rather than letting Foundry derive one from the connection. Useful
-for shared state across builders, instrumentation, or test
-fixtures where the repository needs to be substituted.</li>
+<li><strong><code>mount_and_handle::&lt;M&gt;()</code></strong> — mount as <code>mount::&lt;M&gt;()</code> does and get the
+<code>ResourceHandle&lt;M&gt;</code> a route of your own extracts <code>Resource&lt;M&gt;</code> from.
+<code>mount_with</code> (a caller-built <code>FerraState</code>) is gone since 0.10.0: there is
+no way to hand Foundry a repository.</li>
 <li><strong><code>with_docs_at(path)</code> / <code>with_docs_protected_at(path, verifier)</code></strong> —
 override the <code>/docs</code> mount point. Useful when a reverse proxy
 serves Ferra under a sub-path.</li>
-<li><strong>Direct <code>ferra-openapi</code> use</strong> — for advanced docs UIs (Redoc,
-RapiDoc, Swagger UI), call <code>ferra_openapi::build_openapi_for_models(...)</code>
-directly and merge the resulting <code>axum::Router</code> into the value
-Foundry returns. See <code>ferra-openapi.md</code> §“Alternative UIs”.</li>
+<li><strong>Another docs UI</strong> (Redoc, RapiDoc, Swagger UI) — serve it yourself and
+point it at <code>/docs/openapi.json</code>, which <code>with_docs()</code> mounts. <code>ferra-openapi</code>
+has no public API since 0.9.0: the document is reached through the running
+router, not through a function call.</li>
 </ul>
 <hr>
 <h2 id="when-foundry-is-the-wrong-tool"><a class="header" href="#when-foundry-is-the-wrong-tool">When Foundry is the wrong tool</a></h2>
+<p>There is no lower-level way to mount a model: a model is always served
+by <code>Foundry</code>, because <code>Foundry</code> is what applies its authorization rules.
+Per-model transport settings go through <code>.mount_with_layer::&lt;M&gt;(layer)</code>
+(see §“Transport-layer overrides” above).</p>
 <ul>
-<li>Apps where every resource needs a hand-tuned middleware stack
-(e.g. per-resource auth schemes, per-resource body-limit overrides).
-Use <code>ferra_router::&lt;M&gt;(state)</code> per resource and compose by hand.</li>
 <li>Apps that mount the docs surface from a different process than
 the API itself. The <code>ferra-openapi</code> free functions stand alone.</li>
 <li>Apps with a non-Sea-ORM persistence layer. Foundry takes a
-<code>sea_orm::DatabaseConnection</code>; alternative backends compose
-through <code>mount_with::&lt;M&gt;(state)</code> using a <code>FerraState&lt;M&gt;</code> bound to
-the alternative.</li>
+<code>sea_orm::DatabaseConnection</code>; there is no way to substitute another
+backend behind a mounted model.</li>
 </ul>
 <p>For the bare CRUD case — the framework’s zero-to-documented-API
 target — <code>Foundry::new(conn).mount::&lt;M&gt;().with_docs().build()</code> is
@@ -670,8 +1117,9 @@ the right shape.</p>
 <ul>
 <li>ADR-0024 — <code>ferra-openapi</code> crate scope, public-default docs
 deviation, <code>Foundry → ferra-openapi</code> edge.</li>
-<li>ADR-0025 — <code>Foundry</code> typestate strategy
-(set-membership-via-trait + <code>#[diagnostic::on_unimplemented]</code>).</li>
+<li>ADR-0025 — <code>Foundry</code> typestate strategy (<code>#[diagnostic::on_unimplemented]</code>;
+since 0.9.0 the typestate has two states, <code>Empty</code> and <code>Mounted</code>, and
+the duplicate-mount check runs at assembly time).</li>
 <li>ADR-0026 — closed <code>ERROR_TYPES</code> URI namespace; the
 <code>https://ferra.rs/errors/unauthorized</code> URI used by
 <code>.with_docs_protected(...)</code>.</li>
@@ -728,11 +1176,11 @@ APIs above.</p>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

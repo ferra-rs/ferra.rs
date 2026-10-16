@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,285 +181,292 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="ferra-db--the-repository-layer"><a class="header" href="#ferra-db--the-repository-layer"><code>ferra-db</code> — the repository layer</a></h1>
-<p><em>The 0.3.0 Casting deliverable. Turns a <code>#[derive(FerraModel, DeriveEntityModel)]</code> entity into a CRUD-capable repository against a live PostgreSQL, with zero hand-written SQL.</em></p>
-<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-db</code>. A reader with only this page plus standard Rust knowledge can produce a compiling CRUD round-trip on the first attempt — no ADR, no constitution, and no framework source is required.</p>
-<blockquote>
-<p><strong>At 0.4.0 Refining</strong> the <code>ferra</code> facade absorbs <code>ferra-forge</code> (the <code>#[derive(FerraModel)]</code> macro) and <code>ferra-http</code> (the CRUD handler layer). Consumers write <code>use ferra::*;</code> and no longer need a second direct dependency on <code>ferra-forge</code> — the 003 two-line pattern collapses to one line. See <a href="ferra-http.html"><code>ferra-http.md</code></a> for the HTTP surface that composes on top of this page’s repository layer.</p>
-</blockquote>
+                        <h1 id="ferra-db--the-database-layer"><a class="header" href="#ferra-db--the-database-layer"><code>ferra-db</code> — the database layer</a></h1>
+<p>The repository layer (<code>PgRepository</code>, <code>FerraRepository</code>, <code>FerraDbError</code>) is
+internal to Ferra and <strong>outside the contract</strong>: the <code>ferra</code> facade does not
+export it, and an application does not declare <code>ferra-db</code>. What an application
+reaches from this layer is <code>Page</code>, <code>CursorPage</code>, <code>CollectionQuery</code>,
+<code>CursorQuery</code>, <code>PkValue</code> and <code>DatabaseConnection</code>, all exported by <code>ferra</code>.</p>
+<p>To read and write a model from a route of your own, take a <code>Resource&lt;M&gt;</code>
+extractor (from the <code>ResourceHandle&lt;M&gt;</code> that <code>mount_and_handle::&lt;M&gt;()</code> returns):
+<code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code>, each returning
+<code>FerraError</code> (<a href="custom-handlers.html">Custom Handlers</a>). Behaviour that used to be
+read on the repository (SQLSTATE <code>23505</code> becomes a 409 Conflict, a missing row a
+404, an undecodable cursor a 400) is read on the HTTP side and on <code>FerraError</code>
+(<a href="ferra-http.html"><code>ferra-http.md</code></a>). For raw access, use your own
+<code>DatabaseConnection</code>, outside the contract: see
+<a href="custom-handlers.html#raw-database-access-outside-the-contract">Custom Handlers § Raw database access, outside the contract</a>.
+Transactions are the same: begin one on your own connection with <code>conn.begin()</code>
+(below).</p>
 <hr>
-<h2 id="zero-to-crud-in-four-lines"><a class="header" href="#zero-to-crud-in-four-lines">Zero-to-CRUD in four lines</a></h2>
-<pre><code class="language-rust ignore">use ferra::{DatabaseConnection, FerraRepository, PgRepository};
+<p><strong>Dependencies.</strong> The examples on this page assume the dependencies of
+<a href="getting-started.html">Getting started</a>:</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
+<h2 id="queries-and-pages"><a class="header" href="#queries-and-pages">Queries and pages</a></h2>
+<p><code>CollectionQuery</code> and <code>CursorQuery</code> are <code>#[non_exhaustive]</code>: build one with
+<code>CollectionQuery::new(page, per_page)</code> and the <code>with_filter</code> / <code>with_sort</code>
+methods, <code>CursorQuery::new(per_page)</code> and <code>with_after</code> / <code>with_filter</code>. A filter
+key the model does not declare <code>#[field(filterable)]</code> is refused, never ignored
+(<a href="pagination.html">Pagination</a>). <code>PkValue&lt;M&gt;</code> is the Sea-ORM primary-key value type
+of <code>M</code>: a plain <code>i32</code> / <code>i64</code> / <code>Uuid</code>, or a tuple for a composite key
+(<a href="ferra-forge.html#composite-primary-keys"><code>ferra-forge.md</code> § Composite primary keys</a>).</p>
+<p>A filter key is the field name for equality, or <code>field[op]</code> for a comparison
+(<code>gt</code>, <code>gte</code>, <code>lt</code>, <code>lte</code>) on a <code>ferra::DateTime</code>, <code>Date</code> or <code>Time</code> field, as
+<code>filter[field][op]</code> is on the wire; a comparison on another type is refused
+(400 <code>unsupported_operator</code>). A <code>CursorQuery</code> walks ascending unless
+<code>with_direction(SortDirection::Desc)</code> says otherwise; a cursor issued for the
+other direction is refused as an invalid cursor, and <code>Resource::list_cursor</code>
+applies the same checks as the generated route.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{CursorQuery, SortDirection};
 
-let conn: DatabaseConnection = sea_orm::Database::connect(&amp;database_url).await?;
-let repo = PgRepository::&lt;Film&gt;::new(conn);
-let film = repo.find_by_id(42).await?;</code></pre>
-<p>(<code>Film</code> is the canonical sibling-derive entity shape from <code>ferra-forge</code> — see the worked example below. <code>database_url</code> is read from the <code>DATABASE_URL</code> environment variable in the usual way.)</p>
+let newest_first = CursorQuery::new(20)
+    .with_direction(SortDirection::Desc)
+    .with_filter("created_at[gte]", "2026-10-03T00:00:00Z");
+assert_eq!(newest_first.direction, SortDirection::Desc);
+<span class="boring">}</span></code></pre>
 <hr>
-<h2 id="the-ferrarepositorym-surface"><a class="header" href="#the-ferrarepositorym-surface">The <code>FerraRepository&lt;M&gt;</code> surface</a></h2>
-<p><code>FerraRepository&lt;M&gt;</code> is an async trait with ten methods, split into two symmetric groups of five. The ambient-connection quintet runs against the pool supplied at construction time; the <code>_in_tx</code> quintet takes a caller-owned transaction handle.</p>
-<h3 id="ambient-connection-methods"><a class="header" href="#ambient-connection-methods">Ambient-connection methods</a></h3>
+<h2 id="logging-and-tracing-of-database-activity"><a class="header" href="#logging-and-tracing-of-database-activity">Logging and tracing of database activity</a></h2>
+<p><code>sea_orm::Database::connect(&amp;database_url)</code> — the connection form used throughout this guide — accepts anything that converts <code>Into&lt;ConnectOptions&gt;</code>, including a bare <code>&amp;str</code>. When you pass a bare URL, Sea-ORM builds a <code>ConnectOptions</code> with its own defaults, and <strong>those defaults are logging-on</strong>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Method</th><th>Signature summary</th><th>Error outcomes</th></tr>
+<tr><th>Setting</th><th>Default</th><th>What it emits</th></tr>
 </thead>
 <tbody>
-<tr><td><code>find_by_id</code></td><td><code>async fn find_by_id(&amp;self, id: PkValue&lt;M&gt;) -&gt; Result&lt;M, FerraDbError&gt;</code></td><td><code>NotFound</code> · <code>Db</code></td></tr>
-<tr><td><code>find_page</code></td><td><code>async fn find_page(&amp;self, page: u32, per_page: u32) -&gt; Result&lt;Page&lt;M&gt;, FerraDbError&gt;</code></td><td><code>Db</code> (never <code>NotFound</code>)</td></tr>
-<tr><td><code>insert</code></td><td><code>async fn insert(&amp;self, data: M) -&gt; Result&lt;M, FerraDbError&gt;</code></td><td><code>Conflict</code> · <code>Db</code></td></tr>
-<tr><td><code>update</code></td><td><code>async fn update(&amp;self, id: PkValue&lt;M&gt;, data: M) -&gt; Result&lt;M, FerraDbError&gt;</code></td><td><code>NotFound</code> · <code>Conflict</code> · <code>Db</code></td></tr>
-<tr><td><code>delete</code></td><td><code>async fn delete(&amp;self, id: PkValue&lt;M&gt;) -&gt; Result&lt;(), FerraDbError&gt;</code></td><td><code>NotFound</code> · <code>Db</code></td></tr>
+<tr><td><code>sqlx_logging</code></td><td><code>true</code></td><td>Every executed SQL statement is logged via the <code>log</code>/<code>tracing</code> bridge, at the level below.</td></tr>
+<tr><td><code>sqlx_logging_level</code></td><td><code>log::LevelFilter::Info</code></td><td>The level statements above are logged at (ignored if <code>sqlx_logging</code> is <code>false</code>).</td></tr>
+<tr><td><code>record_stmt_in_spans</code></td><td><code>true</code></td><td>The rendered SQL statement — <strong>including its bound parameter values</strong> — is attached to the <code>tracing</code> span for that query.</td></tr>
+<tr><td><code>sqlx_slow_statements_logging_settings</code></td><td><code>(LevelFilter::Off, _)</code></td><td>Off by default; when enabled, statements slower than a threshold you set log at a separate level.</td></tr>
 </tbody>
 </table>
 </div>
-<ul>
-<li><code>PkValue&lt;M&gt;</code> is the Sea-ORM primary-key value type for <code>M</code> — for most entities this is a plain <code>i32</code> / <code>i64</code> / <code>Uuid</code>. The exact type alias is <code>pub type PkValue&lt;M&gt; = &lt;&lt;&lt;M as sea_orm::ModelTrait&gt;::Entity as sea_orm::EntityTrait&gt;::PrimaryKey as sea_orm::PrimaryKeyTrait&gt;::ValueType;</code> — consumers rarely spell it out; it propagates through <code>impl</code> blocks automatically.</li>
-<li>For <strong>composite primary keys</strong> (two or more <code>#[sea_orm(primary_key)]</code> markers — see <a href="ferra-forge.html#composite-primary-keys"><code>ferra-forge.md</code> § Composite primary keys</a>), Sea-ORM resolves <code>PkValue&lt;M&gt;</code> to a tuple matching the declaration order: <code>(K1, K2)</code> for two-key composites, <code>(K1, K2, K3)</code> for three-key, etc. The repository call site is the typed tuple lookup <code>repo.find_by_id((tenant_id, document_id))</code>. Single-PK consumers see no change.</li>
-<li><code>find_page</code> is 1-indexed (<code>page = 1</code> is the first page). A request past the end returns <code>Ok(Page { items: vec![], total, .. })</code> — never <code>NotFound</code>.</li>
-<li><code>update</code> accepts <code>(id, data)</code> where <code>data: M</code> carries the new values. At 0.3.0 the caller is responsible for ensuring <code>data</code>’s primary key matches <code>id</code>; the 0.4.0 DTO layer will enforce that invariant upstream.</li>
-</ul>
-<h3 id="transaction-scoped-methods"><a class="header" href="#transaction-scoped-methods">Transaction-scoped methods</a></h3>
-<p>Each ambient method has a paired <code>_in_tx</code> variant with the same name + suffix, taking <code>&amp;DatabaseTransaction</code> as its first argument after <code>&amp;self</code>:</p>
-<pre><code class="language-rust ignore">async fn find_by_id_in_tx(&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;M, FerraDbError&gt;;
-async fn find_page_in_tx (&amp;self, tx: &amp;DatabaseTransaction, page: u32, per_page: u32) -&gt; Result&lt;Page&lt;M&gt;, FerraDbError&gt;;
-async fn insert_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, data: M) -&gt; Result&lt;M, FerraDbError&gt;;
-async fn update_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;, data: M) -&gt; Result&lt;M, FerraDbError&gt;;
-async fn delete_in_tx    (&amp;self, tx: &amp;DatabaseTransaction, id: PkValue&lt;M&gt;) -&gt; Result&lt;(), FerraDbError&gt;;</code></pre>
-<p>Semantics are identical to the ambient counterpart modulo the transaction handle. A bug fixed in one path is fixed in both — the two families share their inner implementation via a <code>ConnectionTrait</code>-generic helper.</p>
-<h3 id="object-safety-note"><a class="header" href="#object-safety-note">Object-safety note</a></h3>
-<p><code>FerraRepository&lt;M&gt;</code> is NOT object-safe — edition-2024 native async-in-trait does not support <code>dyn FerraRepository&lt;M&gt;</code>. Compose against it via generics: <code>fn handler&lt;R: FerraRepository&lt;Film&gt;&gt;(repo: R, ...)</code>. A runtime-heterogeneous-backend story is deferred to the post-v1 <code>ferra-db-*</code> sibling crates.</p>
-<hr>
-<h2 id="the-pgrepositorym-constructor"><a class="header" href="#the-pgrepositorym-constructor">The <code>PgRepository&lt;M&gt;</code> constructor</a></h2>
-<pre><code class="language-rust ignore">let repo: PgRepository&lt;Film&gt; = PgRepository::new(conn);</code></pre>
-<ul>
-<li><code>conn</code> is a <code>sea_orm::DatabaseConnection</code> (re-exported from <code>ferra-db</code> so you do not need to add <code>sea-orm</code> as a direct dependency — <code>ferra</code> re-exports the name under <code>ferra::DatabaseConnection</code>).</li>
-<li>The struct derives <code>Clone</code> unconditionally. Sea-ORM’s <code>DatabaseConnection</code> wraps its pool in an <code>Arc</code>, so <code>repo.clone()</code> is cheap — pass <code>PgRepository&lt;M&gt;</code> by value or by clone rather than wrapping in <code>Arc&lt;PgRepository&lt;M&gt;&gt;</code>.</li>
-<li>The constructor performs <strong>no validation</strong>. Callers with a non-PostgreSQL <code>DatabaseConnection</code> compile but lose the SQLSTATE <code>23505</code> → <code>Conflict</code> mapping (those failures fall through to the <code>Db(_)</code> variant).</li>
-</ul>
-<h3 id="bounds-on-m"><a class="header" href="#bounds-on-m">Bounds on <code>M</code></a></h3>
-<p><code>PgRepository&lt;M&gt;</code> works for any <code>M</code> that satisfies the 0.2.0 sibling-derive shape — i.e., the derive combination <code>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]</code>. Concretely, <code>M</code> must implement <code>FerraModel</code> (from <code>ferra-core</code>) plus the Sea-ORM trait set (<code>ModelTrait</code>, <code>FromQueryResult</code>, <code>IntoActiveModel&lt;ActiveModel&gt;</code>, with <code>Entity: EntityTrait&lt;Model = M&gt;</code> and the <code>ActiveModel: ActiveModelTrait + ActiveModelBehavior + Send</code>). The 0.2.0 canonical shape satisfies every bound automatically.</p>
-<p>If you see <code>error[E0277]: the trait bound &lt;M&gt;: sea_orm::ModelTrait is not satisfied</code> at a <code>PgRepository::&lt;M&gt;::new(conn)</code> call site, you forgot the <code>DeriveEntityModel</code> derive on the same struct. Add it per the 0.2.0 canonical shape.</p>
-<hr>
-<h2 id="error-taxonomy"><a class="header" href="#error-taxonomy">Error taxonomy</a></h2>
-<p><code>FerraDbError</code> has exactly three variants. The set is locked from 0.3.0 through 0.6.0 Welding — adding a variant requires an ADR.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Variant</th><th>When</th><th><code>Display</code> template</th><th>0.4.0 HTTP mapping</th></tr>
-</thead>
-<tbody>
-<tr><td><code>NotFound { resource: &amp;'static str, id: String }</code></td><td><code>find_by_id</code> / <code>update</code> / <code>delete</code> observed zero matching rows</td><td><code>"{resource}/{id} not found"</code></td><td>404 Not Found</td></tr>
-<tr><td><code>Conflict(String)</code></td><td><code>insert</code> / <code>update</code> hit a Postgres SQLSTATE <code>23505</code> unique-constraint violation</td><td><code>"unique constraint \"{constraint}\" violated on {target}"</code></td><td>409 Conflict</td></tr>
-<tr><td><code>Db(sea_orm::DbErr)</code></td><td>Every other <code>sea_orm::DbErr</code></td><td>whatever the wrapped <code>DbErr</code> renders as</td><td>500 Internal Server Error (no internal fragment leaks into the response body)</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="display-guarantees"><a class="header" href="#display-guarantees"><code>Display</code> guarantees</a></h3>
-<ul>
-<li><code>NotFound { resource: "films", id: "42".into() }.to_string()</code> → <code>"films/42 not found"</code>.</li>
-<li><code>Conflict("unique constraint \"films_title_key\" violated on column \"title\"".into()).to_string()</code> → <code>"unique constraint \"films_title_key\" violated on column \"title\""</code>.</li>
-<li><code>Db(db_err).to_string()</code> → whatever <code>db_err.to_string()</code> renders (e.g., <code>"Record not found"</code>, <code>"Execution Error: ..."</code>).</li>
-</ul>
-<p>Every variant’s <code>Display</code> is stable through 0.6.0 Welding — the 0.4.0 RFC 7807 layer serializes these templates verbatim into the <code>problem+json</code> response. No <code>Display</code> output contains any internal Rust path fragment (no <code>sea_orm::...</code>, no <code>sqlx::...</code>, no rustc error codes).</p>
-<h3 id="source--downcasting"><a class="header" href="#source--downcasting"><code>source()</code> + downcasting</a></h3>
-<p><code>FerraDbError::Db(_).source()</code> returns <code>Some(&amp;dyn Error)</code> pointing at the wrapped <code>sea_orm::DbErr</code>. You can downcast to inspect specific Sea-ORM failure modes:</p>
-<pre><code class="language-rust ignore">use std::error::Error as _;
+<p>The bound-parameter detail on <code>record_stmt_in_spans</code> is the one to read twice: if a query binds a user’s email address, a password-reset token, or any other sensitive field value, that value reaches whatever sink your <code>tracing-subscriber</code> <code>Layer</code> forwards spans to — by default, with no opt-in step. This is a real disclosure surface, not a hypothetical one; treat it exactly like any other case where sensitive data could reach a log line.</p>
+<p><strong>A reader of this section alone can now answer: does query text reach my logs and traces by default, and how do I change that?</strong> Yes, by default, on both counts (statement logging and span recording independently). To change it, build a <code>ConnectOptions</code> explicitly instead of passing a bare URL string, and connect with that:</p>
+<pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database};
 
-if let FerraDbError::Db(_) = &amp;err {
-    if let Some(db_err) = err.source().and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;()) {
-        // inspect db_err
-    }
-}</code></pre>
-<p><code>source()</code> on <code>NotFound</code> and <code>Conflict</code> returns <code>None</code> — these variants carry their context in their fields.</p>
-<h3 id="construction-rules"><a class="header" href="#construction-rules">Construction rules</a></h3>
-<p>External consumers cannot directly construct <code>NotFound</code> or <code>Conflict</code> — those variants are produced exclusively by the repository itself at the single <code>from_sea_orm</code> mapping site. A raw <code>sea_orm::DbErr</code> that propagates through <code>?</code> becomes <code>FerraDbError::Db(_)</code> via the <code>From&lt;sea_orm::DbErr&gt;</code> derive; that is the only construction path available to user code.</p>
+<span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let mut opt = ConnectOptions::new(database_url);
+opt.sqlx_logging(false)           // stop logging statements entirely, or...
+   .record_stmt_in_spans(false);  // ...keep statement-shape logging but never
+                                   // attach the rendered SQL (with bound values)
+                                   // to a span.
+
+let conn = Database::connect(opt).await?;
+<span class="boring">let _ = conn;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><code>ConnectOptions</code>’s setters take <code>&amp;mut self</code> and return <code>&amp;mut Self</code>, so they chain on an existing <code>let mut</code> binding as shown — they are not a consuming builder, and <code>ConnectOptions::new(url)</code> must be bound to a variable before you call a setter on it.</p>
+<p><strong>Recommended production posture.</strong> Disable <code>sqlx_logging</code> (or drop the level to a value your production log pipeline filters out) and disable <code>record_stmt_in_spans</code> for any connection that will ever execute a query with sensitive bound parameters — which, in a typical Ferra API, is most of them. Keep both enabled in local development, where seeing the generated SQL is a debugging aid and the log sink is your own terminal. There is no framework-level override that does this for you today — <code>ferra-db</code> accepts whatever <code>sea_orm::DatabaseConnection</code> you construct and does not itself configure <code>ConnectOptions</code> — so the setting is entirely in your hands at the <code>Database::connect(...)</code> call site.</p>
 <hr>
 <h2 id="the-pagem-shape"><a class="header" href="#the-pagem-shape">The <code>Page&lt;M&gt;</code> shape</a></h2>
-<pre><code class="language-rust ignore">#[non_exhaustive]
-#[derive(Debug)]
-pub struct Page&lt;M&gt; {
-    pub items: Vec&lt;M&gt;,
-    pub total: u64,
-    pub page: u32,
-    pub per_page: u32,
-}</code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::Page;
+use ferra::model::FerraModel;
+
+// The four public fields of `Page&lt;M&gt;`; `CursorPage&lt;M&gt;` has `items`, `per_page` and `next_cursor`.
+fn summary&lt;M: FerraModel&gt;(page: &amp;Page&lt;M&gt;) -&gt; String {
+    format!(
+        "page {} of {} per page: {} items, {} in all",
+        page.page,
+        page.per_page,
+        page.items.len(),
+        page.total
+    )
+}
+<span class="boring">}</span></code></pre>
 <ul>
 <li><strong>1-indexed <code>page</code></strong> by framework convention. <code>page = 0</code> is treated identically to <code>page = 1</code> (the repository applies <code>saturating_sub(1)</code> internally to hand Sea-ORM its 0-indexed offset).</li>
 <li><strong><code>total: u64</code></strong> fits any Postgres <code>bigint</code> in the non-negative half — the full-table row count observed by the count query.</li>
 <li><strong><code>items.len() &lt;= per_page</code></strong> always. An over-scrolled request is <code>Ok(Page { items: vec![], total, .. })</code>, never <code>NotFound</code>.</li>
-<li><strong>Concurrent-insert drift.</strong> <code>items.len()</code> and <code>total</code> may disagree by ±1 under concurrent inserts — both queries run serially on the same connection (FR-015), not in parallel. Callers that need strict consistency use <code>find_page_in_tx</code> inside a <code>SERIALIZABLE</code> transaction.</li>
-<li><strong>Serialize, not Deserialize.</strong> <code>Page&lt;M&gt;: serde::Serialize</code> (inherited from <code>M: FerraModel: Serialize</code>). No <code>Deserialize</code> — pages are server-constructed, never parsed from client input.</li>
-<li><strong><code>#[non_exhaustive]</code></strong> — future phases may add fields (e.g., <code>cursor: Option&lt;Cursor&gt;</code> at 0.7.5 Enameling). Construct via <code>Page::new(items, total, page, per_page)</code>, not a struct literal.</li>
+<li><strong>Concurrent-insert drift.</strong> <code>items.len()</code> and <code>total</code> may disagree by ±1 under concurrent inserts — both queries run serially on the same connection (FR-015), not in parallel. Callers that need strict consistency read inside a <code>SERIALIZABLE</code> transaction of their own connection.</li>
+<li><strong>Serialize, not Deserialize.</strong> <code>Page&lt;T&gt;: serde::Serialize</code> whenever <code>T: serde::Serialize</code>. <code>Page&lt;T&gt;</code> and <code>CursorPage&lt;T&gt;</code> accept any <code>T</code>, a model or a view of one, which is what lets a route of your own return a page of views (<code>Page&lt;M&gt;</code> and <code>CursorPage&lt;M&gt;</code> are the same types with <code>T = M</code>). No <code>Deserialize</code> — pages are server-constructed, never parsed from client input.</li>
+<li><strong><code>#[non_exhaustive]</code></strong> — a later release may add fields. Construct via <code>Page::new(items, total, page, per_page)</code>, not a struct literal.</li>
 </ul>
 <hr>
 <h2 id="transactions"><a class="header" href="#transactions">Transactions</a></h2>
-<p><code>ferra-db</code> re-exports <code>DatabaseConnection</code> and <code>DatabaseTransaction</code> from Sea-ORM under their original names, so you can type both handles without a direct <code>sea-orm</code> dependency. Obtaining a transaction requires importing Sea-ORM’s <code>TransactionTrait</code>:</p>
-<pre><code class="language-rust ignore">use ferra::{DatabaseConnection, DatabaseTransaction, FerraRepository, PgRepository};
+<p>Transactions are Sea-ORM’s: begin one on your own <code>DatabaseConnection</code> (the type
+of your own <code>sea-orm</code> declaration, also exported as <code>ferra::DatabaseConnection</code>).
+It needs Sea-ORM’s <code>TransactionTrait</code> in scope. Dropping the transaction without
+<code>.commit()</code> rolls it back. A <code>Resource&lt;M&gt;</code> call runs on its own connection, not
+inside your transaction; inside it, write with Sea-ORM.</p>
+<pre class="playground"><code class="language-rust">use ferra::DatabaseConnection;
 use sea_orm::TransactionTrait; // import needed for .begin()
 
-let tx: DatabaseTransaction = conn.begin().await?;
-repo.insert_in_tx(&amp;tx, film_1).await?;
-repo.insert_in_tx(&amp;tx, film_2).await?;
-tx.commit().await?; // both rows persist atomically</code></pre>
-<h3 id="rollback-on-drop"><a class="header" href="#rollback-on-drop">Rollback on drop</a></h3>
-<p>Dropping a <code>DatabaseTransaction</code> without calling <code>.commit()</code> rolls it back. No cleanup call is required on the failure path:</p>
-<pre><code class="language-rust ignore">let tx = conn.begin().await?;
-repo.insert_in_tx(&amp;tx, film_1).await?;
-if let Err(e) = repo.insert_in_tx(&amp;tx, film_2).await {
-    // tx goes out of scope here → Sea-ORM rolls it back. film_1 is NOT persisted.
-    return Err(e.into());
-}
-tx.commit().await?;</code></pre>
-<h3 id="the-transactiontrait-import"><a class="header" href="#the-transactiontrait-import">The <code>TransactionTrait</code> import</a></h3>
-<p><code>ferra-db</code> deliberately does <strong>not</strong> re-export <code>sea_orm::TransactionTrait</code> under a Ferra-prefixed alias. Callers import it explicitly: <code>use sea_orm::TransactionTrait;</code>. This is a one-line acknowledgment that Sea-ORM owns the transaction mechanism; it is not a barrier to use, just intentional transparency.</p>
+<span class="boring">async fn demo(conn: DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let tx = conn.begin().await?;
+// ... Sea-ORM statements on `&amp;tx` ...
+tx.commit().await?; // dropped without commit: rolled back
+<span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<hr>
+<h2 id="blameable-models-and-the-repository"><a class="header" href="#blameable-models-and-the-repository">Blameable models and the repository</a></h2>
+<p>The public <code>FerraRepository</code> write methods (<code>insert</code>, <code>update</code>, <code>soft_delete</code>, <code>restore</code> and their <code>_in_tx</code> forms) take no subject, so on a <code>#[behavior(blameable)]</code> model they return an error and write nothing: the author comes from the caller’s identity, which only the generated routes and <code>Resource&lt;M&gt;</code> hold (0.13.0).</p>
 <hr>
 <h2 id="no-raw-sql-entry-point"><a class="header" href="#no-raw-sql-entry-point">No raw-SQL entry point</a></h2>
-<p><code>ferra-db</code> publishes NO entry point that accepts a pre-formed SQL string. The following paths do NOT resolve and WILL NOT resolve in 0.3.0 — each is asserted by a trybuild compile-fail fixture (FR-029 is a release blocker):</p>
-<pre><code class="language-text">ferra_db::Statement            // not reachable
-ferra_db::execute_unprepared   // not reachable
-ferra_db::raw_sql              // not reachable
-</code></pre>
-<p>The same three fragments are also blocked under <code>ferra::</code> via the companion fixture at <code>crates/ferra/tests/ui/no_raw_sql.rs</code>.</p>
-<h3 id="the-escape-hatch"><a class="header" href="#the-escape-hatch">The escape hatch</a></h3>
-<p>If you genuinely need raw SQL (a hand-written migration, a complex analytics query that defeats Sea-ORM’s builder), add <code>sea-orm</code> as a <strong>direct dependency</strong> of your consumer crate:</p>
+<p>The root of the <code>ferra</code> crate publishes NO entry point that accepts a pre-formed SQL string: <code>ferra::Statement</code>, <code>ferra::execute_unprepared</code> and <code>ferra::raw_sql</code> do not resolve (compile-fail fixtures, <code>crates/ferra/tests/ui/no_raw_sql.rs</code>). That is not a limit on your application — <code>ferra::sea_orm</code> is Sea-ORM itself, and your application owns its <code>DatabaseConnection</code>. It is a statement about the routes Ferra generates: they never put request data in SQL text. A filter value is bound as a parameter, a sort key that is not declared <code>#[field(sortable)]</code> is not an identifier of the query, a cursor is decoded before any query is built (<code>crates/ferra-db/tests/hostile_input_is_bound.rs</code>).</p>
+<h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
+<p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = "0.3"
-sea-orm = { version = "=2.0.0-rc.38", features = ["runtime-tokio-rustls", "sqlx-postgres", "macros"] }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
-<p>Then use Sea-ORM’s own raw-SQL entry points (<code>Statement::from_string</code>, <code>execute_unprepared</code>, etc.) directly. This is a deliberate, transparent act — your code reads as “I am opting out of Ferra’s SQL-injection-by-construction contract for this specific query” rather than reaching through a convenience hole in the framework.</p>
+<p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>
+<p>Your code reads as “I am opting out of Ferra’s SQL-injection-by-construction contract for this query”. Three entry points, in order of preference:</p>
+<ul>
+<li><strong><code>sea_orm::raw_sql!</code></strong> (added in Sea-ORM 2.0) — a <code>format!</code>-style macro that still parameterizes every interpolated value, so it carries no injection risk despite the <code>format!</code>-like syntax. This is Sea-ORM’s own recommended entry point for hand-written SQL as of 2.0. <code>SomeEntity::find_by_statement(raw_sql!(DbBackend::Postgres, "SELECT * FROM films WHERE year &gt; {}", min_year))</code>.</li>
+<li><strong><code>Statement::from_sql_and_values</code></strong> — construct a <code>Statement</code> with an explicit parameter list (<code>Vec&lt;Value&gt;</code>) bound positionally (<code>$1</code>, <code>$2</code>, …). Use when you need to build the parameter list programmatically rather than at a single macro call site.</li>
+<li><strong><code>execute_unprepared</code></strong> (a <code>ConnectionTrait</code> method, e.g. <code>conn.execute_unprepared("...").await?</code>) — runs a <strong>literal</strong> SQL string with <strong>no parameter binding at all</strong>. Only ever pass a compile-time-constant string (a migration statement, a DDL command); passing anything containing interpolated request data here reintroduces the exact injection risk Ferra’s core contract exists to foreclose. <code>Statement::from_string</code> (construct-only, no execution) exists for cases where you need a <code>Statement</code> value without binding parameters — pair it with <code>from_sql_and_values</code> rather than <code>execute_unprepared</code> if the statement takes any input.</li>
+</ul>
+<hr>
+<h2 id="api-keys"><a class="header" href="#api-keys">API keys</a></h2>
+<p><code>ferra::api_key</code> holds the key store contract (<code>ApiKeyStore</code>, <code>PgApiKeyStore</code>), <code>issue</code>, <code>revoke</code> and the schema. How a key is issued, stored hashed and presented is in <a href="ferra-auth.html"><code>ferra-auth.md</code></a>, section API keys.</p>
 <hr>
 <h2 id="the-ferra-facade"><a class="header" href="#the-ferra-facade">The <code>ferra</code> facade</a></h2>
-<p>The <code>ferra</code> crate is the single user-facing dependency. At 0.3.0 it re-exports the public surface of <code>ferra-core</code> and <code>ferra-db</code>:</p>
-<pre><code class="language-rust ignore">use ferra::{
-    FerraDbError, FerraRepository, PgRepository, Page,
-    DatabaseConnection, DatabaseTransaction,
-    Id, FerraModel, ModelMeta, FieldMeta, FieldType,
-};</code></pre>
-<p><strong><code>#[derive(FerraModel)]</code> is NOT re-exported at 0.3.0.</strong> Consumers who want the derive at 0.3.0 add <code>ferra-forge</code> as a second direct dependency:</p>
-<pre><code class="language-toml">[dependencies]
-ferra       = "0.3"
-ferra-forge = "0.2"   # for #[derive(FerraModel)] — re-export arrives at 0.4.0
-</code></pre>
-<p>At 0.4.0 Refining, <code>ferra</code> will gain <code>pub use ferra_forge::FerraModel;</code> and the two-line pattern collapses to one. The 0.3.0 split is deliberate: re-exporting the derive at 0.3.0 would force every <code>ferra</code>-depending consumer to link the proc-macro toolchain even when only the repository layer is needed.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{
+    Page, CursorPage, CollectionQuery, CursorQuery, PkValue,
+    DatabaseConnection, Id, FerraModel, Resource, ResourceHandle,
+};
+<span class="boring">}</span></code></pre>
+<p><code>#[derive(FerraModel)]</code> is exported too (and by <code>ferra::prelude</code>): there is no second dependency to declare. The description of a model (<code>ModelMeta</code>, <code>FieldMeta</code>, <code>FieldType</code>) is read through the <code>ferra::meta</code> module.</p>
 <hr>
-<h2 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h2>
-<p>A complete compiling example. Drop this into a downstream crate that depends on <code>ferra</code>, <code>ferra-forge</code>, <code>sea-orm</code>, <code>serde</code>, and the Sea-ORM migration crate. The <code>DATABASE_URL</code> environment variable must point at a reachable PostgreSQL 16.</p>
-<h3 id="1--the-migration"><a class="header" href="#1--the-migration">1 — the migration</a></h3>
-<pre><code class="language-sql">-- migrations/20260417000000_create_films.sql
-CREATE TABLE films (
-    id           SERIAL  PRIMARY KEY,
-    title        TEXT    NOT NULL UNIQUE,
-    release_year INTEGER,
-    archived     BOOLEAN NOT NULL DEFAULT FALSE
-);
-</code></pre>
-<h3 id="2--the-entity-sibling-derive-shape"><a class="header" href="#2--the-entity-sibling-derive-shape">2 — the entity (sibling-derive shape)</a></h3>
-<pre><code class="language-rust ignore">// src/film.rs
-use ferra_forge::FerraModel;
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<h2 id="entity-declaration-two-forms"><a class="header" href="#entity-declaration-two-forms">Entity declaration: two forms</a></h2>
+<p>The <strong>split
+form</strong> — a <code>Model</code> struct plus a separate <code>enum Relation { ... }</code> naming every
+relation. Sea-ORM 2.0 also ships a second, terser <strong>dense form</strong>, and both are
+valid ways to declare a Ferra entity. This section states which to write and
+when, rather than leaving you to infer it from the fact that Ferra’s own shipped
+examples use both.</p>
+<h3 id="the-split-form"><a class="header" href="#the-split-form">The split form</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    #[sea_orm(unique)]
     pub title: String,
-    pub release_year: Option&lt;i32&gt;,
-    pub archived: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {}   // names every relation, even when there are none
 
 impl ActiveModelBehavior for ActiveModel {}
+<span class="boring">}</span></code></pre>
+<h3 id="the-dense-form-sea-orm-20"><a class="header" href="#the-dense-form-sea-orm-20">The dense form (Sea-ORM 2.0)</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]      // &lt;- layered above the same derive list
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    // relations, if any, are declared inline on the struct — see below —
+    // there is no separate `enum Relation` at all in this form.
+}
 
-pub use Model as Film;</code></pre>
-<h3 id="3--the-crud-round-trip"><a class="header" href="#3--the-crud-round-trip">3 — the CRUD round-trip</a></h3>
-<pre><code class="language-rust ignore">// src/main.rs
-use ferra::{FerraDbError, FerraRepository, PgRepository};
-use sea_orm::TransactionTrait;
-
-mod film;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    let db_url = std::env::var("DATABASE_URL")?;
-    let conn = sea_orm::Database::connect(&amp;db_url).await?;
-    let repo = PgRepository::&lt;film::Film&gt;::new(conn.clone());
-
-    // Insert
-    let blade_runner = repo.insert(film::Model {
-        id: 1,
-        title: "Blade Runner".to_owned(),
-        release_year: Some(1982),
-        archived: false,
-    }).await?;
-    println!("inserted: {blade_runner:?}");
-
-    // Read
-    let one = repo.find_by_id(1).await?;
-    assert_eq!(one.title, "Blade Runner");
-
-    // Update
-    let mut tweaked = one.clone();
-    tweaked.archived = true;
-    let updated = repo.update(1, tweaked).await?;
-    assert!(updated.archived);
-
-    // Paginate
-    let page = repo.find_page(1, 10).await?;
-    println!("page 1/10: {} items, {} total", page.items.len(), page.total);
-
-    // Compound write: two inserts in a single transaction
-    let tx = conn.begin().await?;
-    repo.insert_in_tx(&amp;tx, film::Model {
-        id: 2, title: "Alien".into(), release_year: Some(1979), archived: false,
-    }).await?;
-    repo.insert_in_tx(&amp;tx, film::Model {
-        id: 3, title: "2001: A Space Odyssey".into(), release_year: Some(1968), archived: false,
-    }).await?;
-    tx.commit().await?;
-
-    // Delete
-    repo.delete(1).await?;
-    assert!(matches!(repo.find_by_id(1).await, Err(FerraDbError::NotFound { .. })));
-
-    Ok(())
-}</code></pre>
-<hr>
-<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
-<h3 id="films42-not-found"><a class="header" href="#films42-not-found"><code>"films/42 not found"</code></a></h3>
-<p>You observed <code>FerraDbError::NotFound { resource: "films", id: "42" }</code> — the <code>find_by_id</code> / <code>update</code> / <code>delete</code> call targeted a primary key that has no row. At the HTTP layer (0.4.0) this maps to 404. Check that the id value you passed corresponds to an extant row.</p>
-<h3 id="unique-constraint-films_title_key-violated-on-column-title"><a class="header" href="#unique-constraint-films_title_key-violated-on-column-title"><code>"unique constraint \"films_title_key\" violated on column \"title\""</code></a></h3>
-<p>You observed <code>FerraDbError::Conflict(_)</code> — Postgres returned SQLSTATE <code>23505</code>. The inner message names the constraint and, when available, the offending column. At the HTTP layer (0.4.0) this maps to 409. Resolve by either changing the colliding value or deleting the existing row first.</p>
-<h3 id="a-dberrcustom-in-logs"><a class="header" href="#a-dberrcustom-in-logs">A <code>DbErr::Custom("...")</code> in logs</a></h3>
-<p>You observed <code>FerraDbError::Db(_)</code> — any <code>sea_orm::DbErr</code> that is not a recognized <code>NotFound</code> / <code>NotUpdated</code> / unique-violation shape falls through here. The wrapped <code>DbErr</code> is reachable via <code>err.source().and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;())</code>. At the HTTP layer (0.4.0) this maps to 500 without leaking the internal detail into the response body.</p>
-<h3 id="errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><a class="header" href="#errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><code>error[E0277]: the trait bound &lt;M&gt;: sea_orm::ModelTrait is not satisfied</code></a></h3>
-<p>You forgot the <code>DeriveEntityModel</code> derive on the struct. The 0.2.0 sibling-derive canonical shape requires BOTH <code>FerraModel</code> AND <code>DeriveEntityModel</code> on the same <code>#[derive(...)]</code> list. Add <code>DeriveEntityModel</code> back and recompile.</p>
-<h3 id="errore0425-cannot-find-value-statement-in-crate-ferra_db"><a class="header" href="#errore0425-cannot-find-value-statement-in-crate-ferra_db"><code>error[E0425]: cannot find value Statement in crate ferra_db</code></a></h3>
-<p>Expected — <code>ferra-db</code> publishes no raw-SQL entry point (FR-007). To reach Sea-ORM’s raw-SQL surface, add <code>sea-orm</code> as a direct dependency of your consumer crate and call through it explicitly.</p>
-<hr>
-<h2 id="stability-commitment"><a class="header" href="#stability-commitment">Stability commitment</a></h2>
+impl ActiveModelBehavior for ActiveModel {}
+<span class="boring">}</span></code></pre>
+<p>The dense form drops the <code>enum Relation { ... }</code> boilerplate entirely — for a
+model with no relations, that is a pure line-count win. When a model <em>does</em> have
+relations, the dense form declares them inline instead of in the separate enum,
+and <code>FerraModel</code> reads such a model since 0.13.0 (see
+<a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Relations for a compiled example):</p>
+<pre><code class="language-text">// Sea-ORM's own syntax, shown for the shape.
+#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[sea_orm(has_one)]
+    pub profile: HasOne&lt;super::profile::Entity&gt;,
+    #[sea_orm(has_many)]
+    pub posts: HasMany&lt;super::post::Entity&gt;,
+}
+</code></pre>
+<h3 id="relation-fields-and-ferramodel"><a class="header" href="#relation-fields-and-ferramodel">Relation fields and <code>FerraModel</code></a></h3>
+<p>Before 0.13.0 <code>#[derive(FerraModel)]</code> refused <code>HasOne&lt;...&gt;</code>, <code>HasMany&lt;...&gt;</code> and
+<code>BelongsTo&lt;...&gt;</code> as field types, so a dense-form model with a relation field had to
+be written in the split form. It no longer is: <code>#[sea_orm::model]</code> keeps the relation
+fields off <code>Model</code> (they live on a second struct, <code>ModelEx</code>), Ferra reads <code>Model</code>,
+and a relation field is never a column, a wire field or a projection field. The
+practical rule:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Item</th><th>0.3.0 commitment</th><th>Change requires</th></tr>
+<tr><th>Your model has…</th><th>Write it as…</th></tr>
 </thead>
 <tbody>
-<tr><td><code>FerraDbError</code> variant list</td><td>Three variants — <code>NotFound</code>, <code>Conflict</code>, <code>Db</code></td><td>ADR (locked through 0.6.0 Welding)</td></tr>
-<tr><td><code>FerraDbError::Display</code> wording</td><td>Stable templates per §Error taxonomy</td><td>ADR + user-guide update</td></tr>
-<tr><td><code>FerraRepository&lt;M&gt;</code> method set</td><td>Ten methods — five ambient + five <code>_in_tx</code></td><td>ADR to remove / rename; additions are additive</td></tr>
-<tr><td><code>PgRepository::new(conn)</code></td><td><code>(conn: DatabaseConnection) -&gt; Self</code></td><td>ADR</td></tr>
-<tr><td><code>Page&lt;M&gt;</code> field list</td><td>Four named fields (<code>items</code>, <code>total</code>, <code>page</code>, <code>per_page</code>)</td><td><code>#[non_exhaustive]</code> allows additions; removals require ADR</td></tr>
-<tr><td><code>DatabaseConnection</code> / <code>DatabaseTransaction</code> re-exports</td><td>Stable names, re-exported from Sea-ORM</td><td>ADR</td></tr>
-<tr><td>Forbidden raw-SQL fragments</td><td><code>Statement</code> / <code>execute_unprepared</code> / <code>raw_sql</code> do not resolve</td><td>ADR</td></tr>
+<tr><td>No relation fields</td><td>Either form. The dense form (<code>#[sea_orm::model]</code>) is shorter — prefer it for new models.</td></tr>
+<tr><td>One or more relation fields (<code>has_one</code> / <code>has_many</code> / <code>belongs_to</code>)</td><td>The dense form. A split-form model gets no relation feature: a model that gains relations moves to the dense form (<a href="../decision-record/0059-relations-declaration-and-parent-chain-ownership.html">ADR-0059</a>).</td></tr>
 </tbody>
 </table>
 </div>
-<p>MSRV: <code>rust-version = "1.88"</code> — inherited from the workspace. Edition 2024 native async-in-trait requires it.</p>
+<h3 id="which-shipped-example-uses-which-and-why"><a class="header" href="#which-shipped-example-uses-which-and-why">Which shipped example uses which, and why</a></h3>
+<ul>
+<li><strong><code>examples/hello-ferra</code></strong> — its one model, <code>Film</code>, has no relations. It uses
+the <strong>dense form</strong>.</li>
+<li><strong><code>examples/movie-stars</code></strong> — its five models (<code>Film</code>, <code>Actor</code>, <code>Director</code>,
+<code>Studio</code>, <code>Genre</code>) have no relations: each declares an empty
+<code>enum Relation {}</code>. It keeps the <strong>split form</strong> by the author’s decision
+(<a href="../decision-record/0050-dense-seaorm-entity-form-in-shipped-examples.html">ADR-0050</a>),
+not because Ferra requires it. The earlier reason, that the split form scales
+to the relations the example would grow, no longer holds
+(<a href="../decision-record/0059-relations-declaration-and-parent-chain-ownership.html">ADR-0059</a>):
+a split-form model gets no relation feature, so a model that gains relations
+moves to the dense form. If you have a model with no relations, the dense form
+is still the one to prefer.</li>
+</ul>
+<p>The two shipped examples therefore show both forms; the guide states which one
+each uses, and <code>hello-ferra</code> is the reference for a new model.</p>
+<hr>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><a class="header" href="#errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><code>error[E0277]: the trait bound &lt;M&gt;: sea_orm::ModelTrait is not satisfied</code></a></h3>
+<p>You forgot the <code>DeriveEntityModel</code> derive on the struct. A Ferra model requires BOTH <code>FerraModel</code> AND <code>DeriveEntityModel</code> on the same <code>#[derive(...)]</code> list. Add <code>DeriveEntityModel</code> back and recompile.</p>
+<h3 id="errore0425-cannot-find-value-statement-in-crate-ferra"><a class="header" href="#errore0425-cannot-find-value-statement-in-crate-ferra"><code>error[E0425]: cannot find value Statement in crate ferra</code></a></h3>
+<p>Expected — the root of <code>ferra</code> has no raw-SQL entry point. Use Sea-ORM’s own (<code>sea_orm::Statement</code>), through the <code>sea-orm</code> your application declares; see “Your own SQL”.</p>
+<h3 id="ferrapgrepository-ferraferrarepository-ferraferradberror-ferradatabasetransaction-do-not-resolve"><a class="header" href="#ferrapgrepository-ferraferrarepository-ferraferradberror-ferradatabasetransaction-do-not-resolve"><code>ferra::PgRepository</code>, <code>ferra::FerraRepository</code>, <code>ferra::FerraDbError</code>, <code>ferra::DatabaseTransaction</code> do not resolve</a></h3>
+<p>Removed from the facade in 0.10.0 (the repository layer is internal). Use <code>Resource&lt;M&gt;</code> or your own <code>DatabaseConnection</code> (see the top of this page).</p>
+<hr>
+<h2 id="stability-commitment"><a class="header" href="#stability-commitment">Stability commitment</a></h2>
+<p>What is guaranteed is what <code>ferra</code> exports and <code>api/ferra.txt</code> snapshots; a change of it needs a minor version bump (<a href="stability.html"><code>stability.md</code></a>).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Item</th><th>Commitment</th><th>Change requires</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CollectionQuery</code>, <code>CursorQuery</code>, <code>Page</code>, <code>CursorPage</code></td><td><code>#[non_exhaustive]</code>, built with <code>new</code> and the <code>with_*</code> methods</td><td>Additions are additive</td></tr>
+<tr><td><code>DatabaseConnection</code> re-export</td><td>Stable name, re-exported from Sea-ORM</td><td>A minor version</td></tr>
+<tr><td>No raw-SQL entry point at the root of <code>ferra</code></td><td><code>Statement</code> / <code>execute_unprepared</code> / <code>raw_sql</code> do not resolve there; <code>ferra::sea_orm</code> is Sea-ORM whole</td><td>A minor version</td></tr>
+</tbody>
+</table>
+</div>
+<p>MSRV: <code>rust-version = "1.94"</code> — inherited from the workspace, and set by Sea-ORM itself.</p>
 
                     </main>
 
@@ -505,11 +512,11 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

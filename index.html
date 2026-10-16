@@ -27,7 +27,7 @@
 <nav class="nav" id="nav">
   <a href="/" class="nav__brand" id="brand-home">
     <span class="mark">Ferra<span style="color:var(--ember)">.</span>rs</span>
-    <span class="ver">v0.9 · in preparation</span>
+    <span class="ver">v0.14 · in progress</span>
   </a>
   <button class="nav__hamburger" aria-label="Toggle menu"
           onclick="document.getElementById('nav').classList.toggle('nav--open')">
@@ -39,7 +39,7 @@
     <a href="#roadmap">Roadmap</a>
     <a href="/docs/" target="_blank" rel="noopener">Docs</a>
     <a href="#roadmap" class="pill">
-      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">Source opens with 0.9</span>
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">Source opens at the 1.0 RCs</span>
     </a>
   </div>
 </nav>
@@ -55,7 +55,7 @@
       <div class="heroA__grid">
         <div>
           <div class="eyebrow" style="color:var(--ember);margin-bottom:18px">
-            Preparing 0.9 &middot; October 2026 &middot; The API framework forged in Rust
+            Building 0.14 &middot; October 2026 &middot; The API framework forged in Rust
           </div>
           <h1 class="heroA__mark">
             Ferra<span class="dot">.</span>rs
@@ -69,13 +69,13 @@
             <a class="btn btn--amber" href="#roadmap">
               See the Roadmap <span class="arrow">&#8594;</span>
             </a>
-            <a class="version-link" href="#roadmap">v0.9 · in preparation</a>
+            <a class="version-link" href="#roadmap">v0.14 · in progress</a>
           </div>
           <div class="herometa" id="install">
             <div class="install-snippet">
               <div class="install-snippet__toml"><span class="tok-mu">[dependencies]</span>
-<span class="tok-mu"># Ferra 0.9 is in preparation.</span>
-<span class="tok-mu"># The source opens with the release.</span></div>
+<span class="tok-mu"># Ferra 0.14 is in progress.</span>
+<span class="tok-mu"># The source opens with the 1.0 release candidates.</span></div>
               <div class="install-snippet__use"><span class="tok-kw">use</span> <span class="tok-ty">ferra</span>::prelude::*;</div>
             </div>
             <a href="#roadmap" class="watch-link">
@@ -198,7 +198,7 @@
           <ul class="pillar__list">
             <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>HAL _links in every response</li>
             <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>OpenAPI 3.2 at /docs/openapi.json</li>
-            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>Native MCP tools in v5.0, Precision Steel</li>
+            <li><span class="pillar__bullet" style="color:#69d2c5">&#9632;</span>RFC 7807 problem details, one page per error</li>
           </ul>
         </div>
       </div>
@@ -359,7 +359,7 @@
           </div>
           <div class="target-tile">
             <div class="target-tile__k">Lambda &middot; Cloud Run</div>
-            <div class="target-tile__v">Serverless, planned</div>
+            <div class="target-tile__v">Lambda via Web Adapter, measured</div>
           </div>
           <div class="target-tile">
             <div class="target-tile__k">Workers &middot; Edge</div>
@@ -424,8 +424,9 @@
         </div>
         <p class="roadmap__intro">
           Five eras, each named for a step in the iron lifecycle. The
-          foundations have shipped. We are preparing 0.9, a security-first
-          recovery release, and a stable 1.0 follows.
+          foundations and the security-first checkpoint have shipped. We are
+          building the writes, computed fields and relations of 0.14 to 0.17,
+          then three release candidates lead to a stable 1.0.
         </p>
       </div>
       <div class="phases">
@@ -441,57 +442,57 @@
             <li>Refining &middot; CRUD + HAL</li>
           </ul>
         </div>
-        <div class="phase phase--building">
-          <div class="phase__status"><span class="phase__dot"></span>Building</div>
-          <div class="phase__ver">v0.5 &#8594; v0.9</div>
+        <div class="phase phase--shipped">
+          <div class="phase__status"><span class="phase__dot"></span>Shipped</div>
+          <div class="phase__ver">v0.5 &#8594; v0.13</div>
           <h3 class="phase__name">Cast Iron</h3>
-          <p class="phase__desc">The APIs work but may still change. Version 0.9, in preparation, puts security first and freezes the public contract.</p>
+          <p class="phase__desc">The APIs work but may still change until 0.17. A security-first checkpoint at 0.9, then the contract, identity and exposure.</p>
           <ul class="phase__list">
             <li>Rolling &middot; OpenAPI + Scalar</li>
             <li>Welding &middot; validation + RFC 7807</li>
-            <li>Forging &middot; auth + JWT + roles</li>
-            <li>Polishing &middot; relations + embeds</li>
+            <li>Assaying &middot; contract + queries</li>
+            <li>Hallmarking &middot; identity + tokens</li>
+            <li>Engraving &middot; projections + authorization</li>
+          </ul>
+        </div>
+        <div class="phase phase--building">
+          <div class="phase__status"><span class="phase__dot"></span>Building</div>
+          <div class="phase__ver">v0.14 &#8594; v0.17</div>
+          <h3 class="phase__name">Steel Takes Shape</h3>
+          <p class="phase__desc">Safe writes, computed fields and relations, then 0.17 freezes the public API.</p>
+          <ul class="phase__list">
+            <li>Riveting &middot; PATCH, concurrency, actions</li>
+            <li>Alloying &middot; computed fields</li>
+            <li>Brazing &middot; relations</li>
+            <li>Quenching &middot; API freeze</li>
           </ul>
         </div>
         <div class="phase phase--planned">
           <div class="phase__status"><span class="phase__dot"></span>Next</div>
           <div class="phase__ver">&rarr; 1.0</div>
           <h3 class="phase__name">Hardened Steel</h3>
-          <p class="phase__desc">Security audit, benchmarks and open-source launch prep, then the public release with SemVer guaranteed.</p>
+          <p class="phase__desc">Three release candidates add no public API: documentation, external review and real projects running on it. Then 1.0, with SemVer guaranteed.</p>
           <ul class="phase__list">
-            <li>Audit &amp; benchmarks</li>
-            <li>Public 1.0 release</li>
-            <li>Long-term support track</li>
+            <li>Tempering &middot; RC 1 to 3</li>
+            <li>Public source opens</li>
+            <li>1.0 &middot; no break without a major</li>
           </ul>
         </div>
         <div class="phase phase--planned">
-          <div class="phase__status"><span class="phase__dot"></span>Vision</div>
-          <div class="phase__ver">v2.0 &#8594; v4.0</div>
-          <h3 class="phase__name">The Alloy &#8594; Arsenal</h3>
-          <p class="phase__desc">GraphQL, WebSockets, SSE, JSON-LD. Multi-backend storage. Plugin system, admin UI, observability.</p>
+          <div class="phase__status"><span class="phase__dot"></span>On demand</div>
+          <div class="phase__ver">v1.1 &middot; v2.0</div>
+          <h3 class="phase__name">After 1.0</h3>
+          <p class="phase__desc">Each milestone waits for a written trigger. Cut features ship one by one when a project asks.</p>
           <ul class="phase__list">
-            <li>Alloy &middot; GraphQL + WS + SSE</li>
-            <li>Foundry &middot; Mongo, Redis, Scylla</li>
-            <li>Arsenal &middot; plugins + admin</li>
-          </ul>
-        </div>
-        <div class="phase phase--planned">
-          <div class="phase__status"><span class="phase__dot"></span>Far horizon</div>
-          <div class="phase__ver">v5.0</div>
-          <h3 class="phase__name">Precision Steel</h3>
-          <p class="phase__desc">Native MCP tools, LLM schemas and an agent SDK, so language models can read your API directly.</p>
-          <ul class="phase__list">
-            <li>Native MCP tools</li>
-            <li>LLM-aware schemas</li>
-            <li>First-class agent SDK</li>
+            <li>Tapping &middot; transactional outbox</li>
+            <li>Damascus &middot; DynamoDB backend</li>
           </ul>
         </div>
       </div>
       <div class="invariant">
         <div class="invariant__label">Invariant</div>
         <div class="invariant__text">
-          A model written for v1.0 compiles without modification
-          in v2, v3, v4 and v5. Stability is the contract.
+          Once 1.0 ships, a model compiles without modification until the next major version. Stability is the contract.
         </div>
       </div>
     </div>
@@ -570,16 +571,16 @@
         <div class="footer__col">
           <h4>Project</h4>
           <ul>
-            <li>Source opening with 0.9</li>
+            <li>Source opening at the 1.0 RCs</li>
             <li><a href="#roadmap">Roadmap</a></li>
           </ul>
         </div>
       </div>
       <div class="footer__rule"></div>
       <div class="footer__bottom">
-        <div>&copy; 2026 Ferra contributors &middot; Apache-2.0 / MIT</div>
+        <div>&copy; 2026 Ferra contributors</div>
         <div class="legal">
-          <span style="font-family:var(--mono)">v0.9 &middot; in preparation</span>
+          <span style="font-family:var(--mono)">v0.14 &middot; in progress</span>
         </div>
       </div>
     </div>

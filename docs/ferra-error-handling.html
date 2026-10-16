@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,9 +191,9 @@ HTTP status / title / example body for each variant, and the
 consumer-side branching pattern.</p>
 <hr>
 <h2 id="the-closed-error_types-uri-set"><a class="header" href="#the-closed-error_types-uri-set">The closed <code>ERROR_TYPES</code> URI set</a></h2>
-<p>The framework can emit exactly eight <code>type</code> URIs on the wire. Every
+<p>The framework can emit exactly fifteen <code>type</code> URIs on the wire. Every
 literal in framework source (and in any consumer crate) MUST appear
-in this set; a CI gate (<code>error_types_closed.sh</code>) fails the build on
+in this set; a CI gate (<code>cargo run -p xtask --bin error_types_closed</code>) fails the build on
 any drift.</p>
 <div class="table-wrapper">
 <table>
@@ -201,21 +201,45 @@ any drift.</p>
 <tr><th>URI</th><th style="text-align: right">HTTP status</th><th>Title</th><th>Source</th></tr>
 </thead>
 <tbody>
-<tr><td><code>https://ferra.rs/errors/not_found</code></td><td style="text-align: right"><code>404 Not Found</code></td><td>Resource Not Found</td><td><code>FerraError::NotFound</code></td></tr>
+<tr><td><code>https://ferra.rs/errors/not_found</code></td><td style="text-align: right"><code>404 Not Found</code></td><td>Resource Not Found</td><td><code>FerraError::NotFound</code> (<code>&lt;resource&gt;/&lt;id&gt; not found</code>); <code>FerraError::CollectionNotFound</code> (0.13.0: a collection the caller may not use, <code>&lt;resource&gt; not found</code>, no id)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Validation Error</td><td><code>FerraError::Validation</code> (extractor failures: malformed JSON body, unparseable path parameter)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation_failed</code></td><td style="text-align: right"><code>422 Unprocessable Content</code></td><td>Validation Failed</td><td><code>FerraError::Unprocessable</code> (well-formed body whose values violate <code>#[field(...)]</code> rules — see § Validation failures (422))</td></tr>
-<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code></td></tr>
+<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>); <code>FerraError::ConflictWith</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
 <tr><td><code>https://ferra.rs/errors/internal</code></td><td style="text-align: right"><code>500 Internal Server Error</code></td><td>Internal Server Error</td><td><code>FerraError::Internal</code></td></tr>
 <tr><td><code>https://ferra.rs/errors/payload_too_large</code></td><td style="text-align: right"><code>413 Payload Too Large</code></td><td>Payload Too Large</td><td>request-body-limit middleware</td></tr>
 <tr><td><code>https://ferra.rs/errors/rate_limited</code></td><td style="text-align: right"><code>429 Too Many Requests</code></td><td>Too Many Requests</td><td>rate-limit middleware</td></tr>
-<tr><td><code>https://ferra.rs/errors/unauthorized</code></td><td style="text-align: right"><code>401 Unauthorized</code></td><td>Unauthorized</td><td><code>Foundry::with_docs_protected(...)</code></td></tr>
+<tr><td><code>https://ferra.rs/errors/unauthorized</code></td><td style="text-align: right"><code>401 Unauthorized</code></td><td>Unauthorized</td><td><code>Foundry::with_docs_protected(...)</code>; the auth pipeline’s authentication failures (0.8.0 Forging I — absent identity where one is required, and every present-but-invalid token)</td></tr>
+<tr><td><code>https://ferra.rs/errors/forbidden</code></td><td style="text-align: right"><code>403 Forbidden</code></td><td>Forbidden</td><td><code>FerraError::Forbidden</code> (0.8.0 Forging I — an <code>#[authorize]</code> predicate returned false for an identity the framework <em>did</em> establish; see <a href="ferra-auth.html"><code>ferra-auth.md</code> § Error responses</a>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/invalid_cursor</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Invalid Cursor</td><td><code>FerraError::InvalidCursor</code> (0.7.5 Enameling — cursor token failed decode; see <a href="pagination.html"><code>pagination.md</code> § Cursor pagination</a>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/unsupported_media_type</code></td><td style="text-align: right"><code>415 Unsupported Media Type</code></td><td>Unsupported Media Type</td><td><code>FerraError::UnsupportedMediaType</code> (a <code>POST</code> / <code>PUT</code> body whose <code>Content-Type</code> is missing or not JSON)</td></tr>
+<tr><td><code>https://ferra.rs/errors/timeout</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Request Timeout Budget Exceeded</td><td><code>FerraError::Timeout</code> (request budget expired before a repository commit started)</td></tr>
+<tr><td><code>https://ferra.rs/errors/multiple_credentials</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Multiple Credentials</td><td><code>FerraError::MultipleCredentials</code> (0.12.0: a request that presents more than one credential: <code>Authorization</code>, the API key header and the cookie in any combination, and any of them twice; refused before any verification, whatever they hold)</td></tr>
+<tr><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Identity Unavailable</td><td><code>FerraError::IdentityUnavailable</code> (0.12.0: a credential could not be verified because the identity source is out of reach: the key set of the identity provider could not be fetched with no fresh key cached, or the API key store failed; no <code>Retry-After</code>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (0.13.0: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach; unlike <code>timeout</code>, it can follow a commit; no <code>Retry-After</code>)</td></tr>
 </tbody>
 </table>
 </div>
-<p>Three of the eight URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
+<p>Three of the fifteen URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
 <code>unauthorized</code>) are emitted by middleware layers, not through
 <code>FerraError</code>. The framework’s full URI surface is the union of the
-two paths; both are governed by the same <code>ERROR_TYPES</code> slice.</p>
+two paths; both are governed by the same <code>ERROR_TYPES</code> slice.
+(<code>unauthorized</code> is emitted from both — the docs-protection middleware
+and, since 0.8.0, <code>FerraError::Unauthorized</code> on the per-operation
+authorization path.)</p>
+<p>The <code>unauthorized</code> (401) and <code>forbidden</code> (403) URIs encode a
+distinction consumers should branch on rather than collapse. A 401
+means the framework could not establish <em>who</em> the caller is: no
+credential was presented, or the one presented did not validate. A 403
+means it established the caller’s identity successfully and the
+operation’s authorization rule still refused. A 403 is therefore
+positive evidence that the token was accepted — retrying with fresh
+credentials will not help, whereas on a 401 it may. Only 401 responses
+carry <code>WWW-Authenticate: Bearer</code>; a 403 is not an authentication
+challenge (RFC 9110 §15.5.2 vs §15.5.4).</p>
+<p>One refusal is deliberately not a 403: when an <code>IsOwner</code> rule refuses
+a row that belongs to someone else, the answer is the <code>not_found</code> (404)
+a missing row gets, byte for byte, so the caller cannot learn that the
+row exists (see <a href="ferra-auth.html"><code>ferra-auth.md</code> § Error responses</a>).</p>
 <p>The <code>validation</code> (400) and <code>validation_failed</code> (422) URIs are
 intentionally distinct. A <em>malformed</em> request body (JSON parse
 failure, type mismatch on a required field, an <code>Id</code> parameter that
@@ -245,24 +269,26 @@ the separate 422 path — see <a href="#validation-failures-422">§ Validation f
   "type": "https://ferra.rs/errors/validation",
   "title": "Validation Error",
   "status": 400,
-  "detail": "validation failed",
-  "errors": {
-    "title": ["must not be empty"],
-    "year":  ["must be between 1888 and the current year"]
-  }
+  "detail": "query parameter `filter[title]` is repeated",
+  "errors": [
+    { "field": "filter[title]", "code": "duplicate_parameter", "message": "query parameter `filter[title]` is repeated" }
+  ]
 }
 </code></pre>
-<p>The <code>errors</code> object on the 400 path carries a flat list of error
-messages per field name. The 422 path uses a sibling shape — see
-the worked example linked above.</p>
+<p>The <code>errors</code> member is one top-level array of <code>{field, code, message}</code>,
+the same shape as on the 422 path. <code>code</code> is drawn from the closed list in
+<a href="#validation-codes">§ Validation codes</a>; <code>field</code> is the decoded query
+parameter, <code>body</code> for a malformed body, or the path parameter’s name.</p>
 <h3 id="conflict--409"><a class="header" href="#conflict--409"><code>conflict</code> — <code>409</code></a></h3>
-<p>Returned when a write would violate a unique constraint (duplicate
-slug, primary-key collision, etc.).</p>
+<p>Returned when a write would violate a unique constraint (duplicate slug, primary-key
+collision, etc.). The <code>detail</code> is fixed: the database’s message — which names the
+constraint and the table — goes to the server log (<code>INFO</code>, target
+<code>ferra_http::conflict</code>), never to the client.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/conflict",
   "title": "Conflict",
   "status": 409,
-  "detail": "title 'Casablanca' is already in use"
+  "detail": "the request conflicts with an existing resource"
 }
 </code></pre>
 <h3 id="internal--500"><a class="header" href="#internal--500"><code>internal</code> — <code>500</code></a></h3>
@@ -287,10 +313,77 @@ default 1 MiB cap (constitution §I — DoS protection).</p>
   "detail": "request body too large"
 }
 </code></pre>
+<h3 id="unsupported_media_type--415"><a class="header" href="#unsupported_media_type--415"><code>unsupported_media_type</code> — <code>415</code></a></h3>
+<p>Returned when a <code>POST</code> or <code>PUT</code> body is not declared as JSON: the <code>Content-Type</code> is
+missing, or is neither <code>application/json</code> nor <code>application/&lt;name&gt;+json</code> (parameters
+such as <code>charset</code> are ignored). Nothing is read or written.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/unsupported_media_type",
+  "title": "Unsupported Media Type",
+  "status": 415,
+  "detail": "the request body must be JSON: send `Content-Type: application/json`"
+}
+</code></pre>
+<h3 id="timeout--503"><a class="header" href="#timeout--503"><code>timeout</code> — <code>503</code></a></h3>
+<p>Returned when the configured request budget expires before a Ferra
+repository commit starts. The unfinished transaction rolls back, and no
+<code>Retry-After</code> header is sent. Once a commit starts, the handler completes
+and returns its own response, never this <code>503</code>; only a model’s <code>after_commit</code>
+hook is still bounded by the remaining budget, and when it is cut the answer is
+a <code>500</code> <code>internal</code> with the commit standing. See <a href="foundry.html#request-time-budget">Request time budget</a>.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/timeout",
+  "title": "Request Timeout Budget Exceeded",
+  "status": 503,
+  "detail": "the request exceeded its time budget; no change was committed"
+}
+</code></pre>
+<h3 id="multiple_credentials--400"><a class="header" href="#multiple_credentials--400"><code>multiple_credentials</code> — <code>400</code></a></h3>
+<p>Returned when a request presents more than one credential: <code>Authorization</code>, the API key
+header and the cookie count, in any combination, and any of them sent twice. Presence
+decides, never validity: the request is refused before any verification, whatever the
+credentials hold, and the body never names which ones. Send one credential per request.
+New in 0.12.0.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/multiple_credentials",
+  "title": "Multiple Credentials",
+  "status": 400,
+  "detail": "send one credential per request"
+}
+</code></pre>
+<h3 id="identity_unavailable--503"><a class="header" href="#identity_unavailable--503"><code>identity_unavailable</code> — <code>503</code></a></h3>
+<p>Returned when a credential cannot be verified because the identity source is out of
+reach: the key set of the identity provider (<code>JwtConfig::key_set</code>) could not be fetched
+and no fresh key is cached, or the API key store failed during a lookup. A token that the cached keys cannot verify is a <code>401</code>
+instead, never this. No <code>Retry-After</code> header is sent, and the body never says why: the
+cause goes to a <code>warn</code> trace. New in 0.12.0.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/identity_unavailable",
+  "title": "Identity Unavailable",
+  "status": 503,
+  "detail": "the credential could not be verified; retry later"
+}
+</code></pre>
+<h3 id="service_unavailable--503"><a class="header" href="#service_unavailable--503"><code>service_unavailable</code> — <code>503</code></a></h3>
+<p>Returned when a hook of yours returns <code>HookError::unavailable(detail)</code>: something the
+hook depends on (a queue, a payment provider) is out of reach. The <code>detail</code> is yours.
+No <code>Retry-After</code> header is sent. New in 0.13.0.</p>
+<p><strong>After a commit the write stands.</strong> The same type answers an <code>unavailable</code> returned by
+<code>after_commit</code>, which runs once the row is committed: the response is a 503, and the row
+is written. A client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2):
+read the resource first, or send an idempotency key. <code>timeout</code> says the opposite (nothing
+was committed); <code>identity_unavailable</code> is about the credential, never about your code.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/service_unavailable",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "the payment provider is not reachable"
+}
+</code></pre>
 <h3 id="rate_limited--429"><a class="header" href="#rate_limited--429"><code>rate_limited</code> — <code>429</code></a></h3>
 <p>Emitted by the framework’s default rate-limiter on mutation routes
-(POST / PUT / DELETE). The response carries a <code>Retry-After</code> header
-when the limiter can compute a sensible delay.</p>
+(POST / PUT / DELETE). The response carries a <code>Retry-After</code> header,
+in whole seconds, never below 1.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/rate_limited",
   "title": "Too Many Requests",
@@ -308,6 +401,20 @@ unauthenticated request reaches the docs surface. New in 0.5.0.</p>
   "detail": "authentication required"
 }
 </code></pre>
+<p>Every other 401 (missing, malformed, expired or badly signed token, wrong
+<code>iss</code> or <code>aud</code>, unknown <code>kid</code>) has the same bytes and the headers
+<code>WWW-Authenticate: Bearer</code> and <code>application/problem+json</code>, whatever the reason,
+so a caller cannot probe which check failed. Since 0.12.0 its <code>detail</code> is
+“valid credentials are required to access this resource” (it was “a valid
+<code>Authorization: Bearer</code> token is required to access this resource”): match on
+<code>type</code>, not on <code>detail</code>.</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/unauthorized",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "valid credentials are required to access this resource"
+}
+</code></pre>
 <h3 id="validation_failed--422"><a class="header" href="#validation_failed--422"><code>validation_failed</code> — <code>422</code></a></h3>
 <p>Returned when an inbound <code>POST</code> or <code>PUT</code> body parses cleanly but
 violates one or more <code>#[field(...)]</code> rules declared on the target
@@ -319,13 +426,13 @@ short form:</p>
   "title": "Validation Failed",
   "status": 422,
   "detail": "validation failed",
-  "errors": {
-    "title": ["must be at least 1 character"]
-  }
+  "errors": [
+    { "field": "title", "code": "min_length", "message": "must be at least 1 character" }
+  ]
 }
 </code></pre>
-<p>The <code>errors</code> object on this variant is shaped
-<code>Map&lt;String, Vec&lt;String&gt;&gt;</code> keyed by the wire-side field name —
+<p>The <code>errors</code> member on this variant is an array of
+<code>{field, code, message}</code>, <code>field</code> being the wire-side field name —
 every violation observed during the validation pass is included
 (no short-circuiting), so a consumer never needs to retry to
 discover further violations.</p>
@@ -342,7 +449,8 @@ identical across create and update.</p>
 to denote <em>extractor</em> failures — a body that does not parse as
 JSON at all, a path parameter that will not parse as the
 declared type. Both paths share the <code>application/problem+json</code>
-envelope; only the 422 path carries the per-field <code>errors</code> map.</p>
+envelope and the same <code>errors</code> array; only the codes differ
+(see <a href="#validation-codes">§ Validation codes</a>).</p>
 <p>The model-side declaration grammar — every supported rule, its
 default English message, and the compile-time <code>FRG-2NN</code> codes
 that protect typos — is documented in
@@ -350,8 +458,14 @@ that protect typos — is documented in
 This section pins the wire shape your consumer sees.</p>
 <h3 id="worked-example-multi-field-violation"><a class="header" href="#worked-example-multi-field-violation">Worked example: multi-field violation</a></h3>
 <p>For a <code>Film</code> resource declared as:</p>
-<pre><code class="language-rust ignore">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
@@ -359,7 +473,11 @@ pub struct Model {
     pub title: String,
     #[field(min = 0, max = 10)]
     pub rating: i32,
-}</code></pre>
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
 <p>a request that violates two fields simultaneously:</p>
 <pre><code class="language-http">POST /films HTTP/1.1
 Content-Type: application/json
@@ -375,18 +493,18 @@ Content-Type: application/problem+json
   "title": "Validation Failed",
   "status": 422,
   "detail": "validation failed",
-  "errors": {
-    "rating": ["must be at most 10"],
-    "title":  ["must be at least 1 character"]
-  }
+  "errors": [
+    { "field": "title",  "code": "min_length", "message": "must be at least 1 character" },
+    { "field": "rating", "code": "max",        "message": "must be at most 10" }
+  ]
 }
 </code></pre>
 <p>Both fields appear in the same response. Ferra never short-circuits
 on the first failed rule, so a consumer that submits a payload with
 N invalid fields receives N entries in <code>errors</code> in a single
 round-trip. Within a single field, every rule that fired produces
-its own message — <code>#[field(min_length = 5, email)]</code> on a value of
-<code>"ab"</code> produces <code>errors.&lt;field&gt; = ["must be at least 5 characters", "is not a valid email address"]</code> (two entries).</p>
+its own entry — <code>#[field(min_length = 5, email)]</code> on a value of
+<code>"ab"</code> produces two entries for that field, <code>min_length</code> and <code>email</code>.</p>
 <h3 id="assertion-contract-for-sdk-consumers"><a class="header" href="#assertion-contract-for-sdk-consumers">Assertion contract for SDK consumers</a></h3>
 <p>A consumer driving validation off the wire response asserts the
 following invariants on a 422:</p>
@@ -402,15 +520,14 @@ following invariants on a 422:</p>
 <tr><td><code>title</code></td><td><code>"Validation Failed"</code></td><td>distinct from <code>"Validation Error"</code> (the 400 path’s title)</td></tr>
 <tr><td><code>status</code></td><td><code>422</code> (integer)</td><td></td></tr>
 <tr><td><code>detail</code></td><td><code>"validation failed"</code></td><td>constant literal — does NOT echo input back into the response (constitution §I — no reflected-XSS on the error path)</td></tr>
-<tr><td><code>errors</code></td><td><code>Map&lt;String, Vec&lt;String&gt;&gt;</code></td><td>keys are wire-side field names (the same names that appear in the request body’s JSON); values are non-empty arrays of human-readable English messages, one entry per rule that fired</td></tr>
+<tr><td><code>errors</code></td><td><code>[{field, code, message}]</code></td><td>one entry per rule that fired; <code>field</code> is the wire-side field name (the same name that appears in the request body’s JSON), <code>code</code> is from <a href="#validation-codes">§ Validation codes</a>, <code>message</code> is human-readable English</td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>errors</code> map’s keys preserve the request’s wire-side names —
-when a model uses <code>serde</code>’s <code>#[serde(rename = "...")]</code> to map a
-wire-side name to a different Rust-side field name, the <code>errors</code>
-map keys by the <em>wire-side</em> name (what the consumer submitted and
-what they will inspect).</p>
+<p>The <code>field</code> of an entry is the field name of the request body. A
+field’s JSON name is its Rust name: a serde attribute that renames a
+model field does not compile (FRG-116, see
+<a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Field names on the wire).</p>
 <p><code>_links</code> is never present on a 422 body. Validation failure is
 terminal — there is no resource yet, no self-link to thread, no
 hypermedia to follow. A consumer that branches on the response’s
@@ -422,26 +539,32 @@ A field omitted from a <code>PUT</code> body is “no change” (Ferra’s
 existing partial-update semantics) and bypasses that field’s
 per-field rules. A field present with explicit <code>null</code> on a <code>PUT</code>
 body for a <code>#[field(required)]</code> <code>Option&lt;T&gt;</code> field fails with
-<code>["is required"]</code> — <code>null</code> on the wire is a positive declaration
+the code <code>required</code> — <code>null</code> on the wire is a positive declaration
 of “set to none”, which the rule rejects.</p>
 <h3 id="consumer-side-branching-pattern"><a class="header" href="#consumer-side-branching-pattern">Consumer-side branching pattern</a></h3>
 <p>Add one branch to the existing <code>match</code> on the wire <code>type</code> field:</p>
-<pre><code class="language-rust ignore">match body["type"].as_str() {
-    Some("https://ferra.rs/errors/validation_failed") =&gt; {
-        // 422 path — read body["errors"] as Map&lt;String, Vec&lt;String&gt;&gt;
-        // and surface each (field, msg) pair into your form's
-        // per-field error UI.
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn on_error(body: &amp;serde_json::Value) {
+    match body["type"].as_str() {
+        Some("https://ferra.rs/errors/validation_failed") =&gt; {
+            // 422 path — read body["errors"] as an array of
+            // {field, code, message} and surface each entry into your
+            // form's per-field error UI; branch on `code`.
+        }
+        Some("https://ferra.rs/errors/validation") =&gt; {
+            // 400 path — same `errors` array, other codes.
+        }
+        // ... other arms ...
+        _ =&gt; {} // not an error of Ferra's namespace
     }
-    Some("https://ferra.rs/errors/validation") =&gt; {
-        // 400 path — extractor failure; the body shape differs
-        // (flat `errors` list, not the per-field map).
-    }
-    // ... other arms ...
-    _ =&gt; /* unreachable on a non-fabricated error */,
-}</code></pre>
+}
+<span class="boring">}</span></code></pre>
 <p>Server-side, when handling a <code>FerraError</code> value, the 422 path
 reads through the new variant:</p>
-<pre><code class="language-rust ignore">use ferra::FerraError;
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraError;
 
 fn observe(err: &amp;FerraError) {
     match err {
@@ -451,40 +574,132 @@ fn observe(err: &amp;FerraError) {
         FerraError::Validation(_) =&gt; {
             // 400 — extractor failure
         }
-        // other arms unchanged
+        // FerraError is #[non_exhaustive]: keep a wildcard arm
         _ =&gt; {}
     }
-}</code></pre>
+}
+<span class="boring">}</span></code></pre>
 <p><code>FerraError::Unprocessable</code> is the typed home for the 422 path;
 <a href="https://docs.rs/ferra/latest/ferra/error/enum.FerraError.html#method.error_type"><code>FerraError::error_type</code></a> returns
 <code>"https://ferra.rs/errors/validation_failed"</code> on this variant.</p>
+<hr>
+<h2 id="hook-errors"><a class="header" href="#hook-errors">Hook errors</a></h2>
+<p>A hook returns <code>ferra::hooks::HookError</code>; Ferra turns it into the response, so a hook
+never builds one. Four constructors:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Constructor</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td><code>HookError::failed(msg)</code></td><td><code>500</code> <code>internal</code>; <code>msg</code> is logged, never sent</td></tr>
+<tr><td><code>HookError::conflict(detail)</code></td><td><code>409</code> <code>conflict</code>; your <code>detail</code> is served as given</td></tr>
+<tr><td><code>HookError::unprocessable(field, code, message)</code></td><td><code>422</code> <code>validation_failed</code>, one error <code>{field, code, message}</code></td></tr>
+<tr><td><code>HookError::unavailable(detail)</code></td><td><code>503</code> <code>service_unavailable</code>, your <code>detail</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>detail</code> of <code>conflict</code>, <code>unprocessable</code> and <code>unavailable</code> is your text, served as
+given: put no value in it that the caller may not read. (A <code>conflict</code> from a storage
+constraint keeps its fixed text, never the database’s message.)</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::ValidationCode;
+use ferra::hooks::HookError;
+
+let _ = HookError::failed("the ledger table is locked");
+let _ = HookError::conflict("the seat is already booked");
+let _ = HookError::unprocessable("amount", ValidationCode::Max, "insufficient balance");
+let _ = HookError::unavailable("the payment provider is not reachable");
+<span class="boring">}</span></code></pre>
+<p><strong>A <code>?</code> on a <code>FerraError</code> is a 500.</strong> A hook that reads another model and propagates its
+error with <code>?</code> answers <code>500</code> <code>internal</code> with the generic body, whatever the source was
+(a 403, a 404, a 422): the other model’s status and detail describe a request the caller
+did not make, and could reveal its rows. Ferra logs the source’s status and type. To
+answer a 409 or a 422, match the error and build it with the constructors above.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraError;
+use ferra::hooks::HookError;
+
+fn read_other_model(found: Result&lt;(), FerraError&gt;) -&gt; Result&lt;(), HookError&gt; {
+    found?; // a FerraError here becomes HookError::failed: 500, generic body
+    Ok(())
+}
+<span class="boring">let _ = read_other_model;
+</span><span class="boring">}</span></code></pre>
+<p><strong>From <code>after_commit</code></strong> the row is already written, so a <code>409</code> or a <code>422</code> would claim the
+opposite. <code>failed</code> answers <code>500</code>, <code>unavailable</code> answers <code>503</code>, and <code>conflict</code> and
+<code>unprocessable</code> answer <code>500</code> <code>internal</code>. Do not put in a <code>detail</code> a value the caller may
+not read.</p>
+<hr>
+<h2 id="validation-codes"><a class="header" href="#validation-codes">Validation codes</a></h2>
+<p>Every entry of <code>errors</code> carries a <code>code</code> from this closed list
+(<code>ferra::ValidationCode</code>, <code>as_str()</code> is the wire value). Later releases may
+add codes, never change one.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Status</th><th>Where</th></tr>
+</thead>
+<tbody>
+<tr><td><code>invalid_json</code></td><td>400</td><td>the body is malformed or of the wrong shape</td></tr>
+<tr><td><code>invalid_path_param</code></td><td>400</td><td>a path segment cannot be read</td></tr>
+<tr><td><code>duplicate_parameter</code></td><td>400</td><td>a query key Ferra reads is repeated</td></tr>
+<tr><td><code>invalid_parameter</code></td><td>400</td><td><code>page</code> or <code>per_page</code> is not an integer</td></tr>
+<tr><td><code>not_filterable</code></td><td>400</td><td><code>filter[x]</code> on a field that is not filterable</td></tr>
+<tr><td><code>not_sortable</code></td><td>400</td><td><code>sort</code> on a field that is not sortable</td></tr>
+<tr><td><code>unsupported_operator</code></td><td>400</td><td>an unknown filter operator, or a comparison on a non-date field</td></tr>
+<tr><td><code>invalid_filter_value</code></td><td>400</td><td>a filter value of the wrong type</td></tr>
+<tr><td><code>invalid_date</code></td><td>400</td><td>a malformed date filter, or a non-UTC <code>DateTime</code> filter</td></tr>
+<tr><td><code>invalid_pagination</code></td><td>400</td><td>the page and cursor mode rules</td></tr>
+<tr><td><code>unknown_field</code></td><td>422</td><td>a body key outside the write projection</td></tr>
+<tr><td><code>required</code>, <code>min_length</code>, <code>max_length</code>, <code>min</code>, <code>max</code>, <code>pattern</code>, <code>email</code>, <code>url</code></td><td>422</td><td>the <code>#[field(...)]</code> rules</td></tr>
+<tr><td><code>json_too_deep</code>, <code>json_too_large</code></td><td>422</td><td>JSON field bounds</td></tr>
+<tr><td><code>reference_not_found</code></td><td>422</td><td>the parent a foreign key names does not exist or is not usable by the caller; <code>field</code> is the foreign key, one fixed message</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>ValidationErrors::from_garde_report</code> keeps these codes for a report the
+derive lowered; a message that does not come from the derive (a <code>garde</code> type
+of your own) is reported <code>invalid_json</code>.</p>
 <hr>
 <h2 id="consumer-side-branching"><a class="header" href="#consumer-side-branching">Consumer-side branching</a></h2>
 <p>The recommended consumer pattern is to compare the wire <code>type</code> field
 against the URI constants — never against the <code>Display</code> form of the
 error. The URI is the wire contract; the message text is not.</p>
-<pre><code class="language-rust ignore">match body["type"].as_str() {
-    Some("https://ferra.rs/errors/not_found")          =&gt; /* 404 path */,
-    Some("https://ferra.rs/errors/validation")         =&gt; /* 400 path; extractor failure */,
-    Some("https://ferra.rs/errors/validation_failed")  =&gt; /* 422 path; #[field(...)] rule violation */,
-    Some("https://ferra.rs/errors/conflict")           =&gt; /* 409 path */,
-    Some("https://ferra.rs/errors/payload_too_large")  =&gt; /* 413 path */,
-    Some("https://ferra.rs/errors/rate_limited")       =&gt; /* 429 path; check Retry-After */,
-    Some("https://ferra.rs/errors/unauthorized")       =&gt; /* 401 path */,
-    Some("https://ferra.rs/errors/internal")           =&gt; /* 500 path; retry with backoff */,
-    _ =&gt; /* unreachable on a non-fabricated error */,
-}</code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn what_to_do(body: &amp;serde_json::Value) -&gt; &amp;'static str {
+    match body["type"].as_str() {
+        Some("https://ferra.rs/errors/not_found") =&gt; "404: the resource is not there",
+        Some("https://ferra.rs/errors/validation") =&gt; "400: extractor failure",
+        Some("https://ferra.rs/errors/validation_failed") =&gt; "422: a #[field(...)] rule was violated",
+        Some("https://ferra.rs/errors/conflict") =&gt; "409: a unique constraint",
+        Some("https://ferra.rs/errors/payload_too_large") =&gt; "413: split the request",
+        Some("https://ferra.rs/errors/rate_limited") =&gt; "429: check Retry-After",
+        Some("https://ferra.rs/errors/unauthorized") =&gt; "401: send a valid token",
+        Some("https://ferra.rs/errors/forbidden") =&gt; "403: the rule refuses this caller",
+        Some("https://ferra.rs/errors/invalid_cursor") =&gt; "400: restart from the first page",
+        Some("https://ferra.rs/errors/unsupported_media_type") =&gt; "415: send application/json",
+        Some("https://ferra.rs/errors/internal") =&gt; "500: retry with backoff",
+        _ =&gt; "not an error of Ferra's namespace",
+    }
+}
+<span class="boring">}</span></code></pre>
 <p>Server-side, when handling a <code>FerraError</code> value (for example, when
 mapping to a custom log line or a metrics tag), use the typed
 <a href="https://docs.rs/ferra/latest/ferra/error/enum.FerraError.html#method.error_type"><code>FerraError::error_type</code></a> method:</p>
-<pre><code class="language-rust ignore">use ferra::FerraError;
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraError;
 
 fn log_one(err: &amp;FerraError) {
     tracing::warn!(error_type = err.error_type(), "request failed");
-}</code></pre>
-<p><code>FerraError::error_type</code> returns one of the five URIs that map
-through the typed enum (<code>not_found</code>, <code>validation</code>, <code>validation_failed</code>,
-<code>conflict</code>, <code>internal</code>). The other three URIs reach the wire via
+}
+<span class="boring">}</span></code></pre>
+<p><code>FerraError::error_type</code> returns the URI of each of the eleven variants. Two URIs,
+<code>payload_too_large</code> (413) and <code>rate_limited</code> (429), reach the wire through
 middleware layers and are never observed as <code>FerraError</code> values.</p>
 <hr>
 <h2 id="openapi-schema-constraint"><a class="header" href="#openapi-schema-constraint">OpenAPI schema constraint</a></h2>
@@ -519,7 +734,8 @@ operator can filter them independently via <code>tracing-subscriber</code>’s
 <code>days_overdue</code>, <code>http.method</code>, <code>http.target</code>); the rate-limit event
 carries three (<code>http.method</code>, <code>http.target</code>, <code>http.retry_after_seconds</code>).
 Both event-schemas are contracts under ADR-0015 §“event schema is a
-contract” — additive widenings only, never renames.</p>
+contract” — additive widenings only, never renames. In both, <code>http.target</code> is
+the request path: the query string never reaches these events (ADR-0076).</p>
 <p>When the <code>observability</code> Cargo feature is on, the framework ALSO
 advances a <code>metrics::counter!</code> named <code>ferra.sunset.post_sunset_hits</code>
 on every post-sunset hit (regardless of the once-per-process dedup
@@ -541,8 +757,8 @@ AI agents and human readers reach a stable documentation page
 for the new variant.</li>
 </ol>
 <p>The release-blocking CI gates verify (1) source-side closure
-(<code>error_types_closed.sh</code>) and (3) network-side resolution (the URI
-probe). New variants without all three gates green fail the build.</p>
+(<code>error_types_closed</code>) and (3) network-side resolution
+(<code>uri_resolution_probe</code>, both <code>xtask</code> binaries). New variants without all three gates green fail the build.</p>
 <p>The closed-namespace contract is recorded in <a href="../decision-record/0026-error-types-closed-namespace.html">ADR-0026</a>. The
 contract is not load-bearing for consumer correctness — the URI
 table above is self-contained.</p>
@@ -555,6 +771,9 @@ table above is self-contained.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="deploying-to-lambda.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -566,6 +785,9 @@ table above is self-contained.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="deploying-to-lambda.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
@@ -585,11 +807,11 @@ table above is self-contained.</p>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

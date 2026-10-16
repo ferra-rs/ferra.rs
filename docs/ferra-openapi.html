@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,29 +182,93 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="ferra-openapi"><a class="header" href="#ferra-openapi"><code>ferra-openapi</code></a></h1>
-<p><code>ferra-openapi</code> is the framework’s documentation surface. It builds
-an <code>OpenAPI</code> 3.1 specification from a model’s <code>ModelMeta</code> description
-and serves the spec at <code>/docs/openapi.json</code> plus an interactive
-Scalar UI at <code>/docs</code>. Both surfaces are derived end-to-end from the
-same <code>#[model]</code> source of truth that drives the framework’s HTTP
-routes, SQL queries, and hypermedia links.</p>
-<p>The crate ships in 0.5.0 Rolling. The recommended call site is
-<code>Foundry::with_docs()</code> (landing in 0.5.0 Rolling alongside this
-crate); the underlying free functions in this crate stand alone for
-direct use cases and for the per-resource integration test suite.</p>
+<p><code>ferra-openapi</code> is the framework’s documentation surface. It builds an OpenAPI 3.2
+document from the description of each mounted model and serves it at
+<code>/docs/openapi.json</code>, plus an interactive Scalar page at <code>/docs</code>. Both are derived
+end-to-end from the same model that drives the routes, the SQL queries and the
+hypermedia links.</p>
+<p>An application does not declare or call <code>ferra-openapi</code>: the crate has <strong>no public
+API of its own</strong> in 0.9. The way in is <code>Foundry::with_docs()</code> (or one of its
+variants below), and the way out is the running router: you read the document at
+<code>/docs/openapi.json</code>.</p>
 <hr>
+<p><strong>Dependencies.</strong> The examples on this page assume the dependencies of
+<a href="getting-started.html">Getting started</a>:</p>
+<!-- dependencies -->
+<pre><code class="language-toml">[dependencies]
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum    = "0.8"
+serde   = { version = "1", features = ["derive"] }
+</code></pre>
 <h2 id="what-you-get-for-free"><a class="header" href="#what-you-get-for-free">What you get for free</a></h2>
-<p>A Ferra <code>#[model]</code> mounted through <code>Foundry::with_docs()</code> produces:</p>
+<p>A Ferra model mounted through <code>Foundry::with_docs()</code> produces:</p>
 <ul>
-<li><strong><code>GET /docs/openapi.json</code></strong> — full <code>OpenAPI</code> 3.1 document.</li>
+<li><strong><code>GET /docs/openapi.json</code></strong> — the full OpenAPI 3.2 document (<code>openapi: "3.2.0"</code>).</li>
 <li><strong><code>GET /docs</code></strong> — interactive Scalar UI rendering the spec.</li>
+<li><strong>Every answer is documented.</strong> Each operation lists the error statuses the server
+can return for it — 400; 401 when the model reads tokens; 403 when the rule needs an
+identity; 404 on item routes; 409 on writes; 413 and 422 on bodies; 429 on
+mutations (not under <code>no_rate_limit()</code>); 500 — each an <code>application/problem+json</code> body.
+A chain with <code>request_budget</code> adds a 503 to every operation, and a chain whose JWT
+source is a key set (<code>JwtConfig::key_set</code>), or that accepts API keys (<code>with_api_keys</code>),
+adds it to the operations of the models that read tokens: all are the one named response <code>ServiceUnavailable</code> of
+<code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>timeout</code> or
+<code>identity_unavailable</code>), never an inline response.</li>
+<li><strong>API keys are a security scheme.</strong> On a chain that accepts API keys, the document
+declares <code>components/securitySchemes/apiKey</code> (<code>type: apiKey</code>, <code>in: header</code>, <code>name</code> the
+configured header) and lists it as an alternative to <code>bearer</code> in the <code>security</code> of every
+operation that requires a credential.</li>
+<li><strong>The cookie is a security scheme.</strong> On a chain whose <code>JwtConfig</code> has <code>with_cookie</code>, the
+document declares <code>components/securitySchemes/cookie</code> (<code>type: apiKey</code>, <code>in: cookie</code>, <code>name</code>
+the configured cookie), lists it as an alternative next to <code>bearer</code>, and gives every
+mutation of a model that reads tokens the named response <code>Forbidden</code> (the 403 of a write
+whose <code>Origin</code> is not allowed), a <code>$ref</code> to <code>ProblemDetails</code>.</li>
+<li><strong>Collections match their pagination mode</strong>: <code>page</code> (<code>page</code>, <code>per_page</code>, <code>total</code>),
+<code>cursor</code> (<code>next_cursor</code>, required, a string or <code>null</code>) or <code>both</code> (either shape, as a
+<code>oneOf</code> that an answer matches one of only, by the keys each requires). These are the
+flat schemas, without <code>_links</code>.</li>
+<li><strong>Both representations are declared.</strong> Every negotiated 2xx lists <code>application/json</code>
+(the flat schema) and <code>application/hal+json</code> (the named schema <code>&lt;Model&gt;Hal</code> or
+<code>&lt;Model&gt;CollectionHal</code>, an <code>allOf</code> of the flat schema and <code>{_links}</code>). The <code>items</code> of a
+<code>&lt;Model&gt;CollectionHal</code> are <code>&lt;Model&gt;Hal</code>, since each item of a HAL list carries its own
+<code>_links</code> (0.13.0). In <code>&lt;Model&gt;Hal</code>, <code>_links.self</code> and <code>_links.collection</code> are optional: an item
+served to a caller who may <code>list</code> but not <code>GET</code> it has no <code>self</code> (0.13.0). A list’s own
+<code>_links.self</code> stays required.</li>
+<li><strong>A gated field is declared optional.</strong> A field with a <code>#[field(read = …)]</code> rule is never in the
+<code>required</code> list of its read schema and is described “absent when the caller may not read it”; its
+examples stay synthetic (a placeholder of its type, never a value of yours). The <code>POST</code> and <code>PUT</code> of a
+write projection that holds a field with a <code>write</code> rule declare <code>403</code>, also on a model whose own rules
+are public (0.13.0).</li>
+<li><strong>An authority and a parent chain are declared.</strong> The <code>POST</code> and <code>PUT</code> of a model with
+<code>#[ferra(authority)]</code> declare the named <code>403</code> (the authority refuses a write with it), also on a model whose
+own rules are public; on such a model served with <code>.with_auth()</code> every operation declares <code>401</code> and the
+optional bearer requirement, since the layer reads tokens. The <code>422</code> of a model with <code>owner(from)</code> names the
+code <code>reference_not_found</code> in its description (0.13.0).</li>
+<li><strong>Blame columns are optional.</strong> The <code>created_by</code> and <code>updated_by</code> columns of a <code>#[behavior(blameable)]</code> model (under
+their configured names) are read-only optional <code>string</code>s in every read schema that lists them, described
+“absent when the caller may not read it”, and in no write schema (0.13.0).</li>
+<li><strong>A projection rule is declared.</strong> Every operation under a projection that carries an
+<code>authorize</code> rule declares <code>404</code> (a caller the rule refuses is told nothing, a list or a create
+included), and, when the rule needs an identity, <code>401</code> and the bearer security requirement
+(0.13.0).</li>
+<li><strong>Date filters.</strong> A <code>DateTime</code>, <code>Date</code> or <code>Time</code> filter field has <code>filter[f]</code> and
+<code>filter[f][gt|gte|lt|lte]</code> parameters with the field’s <code>format</code> (<code>date-time</code>, <code>date</code>;
+a <code>Time</code> has the <code>HH:MM:SS[.fraction]</code> pattern, as its schema does). A <code>cursor</code>-mode
+<code>sort</code> is an enum of the cursor key and its <code>-</code> form.</li>
+<li><strong>Projections</strong>: every projection route is documented, <code>restore</code> included, and the
+bare path shows the promoted projection when there is one.</li>
+<li><strong>Field names are the wire names.</strong> On a model that declares
+<code>#[ferra(rename_all = "camelCase")]</code>, schemas, <code>required</code> lists, <code>filter[...]</code>
+parameters, <code>sort</code> values and examples all use the camelCase names.</li>
+<li>Ferra’s own test suite checks this contract: every route of every test model is
+called with a request built from the document, and every answer is validated
+against it.</li>
 </ul>
-<p>Both routes are publicly reachable by default — the inventory is the
-feature. For deployments where the endpoint structure is itself
-sensitive, the auth-gated variant
-(<code>Foundry::with_docs_protected(verifier)</code>) ships in the same release
-and gates the surface behind authentication. See
-§“Public-by-default rationale” below for when to choose which.</p>
+<p><code>Foundry::with_docs()</code> serves both routes to anyone who reaches the port. For any surface a
+network can reach, use <code>Foundry::with_docs_protected(verifier)</code>, which answers an anonymous
+request with a <code>401</code>: see <a href="#enabling-the-docs-surface">Enabling the docs surface</a>.</p>
 <p>For each mounted model <code>M</code> (PascalCase struct name), the spec
 contains:</p>
 <ul>
@@ -219,15 +283,95 @@ containing the resource name. Zero inline schemas in operation
 definitions; every body schema is a <code>$ref</code> into
 <code>components/schemas</code>.</li>
 </ul>
+<blockquote>
+<p><strong>Collection operations (0.7.5 Enameling).</strong> The <code>GET /{resource}</code>
+operation’s parameter set is mode-aware: page-mode models emit
+<code>page</code> + <code>per_page</code>, cursor-mode emits <code>per_page</code> + <code>cursor</code> (with
+the <code>ferra-cursor</code> format identifier per spec 011 FR-029), and both-
+mode emits all three with the cursor parameter description quoting
+the mutual-exclusivity rule (FR-010 / FR-030). Adding a new
+<code>#[field(filterable)]</code> or <code>#[field(sortable)]</code> to the model
+automatically widens the OpenAPI <code>filter[…]</code> parameter list and the
+<code>sort</code> enum on the next emission (FR-032 / FR-033). See
+<a href="pagination.html"><code>pagination.md</code></a> for the consumer-facing surface.</p>
+</blockquote>
+<h3 id="me"><a class="header" href="#me"><code>/me</code></a></h3>
+<p>A model that declares <code>#[ferra(me)]</code> adds one more path, <code>GET /me</code> (under the
+version prefix: <code>/v1/me</code>), with the operationId <code>getMe</code> and no path
+parameter. Its responses are <code>200</code> (the model’s read schema), <code>401</code>, <code>403</code> (a
+<code>get</code> rule that reads no row), <code>404</code> (every refusal that depends on the row
+answers it, see <a href="projections-and-routing.html"><code>projections-and-routing.md</code></a>
+§ <code>/me</code>), and the <code>400</code> and <code>500</code> of every generated operation, all as
+<code>ProblemDetails</code>. The path has no other method.</p>
 <hr>
 <h2 id="enabling-the-docs-surface"><a class="header" href="#enabling-the-docs-surface">Enabling the docs surface</a></h2>
-<p>The headline call site is <code>Foundry::with_docs()</code>:</p>
-<pre><code class="language-rust ignore">use ferra::Foundry;
-
+<p>For any surface a network can reach, the call site is <code>Foundry::with_docs_protected(verifier)</code>: an
+anonymous request gets a <code>401</code> with an RFC 7807 body, and the verifier is yours to write.</p>
+<pre class="playground"><code class="language-rust">use ferra::Foundry;
+use axum::http::header::AUTHORIZATION;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>// Constant time: `==` on a secret stops at the first differing byte, and the delay tells it.
+fn same(a: &amp;[u8], b: &amp;[u8]) -&gt; bool {
+    a.len() == b.len() &amp;&amp; a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+let docs_token = std::env::var("DOCS_TOKEN").unwrap_or_default();
 let app = Foundry::new(conn)
     .mount::&lt;Film&gt;()
+    .with_docs_protected(move |req: &amp;axum::extract::Request| {
+        let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
+        !docs_token.is_empty() &amp;&amp; same(sent, format!("Bearer {docs_token}").as_bytes())
+    })
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><code>Foundry::with_docs()</code> is for a local or internal service, where the inventory is the feature and nobody
+outside reaches the port:</p>
+<pre class="playground"><code class="language-rust">use ferra::Foundry;
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span>let app = Foundry::new(conn)
+    .mount::&lt;Film&gt;()
     .with_docs()
-    .build();</code></pre>
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>That single chain produces a runnable HTTP service mounting <code>Film</code>’s
 five CRUD endpoints <strong>plus</strong> <code>/docs/openapi.json</code> and <code>/docs</code> with
 zero boilerplate.</p>
@@ -238,17 +382,87 @@ zero boilerplate.</p>
 <tr><th>Method</th><th>Effect</th></tr>
 </thead>
 <tbody>
-<tr><td><code>.with_docs()</code></td><td>Public docs at <code>/docs</code> and <code>/docs/openapi.json</code>.</td></tr>
-<tr><td><code>.with_docs_at("/api-docs")</code></td><td>Public docs at the supplied prefix.</td></tr>
 <tr><td><code>.with_docs_protected(verifier)</code></td><td>Auth-gated docs at <code>/docs</code>; anonymous requests get 401 + RFC 7807 body.</td></tr>
 <tr><td><code>.with_docs_protected_at("/api-docs", verifier)</code></td><td>Auth-gated at the supplied prefix.</td></tr>
+<tr><td><code>.with_docs()</code></td><td>Public docs at <code>/docs</code> and <code>/docs/openapi.json</code>, for local or internal use.</td></tr>
+<tr><td><code>.with_docs_at("/api-docs")</code></td><td>Public docs at the supplied prefix.</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="public-by-default-rationale"><a class="header" href="#public-by-default-rationale">Public-by-default rationale</a></h3>
-<p>The framework’s default-deny posture on model routes does not extend
-to the docs surface — and the deviation is <em>security-positive</em>, not
-a convenience trade-off.</p>
+<h3 id="title-version-and-security"><a class="header" href="#title-version-and-security">Title, version and security</a></h3>
+<p>The document’s <code>info.title</code> and <code>info.version</code> are <code>"API"</code> and <code>"1"</code> unless you set
+them; the Scalar page uses the same title:</p>
+<pre class="playground"><code class="language-rust">use ferra::{FerraIdentity, Foundry, JwtConfig};
+<span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod article {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "articles")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">#[derive(Clone, Debug, Deserialize)]
+</span><span class="boring">struct MyClaims { sub: String }
+</span><span class="boring">impl FerraIdentity for MyClaims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) {
+</span>let app = Foundry::new(conn)
+    .with_auth::&lt;MyClaims&gt;(jwt)
+    .mount::&lt;article::Model&gt;()
+    .with_docs()
+    .with_docs_info("Films API", "2026.10")
+    .build();
+<span class="boring">let _ = app;
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p>When a mounted model reads tokens, the document declares an HTTP bearer scheme named
+<code>bearer</code> (<code>bearerFormat: JWT</code>) in <code>components.securitySchemes</code>, and each operation
+says what it needs: <code>security: [{"bearer": []}]</code> when its rule needs an identity,
+<code>[{}, {"bearer": []}]</code> when a token is optional. The routes of <code>with_docs()</code>
+stay public; <code>with_docs_protected</code> gates them.</p>
+<p>Every schema property carries <code>examples</code> (a one-element array: the Schema Object’s
+<code>example</code> keyword is deprecated since OpenAPI 3.1), every request body, parameter and
+header an <code>example</code>, and error responses are shared <code>components.responses</code>
+(<code>BadRequest</code>, <code>Unauthorized</code>, <code>Forbidden</code>, <code>NotFound</code>, <code>Conflict</code>,
+<code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>).</p>
+<p>The document is built once, at <code>Foundry::build()</code>. If Ferra cannot finish it — a
+Ferra bug — <code>build()</code> panics with an explicit message rather than serve a document that silently lost part of its content.</p>
+<h3 id="response-headers-of-the-docs-page"><a class="header" href="#response-headers-of-the-docs-page">Response headers of the docs page</a></h3>
+<p>The page loads one script, <code>cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.2/dist/browser/standalone.js</code>, pinned to
+that file and checked by its Subresource Integrity hash, and fonts from <code>fonts.scalar.com</code>. A deployment that cannot
+reach those hosts gets no page; the document at <code>/docs/openapi.json</code> is served by your own process and is not affected.</p>
+<p>Scalar’s telemetry and its agent tool are disabled in the served page, and Scalar’s request proxy (<code>proxyUrl</code>) is not set. The headers keep the
+page from reaching anything else, whatever a later Scalar default becomes:</p>
+<ul>
+<li><code>GET /docs</code> (the page; <code>/api-docs</code> with <code>with_docs_at("/api-docs")</code>; public or protected) sends</li>
+</ul>
+<pre><code class="language-text">Content-Security-Policy: default-src 'none'; script-src https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.2/dist/browser/standalone.js; style-src 'unsafe-inline'; font-src https://fonts.scalar.com data:; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+</code></pre>
+<ul>
+<li>every response the docs routes produce (the HTML page, the JSON document, the protected variant’s <code>401</code>) sends
+<code>X-Content-Type-Options: nosniff</code>. Only the HTML page sends the policy above: the <code>401</code> and the JSON document carry
+<code>nosniff</code> and no <code>Content-Security-Policy</code>. The <code>503</code> of the request budget is built outside the header layer of
+the docs routes and carries neither.</li>
+</ul>
+<p>Ferra sets these two headers on the docs routes, inside the <code>Foundry</code>’s request-budget and cache layers, which
+leave them as set. Your own policy: a second <code>Content-Security-Policy</code> header added by an outer layer or a proxy is
+enforced together with Ferra’s, the stricter wins for each directive; a layer or proxy that overwrites the header
+replaces Ferra’s policy, and then the page is only as strict as yours.</p>
+<h3 id="why-the-inventory-is-generated"><a class="header" href="#why-the-inventory-is-generated">Why the inventory is generated</a></h3>
+<p>The framework’s default-deny posture on model routes does not extend to
+<code>with_docs()</code>, which has no gate: it is meant for a local or internal service, where the
+inventory is the feature.</p>
 <p><code>/docs/openapi.json</code> is generated from the same <code>ModelMeta</code> IR that
 drives the routes. By construction, <strong>every endpoint a Ferra
 application exposes is documented</strong>, with no manual schema to keep
@@ -257,19 +471,15 @@ API9:2023 (Improper Inventory Management) — the gap between the API
 a team thinks it exposes and the API actually deployed. Salt
 Security research cited in OWASP API9 measures that gap at 40% on
 average in production (one cited case: 54 undocumented endpoints, 12
-exposing PII). The public default makes the complete inventory
-legible to any operator without an opt-in step; a deny-by-default
-<code>/docs</code> would force every team to opt into seeing what their own API
-exposes, which is the inverse of the API9 recommendation.</p>
-<p>For deployments that must restrict who can read the inventory,
-<code>.with_docs_protected(verifier)</code> ships in the same release and gates
-the surface behind authentication — operators keep that floor
-without changing crates.</p>
-<p><strong>Rule of thumb</strong>: prefer <code>.with_docs()</code> for development, internal
-tools, public APIs intentionally discoverable, and AI-consumable
-surfaces (the inventory is the feature). Prefer
-<code>.with_docs_protected(verifier)</code> for any production deployment of an
-internal-only API whose endpoint structure is itself sensitive.</p>
+exposing PII). The same document is also a map of the surface for whoever reads it,
+so who may read it is a choice: <code>.with_docs_protected(verifier)</code> gates the surface
+behind your verifier, and the inventory stays complete for the operators you let in.</p>
+<p><strong>Rule of thumb</strong>: prefer <code>.with_docs_protected(verifier)</code> for any surface a network can reach, and
+keep <code>.with_docs()</code> for local development and internal tools, where the inventory is the feature. The
+examples <code>hello-ferra</code> and <code>movie-stars</code> use <code>.with_docs()</code> for local
+development and listen on every interface (<code>0.0.0.0:3000</code>), so their page is
+public to anyone who can reach the port; <code>examples/lambda-neon</code>, the one
+that is deployed, mounts no documentation page and answers <code>/docs</code> like any unknown path.</p>
 <p>The deviation from default-deny is recorded in <a href="../decision-record/0024-ferra-openapi-and-public-default-docs.html">ADR-0024</a> for the
 curious reader; this guide stands alone.</p>
 <hr>
@@ -294,7 +504,8 @@ carries four entries in <code>components/schemas</code>:</p>
 PascalCase singularisation.</p>
 <h4 id="per-projection-schemas"><a class="header" href="#per-projection-schemas">Per-projection schemas</a></h4>
 <p>A model that declares one or more <code>#[ferra(projection(...))]</code> blocks
-emits an additional triple of schemas per named projection. For
+emits four additional schemas per named projection (read, create, update and
+collection), plus the HAL forms of its read and collection schemas. For
 <code>Film</code> with one named <code>admin</code> projection (<code>#[ferra(projection(name = "admin", read = […], write = […]))]</code>):</p>
 <div class="table-wrapper">
 <table>
@@ -318,6 +529,17 @@ emits an additional triple of schemas per named projection. For
 <p>For the default projection the <code>{Projection-PascalCase}</code> segment is
 the empty string, so the rule produces <code>Film</code>, <code>CreateFilmInput</code>,
 <code>UpdateFilmInput</code>.</p>
+<p><code>{Model}</code> is the singular of the resource name (<code>films</code> gives <code>Film</code>), never the
+Rust struct ident, which is <code>Model</code> in every Sea-ORM entity. The resource name is
+the one <code>#[ferra(resource = "...")]</code> gives, else the default of
+<a href="ferra-forge.html"><code>ferra-forge.md</code></a>: the <code>#[sea_orm(table_name)]</code> literal, else a
+plural of the struct ident. The <code>operationId</code> of a projection’s
+route ends in the same <code>{Projection-PascalCase}</code> (<code>getFilmAdmin</code>,
+<code>listFilmsAdmin</code>), so it is not the default’s. Two models that name a projection
+alike keep a schema each.</p>
+<p>A <a href="behaviors.html#the-target-ferrasystem_only"><code>system_only</code></a> model serves no write, so its document carries the Read
+and Collection schemas only (and their HAL forms), with no Create or Update schema, for the default projection and for
+each named one.</p>
 <p>Each schema’s <code>properties</code> map carries exactly the field set the
 corresponding projection declares — no schema reuse via <code>$ref</code> from
 one projection to another. A reader scanning the document sees the
@@ -354,6 +576,9 @@ might otherwise see only the URL stability.</p>
 </tbody>
 </table>
 </div>
+<p>The list id is <code>list</code> and the plural of the model name, made as the derive makes
+a resource name: <code>Category</code> gives <code>listCategories</code>, <code>Box</code> gives <code>listBoxes</code>,
+<code>Film</code> gives <code>listFilms</code>.</p>
 <p>Versioned chains (<code>Foundry::api_version("v1")</code>) prefix the
 <code>operationId</code> with the version segment: <code>v1.listFilms</code>,
 <code>v1.getFilm</code>, etc.</p>
@@ -363,7 +588,7 @@ snake_case plural (<code>films</code>, <code>actors</code>). Scalar / Redoc / Sw
 group operations by tag for easier navigation.</p>
 <hr>
 <h2 id="field-type-mapping"><a class="header" href="#field-type-mapping">Field type mapping</a></h2>
-<p>Field types map to OpenAPI 3.1 schemas as follows:</p>
+<p>Field types map to OpenAPI 3.2 schemas as follows:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -379,33 +604,44 @@ group operations by tag for easier navigation.</p>
 <tr><td><code>Option&lt;T&gt;</code></td><td>nullable <code>T</code> (<code>{ "type": ["string", "null"] }</code>) and absent from <code>required</code></td></tr>
 <tr><td><code>ferra::DateTime</code></td><td><code>{ "type": "string", "format": "date-time" }</code></td></tr>
 <tr><td><code>ferra::Date</code></td><td><code>{ "type": "string", "format": "date" }</code></td></tr>
+<tr><td><code>ferra::Time</code></td><td><code>{ "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?$" }</code></td></tr>
 </tbody>
 </table>
 </div>
-<p><code>Option&lt;T&gt;</code> uses the OpenAPI 3.1 nullable form (a <code>type</code> array
-containing <code>"null"</code>), not the deprecated 3.0 <code>nullable: true</code>
-keyword.</p>
-<p>The two typed time newtypes (<code>ferra::DateTime</code> and <code>ferra::Date</code>)
+<p><code>Option&lt;T&gt;</code> uses the nullable form of OpenAPI 3.1 and later (a <code>type</code> array
+containing <code>"null"</code>), not the 3.0 <code>nullable: true</code> keyword.</p>
+<p>The three typed time newtypes (<code>ferra::DateTime</code>, <code>ferra::Date</code>, <code>ferra::Time</code>)
 are recognised by the framework and emit the right format. Direct
-use of legacy time crates (<code>chrono::*</code>, <code>time::*</code>) is rejected at
+use of legacy time crates (<code>chrono::*</code>, <code>time::*</code>, <code>jiff::*</code>) is rejected at
 the field-declaration site — see the §“Time vocabulary” section of
 <code>ferra-core.md</code>.</p>
 <hr>
 <h2 id="field-annotations"><a class="header" href="#field-annotations">Field annotations</a></h2>
-<p>Two <code>#[field(...)]</code> attributes shape what appears in each
-projection.</p>
-<h3 id="fieldskip"><a class="header" href="#fieldskip"><code>#[field(skip)]</code></a></h3>
+<p>Four attributes shape what appears in each projection: <code>#[ferra(skip)]</code>,
+<code>#[ferra(read_only)]</code>, <code>#[ferra(write_only)]</code> and <code>#[ferra(computed)]</code>.</p>
+<h3 id="ferraskip"><a class="header" href="#ferraskip"><code>#[ferra(skip)]</code></a></h3>
 <p>Excludes the field from every projection schema and from the wire
 contract. Useful for server-only state (audit timestamps, internal
 flags).</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-pub struct Film {
-    #[id]
-    id: ferra::Id,
-    title: String,
-    #[field(skip)]
-    internal_note: String,
-}</code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    #[ferra(skip)]
+    pub internal_note: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
 <p><code>internal_note</code> does not appear in <code>Film</code>, <code>CreateFilmInput</code>, or
 <code>UpdateFilmInput</code>, and the wire shape rejects an inbound value for
 that field.</p>
@@ -415,14 +651,25 @@ read schema where the field is included) marked <code>readOnly: true</code>, and
 is structurally absent from every create / update input schema.
 Useful for server-assigned values that the consumer can read but
 cannot write.</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-pub struct Film {
-    #[id]
-    id: ferra::Id,
-    title: String,
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
     #[ferra(read_only)]
-    indexed_at: ferra::DateTime,
-}</code></pre>
+    pub indexed_at: ferra::DateTime,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
 <p><code>indexed_at</code> appears in <code>Film</code> with <code>readOnly: true</code>; both
 <code>CreateFilmInput</code> and <code>UpdateFilmInput</code> omit the property entirely.
 If the model also declares a named <code>admin</code> projection that includes
@@ -436,14 +683,25 @@ included), and is <strong>structurally absent</strong> from every read schema �
 not marked <code>writeOnly: true</code> on the read side, but simply missing.
 Useful for fields the consumer must supply on write but should never
 see on read (one-shot secrets, transient hints, write-side credentials).</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-pub struct Film {
-    #[id]
-    id: ferra::Id,
-    title: String,
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
     #[ferra(write_only)]
-    new_password: String,
-}</code></pre>
+    pub new_password: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
 <p><code>new_password</code> appears in <code>CreateFilmInput</code> and <code>UpdateFilmInput</code>;
 the <code>Film</code> read schema omits the property entirely. The framework
 guarantees the field cannot leak via a read operation — its absence
@@ -455,14 +713,27 @@ projection of joined rows). It appears in every read schema with
 schema — the framework calls <code>FerraComputed::compute()</code> /
 <code>compute_async_batch()</code> on read and never accepts the field as inbound
 input.</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel)]
-pub struct Film {
-    #[id]
-    id: ferra::Id,
-    title: String,
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    #[sea_orm(ignore)]
     #[ferra(computed)]
-    review_count: i64,
-}</code></pre>
+    pub review_count: i64,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>impl ferra::compute::FerraComputed for Model {} // the default `compute` leaves the value as it is
+<span class="boring">}</span></code></pre>
 <p><code>review_count</code> appears in <code>Film</code> with <code>readOnly: true</code>; the create
 and update inputs omit the property entirely. See
 <a href="ferra-core.html#computed-fields"><code>ferra-core.md</code> § Computed fields</a>
@@ -489,7 +760,12 @@ for the <code>FerraComputed</code> trait that drives the compute pipeline.</p>
         "https://ferra.rs/errors/internal",
         "https://ferra.rs/errors/payload_too_large",
         "https://ferra.rs/errors/rate_limited",
-        "https://ferra.rs/errors/unauthorized"
+        "https://ferra.rs/errors/unauthorized",
+        "https://ferra.rs/errors/validation_failed",
+        "https://ferra.rs/errors/invalid_cursor",
+        "https://ferra.rs/errors/forbidden",
+        "https://ferra.rs/errors/unsupported_media_type",
+        "https://ferra.rs/errors/timeout"
       ]
     },
     "title":    { "type": "string" },
@@ -510,66 +786,36 @@ every variant) lives in <a href="ferra-error-handling.html">error handling</a>.<
 <h2 id="mounting-an-alternative-ui"><a class="header" href="#mounting-an-alternative-ui">Mounting an alternative UI</a></h2>
 <p><code>/docs/openapi.json</code> is the framework’s stable spec endpoint; the
 Scalar UI at <code>/docs</code> is the bundled default but not the only
-choice. To replace Scalar with Redoc, RapiDoc, or Swagger UI, mount
-the alternative on the existing axum router via <code>Router::merge</code>:</p>
-<pre><code class="language-rust ignore">use ferra::Foundry;
-use utoipa_redoc::{Redoc, Servable};
-
-let app = Foundry::new(conn)
-    .mount::&lt;Film&gt;()
-    .build()                                        // no .with_docs()
-    .merge(ferra_openapi::docs_routes(             // hand-mount the JSON
-        ferra_openapi::build_openapi(
-            ferra_openapi::info("Hello", "0.5.0"),
-            "Film",
-            Film::meta(),
-        ),
-        "/docs",
-    ))
-    .merge(Redoc::with_url("/redoc", openapi));    // and Redoc on top</code></pre>
-<p>The same pattern works with <code>utoipa-rapidoc</code> and <code>utoipa-swagger-ui</code>.</p>
+choice. To use Redoc, RapiDoc or Swagger UI, serve it yourself and point it
+at <code>/docs/openapi.json</code>, which <code>with_docs()</code> mounts. <code>ferra-openapi</code> has no
+public API since 0.9.0: the document is reached through the running router,
+not through a function call.</p>
 <hr>
 <h2 id="where-the-spec-is-built"><a class="header" href="#where-the-spec-is-built">Where the spec is built</a></h2>
-<p><code>build_openapi(info, model_name, meta)</code> assembles the full document
-from a model’s static <code>ModelMeta</code> reference. The function runs once
-at process startup; the resulting <code>OpenApi</code> value is cached and
-served unchanged on every <code>/docs/openapi.json</code> request — no
-per-request rebuild.</p>
-<p>For the multi-model assembly, <code>build_openapi_for_models(info, &amp;[ModelEntry, ...])</code> produces a single document covering every
-mounted model. <code>Foundry::build()</code> calls this internally; consumers
-who want to assemble a spec by hand can call it directly.</p>
+<p><code>Foundry::build()</code> assembles the full document from the static <code>ModelMeta</code>
+of every mounted model. It runs once at process startup; the resulting
+document is cached and served unchanged on every <code>/docs/openapi.json</code>
+request — no per-request rebuild. Its title and version are set with
+<code>with_docs_info(title, version)</code>.</p>
 <hr>
 <h2 id="linting-your-spec"><a class="header" href="#linting-your-spec">Linting your spec</a></h2>
-<p>The framework’s CI runs <a href="https://stoplight.io/open-source/spectral">Spectral</a>
-against every reference example’s generated <code>/docs/openapi.json</code>,
-extending the default <code>spectral:oas</code> ruleset with four Ferra-specific
-rules: every operation declares a <code>tags</code> array, every operation
-declares an <code>operationId</code>, every request body schema is a <code>$ref</code> into
-<code>components/schemas</code>, and every response schema is a <code>$ref</code> into
-<code>components/schemas</code>. New linter findings at the <code>warn</code> severity bar
-block the build.</p>
-<p>Two takeaways for consumer-side CI:</p>
-<ul>
-<li><strong>Spectral is the recommended linter for a Ferra-served API.</strong>
-The framework’s <code>.spectral.yaml</code> (in the workspace root) is a
-reasonable starting ruleset. Copy it into a downstream repo and
-add deployment-specific rules (e.g., re-enable <code>oas3-api-servers</code>
-once the deployment carries a non-empty <code>servers</code> array).</li>
-<li><strong>The rule selection is not arbitrary.</strong> The full
-adopted / deferred / rejected matrix — including why Spectral wins
-over Redocly, why Vacuum is rejected, and why <code>progenitor</code> /
-<code>openapi-generator</code> / <code>orval</code> smoke-tests are deferred rather than
-adopted — lives in the contributor research memo at
-<a href="../research/dropshot-openapi-conformance.html"><code>docs/research/dropshot-openapi-conformance.md</code></a>.
-Curious readers consult that memo; correct use of the gate does
-not require it.</li>
-</ul>
+<p>Ferra’s CI lints the generated reference document with
+<a href="https://quobix.com/vacuum/">vacuum</a> 0.30.6 — Spectral cannot read OpenAPI 3.2 —
+using the workspace’s <code>.spectral.yaml</code> ruleset (Spectral-compatible), at the <code>warn</code>
+severity bar: any finding blocks the build. The ruleset extends the default OpenAPI
+rules with four Ferra rules (every operation declares <code>tags</code> and an <code>operationId</code>;
+request and response body schemas are <code>$ref</code>s into <code>components/schemas</code>), and keeps
+<code>oas3-missing-example</code> and <code>description-duplication</code> on: the document carries an
+example for every property, body, parameter and header, and no description twice.</p>
+<pre><code class="language-bash">vacuum lint -r .spectral.yaml -n warn openapi.json
+</code></pre>
+<p>The same ruleset is a reasonable start for a downstream repository; add deployment
+rules to it (for example <code>oas3-api-servers</code> once the deployment declares <code>servers</code>).</p>
 <hr>
 <h2 id="see-also"><a class="header" href="#see-also">See also</a></h2>
 <ul>
 <li><a href="foundry.html"><code>Foundry</code></a> — the assembly facade that mounts the
-docs surface alongside resource routes (lands alongside this
-crate in 0.5.0).</li>
+docs surface alongside resource routes.</li>
 <li><a href="ferra-error-handling.html">Error handling</a> — the closed
 <code>ERROR_TYPES</code> URI namespace and the <code>ProblemDetails</code> consumer-
 side branching pattern.</li>
@@ -583,12 +829,19 @@ posture), <a href="../decision-record/0026-error-types-closed-namespace.html">AD
 <a href="../decision-record/0003-openapi-generation-utoipa.html">ADR-0003 v2</a> (Scalar over Swagger UI as the default UI). These
 ADRs are not load-bearing for correct use of the feature; this
 guide stands alone.</p>
+<h3 id="json-field-schemas"><a class="header" href="#json-field-schemas">JSON field schemas</a></h3>
+<p>A JSON field’s schema is <code>{}</code>: any JSON value. Supply a function returning a
+JSON Schema object or boolean with <code>#[field(json(schema = crate::settings_schema))]</code>.
+The served OpenAPI document inserts the function’s <code>serde_json::Value</code> verbatim;
+keywords such as <code>const</code> and <code>$defs</code> are retained. Optional JSON fields use
+<code>anyOf: [&lt;schema&gt;, {"type": "null"}]</code>. Schema overrides describe the API;
+write validation still follows the Rust type and declared JSON bounds.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="behaviors.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="ferra-auth.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -602,7 +855,7 @@ guide stands alone.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="behaviors.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="ferra-auth.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
@@ -628,11 +881,11 @@ guide stands alone.</p>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

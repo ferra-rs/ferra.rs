@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,6 +188,8 @@
 <h2 id="mental-model"><a class="header" href="#mental-model">Mental model</a></h2>
 <p>A projection is a <strong>content variant</strong> of a resource — <em>not</em> an access-control mechanism. The same underlying row can be served through several projections, each one a deliberate slice of the row’s fields plus a deliberate stance on which fields a client may submit.</p>
 <p>The defining property is that <strong>every projection is a distinct callable entity at every layer of the stack</strong>: a distinct URL path, a distinct OpenAPI <code>operationId</code>, a distinct generated-SDK method, a distinct HAL <code>self</code> link. A consumer that has the URL has, by construction, also fixed the wire shape — there is no header, no query parameter, and no out-of-band negotiation required.</p>
+<p>A response is serialized from the projection’s own read struct (<code>{Model}{Name}ReadProjection</code>), not from the row with some keys removed afterwards: a field the projection does not list is not in that struct, so it cannot be in the response. A <code>write_only</code> field and the deletion column of a soft-delete model are in no read struct, and the dispatcher refuses an object that holds the deletion column’s name (0.13.0).</p>
+<p>The links of a row follow the route that served it (0.13.0): a row served under <code>/admin/films</code> links to <code>/admin/films/{id}</code> and <code>/admin/films</code>, a page under that prefix links to its own pages, and no link ever points at another projection. <code>POST /admin/films</code> answers with <code>Location: /admin/films/{id}</code>, the row’s <code>self</code> link; a caller who may create but not read the row gets <code>201</code> with no body and no <code>Location</code>. A link is present only if following it, as the same caller, answers 2xx; a served row is live, so it has no <code>restore</code> link.</p>
 <p>Authorisation is enforced separately — by middleware on the route or by per-operation guards. A <code>detail</code> projection is <em>not</em> an admin-only projection; it is a <em>more detailed</em> projection that a developer may choose to gate behind an authorisation layer if they wish.</p>
 <hr>
 <h2 id="the-routing-contract"><a class="header" href="#the-routing-contract">The routing contract</a></h2>
@@ -208,14 +210,21 @@
 <p>A model that declares zero named projections observes byte-identical 0.5.x / 0.6.0 routing — the bare resource path is unchanged. This is the <strong>SC-007 baseline</strong>: introducing a named projection on a model is strictly additive to its URL surface, never a silent breaking change.</p>
 <hr>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
-<pre><code class="language-rust ignore">use ferra::*;
-use ferra_forge::FerraModel;
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">// Sea-ORM entity scaffolding (the `Relation` enum + `ActiveModelBehavior`
+</span><span class="boring">// impl) is required alongside every `DeriveEntityModel` — see
+</span><span class="boring">// `examples/hello-ferra/src/main.rs` for the canonical shape.
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
     Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
 )]
+#[ferra(auth = "none")]
 #[sea_orm(table_name = "films")]
 #[ferra(projection(
     name = "detail",
@@ -229,7 +238,8 @@ pub struct Model {
     pub title: String,
     pub director: String,
     pub cost_price: Option&lt;f64&gt;,
-}</code></pre>
+}
+<span class="boring">}</span></code></pre>
 <p>This declaration auto-mounts <strong>two parallel route groups</strong>:</p>
 <div class="table-wrapper">
 <table>
@@ -245,26 +255,46 @@ pub struct Model {
 </tbody>
 </table>
 </div>
+<p>A model marked <code>#[ferra(system_only)]</code> serves the two read rows only, under the bare path and under every prefix: Ferra registers no create, update, delete or <code>restore</code> route for it (see <a href="behaviors.html#system-grant">Behaviors</a>).</p>
 <p>The bare-path responses carry every readable field of <code>Model</code> (the default-read set). The <code>/detail/...</code> responses are filtered to the projection’s <code>read</code> list — fields not in that list never appear in the response body, ever.</p>
 <p>For the OpenAPI document, the <code>paths</code> map gains entries for <code>/films/{id}</code> <em>and</em> <code>/detail/films/{id}</code>, each operation referencing a distinct schema (<code>Film</code> vs <code>FilmDetail</code>). SDK generators driving off the document produce distinct method names per surface (<code>client.films.get(id)</code> vs <code>client.films.getDetail(id)</code>).</p>
 <hr>
 <h2 id="overriding-the-url-prefix"><a class="header" href="#overriding-the-url-prefix">Overriding the URL prefix</a></h2>
 <p>By default the projection’s <code>name</code> is lower-cased and used as the URL prefix segment. To pin the URL surface to something different — for example, a versioned segment or a developer-friendly synonym — add a <code>path_prefix</code>:</p>
-<pre><code class="language-rust ignore">#[ferra(projection(
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[ferra(projection(
     name = "detail",
     path_prefix = "/v2/detail",
     read = [id, title, director, cost_price],
     write = [title, director, cost_price],
-))]</code></pre>
+))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub director: String,
+    pub cost_price: Option&lt;f64&gt;,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
 <p>This mounts <code>/v2/detail/films/{id}</code> (and parallel verbs). The auto-derived <code>/detail/...</code> URL is <strong>NOT</strong> also registered — exactly one URL surface exists per projection.</p>
 <p>The leading <code>/</code> is part of the literal; the framework appends the trailing <code>/</code> and the resource segment.</p>
 <hr>
-<h2 id="naming-convention--shape-not-audience"><a class="header" href="#naming-convention--shape-not-audience">Naming convention — shape, not audience</a></h2>
-<p>Projection names MUST describe the <strong>shape</strong> of the variant — what fields it exposes — not the <strong>audience</strong> it serves.</p>
+<h2 id="naming-convention--shape-first-audience-in-authorize"><a class="header" href="#naming-convention--shape-first-audience-in-authorize">Naming convention — shape first, audience in <code>authorize</code></a></h2>
+<p>Projection names should describe the <strong>shape</strong> of the variant — what fields it exposes — rather than the <strong>audience</strong> it serves.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Good (shape)</th><th>Bad (audience)</th></tr>
+<tr><th>Preferred (shape)</th><th>Audience name (declare the matching <code>authorize</code>)</th></tr>
 </thead>
 <tbody>
 <tr><td><code>"detail"</code></td><td><code>"admin"</code></td></tr>
@@ -274,25 +304,54 @@ pub struct Model {
 </tbody>
 </table>
 </div>
-<p>Naming a projection after a role visually couples the projection to access-control in the developer’s mental model <em>and</em> in URLs that appear in access logs — even though projections enforce no authorisation. A <code>"detail"</code> projection that exposes cost prices is still subject to whatever auth middleware sits on its route; calling it <code>"admin"</code> invites the next reader to assume the projection itself enforces a role check.</p>
-<p>Use the role-neutral shape name and gate the route at the auth layer.</p>
+<p>A name tells a reader what the variant shows; a rule tells them who may use it, and they are two declarations. Since 0.13.0 a projection can carry its own rule (<code>authorize = &lt;rule&gt;</code>), so a name that says an audience (<code>"admin"</code>, <code>"staff"</code>) is no longer a misleading promise: it is accurate if the projection declares the matching rule, and it is wrong if it does not. Prefer the shape name, and put the audience in <code>authorize</code>; if an audience name is the clearest URL for your consumers, declare the rule next to it (see § Authorization on projection routes).</p>
 <hr>
-<h2 id="default-replacement-and-the-silent-break-problem"><a class="header" href="#default-replacement-and-the-silent-break-problem">Default replacement and the silent-break problem</a></h2>
+<h2 id="promoting-a-projection--default-replacement-and-the-silent-break-problem"><a class="header" href="#promoting-a-projection--default-replacement-and-the-silent-break-problem">Promoting a projection — default replacement and the silent-break problem</a></h2>
 <p>Setting <code>default = true</code> on a named projection makes that projection’s shape the one served at the bare resource path. The auto-default read/write surface is suppressed; consumers requesting <code>/films/{id}</code> get the named projection’s shape <em>without any URL change to signal the difference</em>. This is a <strong>silent breaking change</strong> to the public API contract.</p>
 <p>To force the change to be visible, the framework requires two attestation attributes alongside <code>default = true</code>:</p>
-<pre><code class="language-rust ignore">#[ferra(projection(
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[ferra(projection(
     name = "detail",
     default = true,
     promotes_from = "auto-derived",      // attestation of the previous default
     breaking_change_version = "2.0.0",   // app version in which the promotion lands
     read = [id, title, director, cost_price],
     write = [title, director, cost_price],
-))]</code></pre>
-<p>Missing either attestation produces compile-time <strong>FRG-316</strong>. <code>promotes_from</code> is purely declarative — the macro does not validate it against repository history. Its purpose is to force the developer to <em>name</em> what is being replaced, which is the part the silent-flip case skips entirely. <code>breaking_change_version</code> surfaces in the OpenAPI document as the <code>x-ferra-promoted-in</code> vendor extension on every operation under the bare resource path, so SDK consumers and downstream tooling can detect the silent break.</p>
-<p>A second defence (the <code>.ferra/projection-defaults.lock</code> file with schema-hash drift detection) is queued for the next release; at 0.6.5 the Layer-1 attestation is the sole defence.</p>
+))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub director: String,
+    pub cost_price: Option&lt;f64&gt;,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>Missing either attestation produces compile-time <strong>FRG-316</strong>. The value of <code>promotes_from</code> is checked: <code>auto-derived</code>, or <code>named:&lt;another projection&gt;</code> with that projection declared in the same model, never the projection itself; any other value is refused at the value, and <code>promotes_from</code> on a projection without <code>default = true</code> is refused at the key. The macro never checks it against repository history. Its purpose is to force the developer to <em>name</em> what is being replaced, which is the part the silent-flip case skips entirely. <code>breaking_change_version</code> surfaces in the OpenAPI document as the <code>x-ferra-promoted-in</code> vendor extension on every operation under the bare resource path, so SDK consumers and downstream tooling can detect the silent break.</p>
+<p>A second defence (the <code>.ferra/projection-defaults.lock</code> file with schema-hash drift detection) is not scheduled and does not exist; the Layer-1 attestation is the sole defence.</p>
 <h3 id="worked-example--promotion-replaces-the-bare-path"><a class="header" href="#worked-example--promotion-replaces-the-bare-path">Worked example — promotion replaces the bare path</a></h3>
 <p>The default-promoting projection serves at the bare resource path and <strong>no prefixed mirror is published</strong>. A model whose <code>v2</code> projection is the default has exactly one URL surface for the projection’s shape: <code>/films</code> / <code>/films/{id}</code>. The would-be auto-derived <code>/v2/...</code> prefix is <em>not</em> registered, so <code>GET /v2/films/{id}</code> returns 404. This is what makes the promotion a <strong>REPLACE</strong>, not an <strong>ADD</strong>.</p>
-<pre><code class="language-rust ignore">#[derive(FerraModel, /* ... */)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
+)]
+#[ferra(auth = "none")]
 #[sea_orm(table_name = "films")]
 #[ferra(projection(
     name = "v2",
@@ -302,11 +361,12 @@ pub struct Model {
     read = [id, title],
     write = [title],
 ))]
-pub struct Film {
+pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub title: String,
-}</code></pre>
+}
+<span class="boring">}</span></code></pre>
 <p>Wire-shape contract:</p>
 <div class="table-wrapper">
 <table>
@@ -345,20 +405,134 @@ pub struct Film {
 </code></pre>
 <p>The extension is <strong>per-operation under the bare path</strong>. A non-default named projection (one with an auto-derived <code>/admin/</code> prefix or an explicit <code>path_prefix = "/..."</code>) does <em>not</em> emit the extension on its prefixed operations — the extension is the signal that the model’s bare-path wire shape has shifted, not a per-model badge.</p>
 <hr>
+<h2 id="writes--how-the-body-reaches-the-database"><a class="header" href="#writes--how-the-body-reaches-the-database">Writes — how the body reaches the database</a></h2>
+<p>Every write route — the bare path and every projection prefix — reads its body through
+a <strong>write projection</strong>: the projection’s <code>write = [...]</code> list, or, at the bare path,
+the model’s default write projection. The default write projection is every field
+except:</p>
+<ul>
+<li>the primary key (the server chooses it — see below);</li>
+<li>the <code>#[field(owner)]</code> field (the server writes the caller — see
+<a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Ownership);</li>
+<li><code>#[ferra(read_only)]</code>, <code>#[ferra(skip)]</code> and <code>#[ferra(computed)]</code> fields;</li>
+<li>the columns a behavior manages (<code>created_at</code>, <code>updated_at</code>, <code>deleted_at</code>).</li>
+</ul>
+<p>The authorization check runs <strong>before</strong> the body is parsed: a caller the rule refuses
+gets 401 or 403 (404 under a prefix whose projection rule refuses it) whatever its body, and never learns the body’s shape from a
+validation error. (The body is still received first, up to the 1 MiB cap: a larger
+body gets 413 before any rule is checked.)</p>
+<p>A field with its own rule (<code>#[field(read = …, write = …)]</code>, 0.13.0) is judged on top of the
+projection: a key the caller may not read is refused like an unknown one (<code>422</code>), and a
+readable key whose <code>write</code> rule refuses the caller is a <code>403</code>; see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>
+§ Field rules.</p>
+<p><strong>The body is strict.</strong> A field outside the write projection — an unknown name, the
+key, the owner, a read-only field — is refused with 422, listing every offending
+field. A body that is not JSON of the right shape is a 400. A projection’s own
+<code>write = [...]</code> list cannot name a <code>read_only</code>, <code>skip</code> or <code>computed</code> field (FRG-324),
+the key (FRG-318) or the owner (FRG-115).</p>
+<p><strong>Columns outside the write projection are not written.</strong> The <code>INSERT</code> binds exactly
+the columns the projection writes; the database’s <code>DEFAULT</code> / <code>SERIAL</code> fills the
+others. A <code>NOT NULL</code> column without a <code>DEFAULT</code> outside the write set makes the insert
+fail, correctly — the framework does not invent a value. An update writes the
+projection’s columns and leaves every other column as stored. <code>#[field(...)]</code> rules
+run on the projection’s fields only.</p>
+<p><strong>The update’s target row comes from the URL.</strong> The key is never in an update body.</p>
+<h3 id="primary-keys-of-new-rows"><a class="header" href="#primary-keys-of-new-rows">Primary keys of new rows</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Who chooses it</th></tr>
+</thead>
+<tbody>
+<tr><td>one <code>i32</code> / <code>i64</code> column</td><td>the database (<code>SERIAL</code> / identity default)</td></tr>
+<tr><td>one <code>Uuid</code> / <code>ferra::Id</code> column</td><td>Ferra: a UUID v7</td></tr>
+<tr><td>a composite or natural key</td><td>the client, on models that declare <code>#[ferra(client_pk)]</code> (see <a href="ferra-forge.html"><code>ferra-forge.md</code></a> § Primary keys)</td></tr>
+</tbody>
+</table>
+</div>
+<p>A create body that carries a server-chosen key is refused with 422.</p>
+<h3 id="the-names-default-collection-and-hal"><a class="header" href="#the-names-default-collection-and-hal">The names <code>default</code>, <code>collection</code> and <code>hal</code></a></h3>
+<p><code>default</code> names the model’s own read and write projections, served at the bare path.
+A projection named <code>default</code> does not compile (FRG-317); to replace the bare path’s
+shapes, give your projection its own name and <code>default = true</code> (see § Promoting a
+projection below). <code>collection</code> and <code>hal</code> do not compile either (FRG-317): the
+projection’s schemas in the OpenAPI document are <code>{Model}</code> then its name, so they
+would overwrite the model’s own <code>{Model}Collection</code> and <code>{Model}Hal</code>.</p>
+<hr>
+<h2 id="authorization-on-projection-routes"><a class="header" href="#authorization-on-projection-routes">Authorization on projection routes</a></h2>
+<p>Every projection route passes the same authorization checkpoint as the bare resource
+path, with the model’s <code>#[authorize(...)]</code> rules, or its <code>auth</code> posture when there is
+no block. A projection may add a rule of its own, <code>authorize = &lt;rule&gt;</code> (or
+<code>authorize = inherit</code>), and must when it shows or accepts more than the bare path, or when the projection promoted
+with <code>default = true</code> carries a rule that restricts callers (that rule protects the bare path, not the routes under the other projections’ prefixes)
+(<a href="ferra-forge-diagnostics.html#frg-117--a-projection-widens-exposure-without-authorize"><code>FRG-117</code></a>).</p>
+<p>The rule is added to the model’s rule of each operation (both must pass), and it is
+checked first, from the caller alone, before the body is read and before any
+statement. A caller it refuses learns nothing of the projection:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Request under the prefix</th><th>Anonymous caller</th><th>Caller the rule refuses</th></tr>
+</thead>
+<tbody>
+<tr><td><code>GET</code>, <code>PUT</code>, <code>DELETE</code> <code>/{prefix}/{resource}/{id}</code>, <code>POST …/{id}/restore</code></td><td><code>401</code></td><td><code>404</code>, byte for byte the answer for a row that does not exist</td></tr>
+<tr><td><code>GET</code>, <code>POST</code> <code>/{prefix}/{resource}</code></td><td><code>401</code></td><td><code>404</code> with the fixed detail <code>&lt;resource&gt; not found</code> (no id, no count)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The refusals come in one order under a prefix: <code>401</code> (no or invalid credential), <code>400</code>
+(a malformed path key, the same for every caller that is not anonymous), <code>404</code>
+(the projection, then an absent or someone else’s row), <code>403</code> (the model’s own
+rule). A link to the projection is present only on a row the projection served, and
+a row served under a prefix links to that prefix.</p>
+<p>A projection promoted with <code>default = true</code> binds the bare path with its rule, in the
+same order, and <code>Resource&lt;M&gt;</code> (which reads the default view) answers a caller it
+refuses with the same <code>NotFound</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "bearer")]
+#[ferra(projection(
+    name = "admin",
+    read = [id, title, cost],
+    write = [title, cost],
+    authorize = HasRole("finance"),
+))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub cost: f64,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>The authority of a <code>#[ferra(authority)]</code> model and the parent chain of an <code>owner(from = …)</code> model are checked
+on a projection route as on the bare path: see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Programmatic authority and
+§ Ownership through a parent.</p>
+<p>See <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Projections and authorization.</p>
+<hr>
 <h2 id="prefix-collisions"><a class="header" href="#prefix-collisions">Prefix collisions</a></h2>
 <p>Two collision classes are rejected by the framework — one at compile time, one at <code>Foundry::build()</code>.</p>
 <h3 id="frg-310--same-prefix-on-two-projections"><a class="header" href="#frg-310--same-prefix-on-two-projections">FRG-310 — same prefix on two projections</a></h3>
 <p>Two projections (on the same model or across two mounted models) that resolve to the same effective URL prefix produce ambiguous routing. The compile-time channel catches the intra-model case; the <code>Foundry::build()</code> channel catches the cross-model case.</p>
-<pre><code class="language-rust ignore">// Both projections declare path_prefix = "/staff" → FRG-310 at compile time.
+<pre><code class="language-text">// Both projections declare path_prefix = "/staff" → FRG-310 at compile time.
 #[ferra(projection(name = "admin", path_prefix = "/staff", read = [id, title]))]
-#[ferra(projection(name = "manager", path_prefix = "/staff", read = [id, title]))]</code></pre>
+#[ferra(projection(name = "manager", path_prefix = "/staff", read = [id, title]))]
+</code></pre>
+<p>(The complete models, bad and good, compiled: <a href="ferra-forge-diagnostics.html#frg-310--projection-url-prefix-collision"><code>FRG-310</code></a>.)</p>
 <p>Resolution: rename one of the projections, or set a distinct <code>path_prefix</code> on one of them.</p>
 <h3 id="frg-312--projection-prefix-collides-with-another-resource"><a class="header" href="#frg-312--projection-prefix-collides-with-another-resource">FRG-312 — projection prefix collides with another resource</a></h3>
 <p>A named projection’s auto-derived prefix that matches another mounted model’s <code>resource_name</code> is rejected at <code>Foundry::build()</code>. For example, <em>model A</em> with projection <code>name = "admin"</code> (auto-deriving <code>/admin/</code>) cannot be mounted on the same Foundry as <em>model B</em> with <code>resource_name = "admin"</code> (mounting at <code>/admin</code>).</p>
 <p>Resolution: rename the projection to a shape descriptor that does not match any mounted resource name, or set an explicit <code>path_prefix</code> to disambiguate.</p>
 <hr>
 <h2 id="nested-resources-root-only-url-surface"><a class="header" href="#nested-resources-root-only-url-surface">Nested resources (root-only URL surface)</a></h2>
-<p>When 0.6.5 ships, a single Ferra application mounts every model on a flat URL surface — there is no nested-resource mounting API. ADR-0030 §Nested resources reserves the routing semantics for a future release:</p>
+<p>In 0.9 a Ferra application mounts every model on a flat URL surface — there is no nested-resource mounting API. ADR-0030 §Nested resources reserves the routing semantics for a future release:</p>
 <ul>
 <li>The URL prefix derives <strong>exclusively from the root resource’s active projection</strong> and propagates uniformly to every nested segment.</li>
 <li>A nested model MAY declare a projection with the same name as the root’s; its read/write shapes are served for that segment. If it does not declare a matching projection, the <strong>default</strong> read/write shape of the nested model is served (additive fallback).</li>
@@ -371,16 +545,122 @@ pub struct Film {
 <ol>
 <li>
 <p><strong>Application-level prefix (canonical).</strong> Mount the entire API under a version segment:</p>
-<pre><code class="language-rust ignore">let app = Foundry::new(conn).api_version("v1")?.mount::&lt;Film&gt;().build();</code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod film {
+</span><span class="boring">    use super::*;
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "films")]
+</span><span class="boring">    #[ferra(auth = "none")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub title: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span><span class="boring">use film::Model as Film;
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let app = ferra::Foundry::new(conn).api_version("v1")?.mount::&lt;Film&gt;().build();
+<span class="boring">let _ = app;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
 <p>When a breaking change requires bumping <code>/v1</code> → <code>/v2</code>, the developer bumps the prefix in the application code. The framework provides the <em>signal</em> (the FRG-316 attestation requirement on <code>default = true</code>); the developer decides <em>when</em> to bump and <em>how</em> to communicate the bump (<code>Deprecation:</code> header, sunset date, parallel-run period).</p>
 </li>
 <li>
 <p><strong>Per-projection versioning (escape hatch via <code>path_prefix</code>).</strong> A single projection can be versioned independently of the application by embedding the version in its <code>path_prefix</code>:</p>
-<pre><code class="language-rust ignore">#[ferra(projection(name = "detail", path_prefix = "/v2/detail", read = [...]))]</code></pre>
+<pre><code class="language-text">#[ferra(projection(name = "detail", path_prefix = "/v2/detail", read = [id, title]))]
+</code></pre>
 <p>This composes naturally with <code>.api_version("v1")</code> — the final URL becomes <code>/v1/v2/detail/films/{id}</code>.</p>
 </li>
 </ol>
 <p>The framework deliberately does NOT introduce a separate <code>version = N</code> attribute; <code>path_prefix</code> is sufficient for the escape-hatch case and avoids growing the projection surface for what is fundamentally an application concern.</p>
+<hr>
+<h2 id="me"><a class="header" href="#me"><code>/me</code></a></h2>
+<p><code>GET /me</code> (and <code>HEAD</code>) answers the caller’s own row, so a client does not need to know its id. Declare it on
+the model that holds one row per user:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "profiles")]
+#[ferra(auth = "bearer", me)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[sea_orm(unique)]
+    #[field(owner)]
+    pub user_id: Uuid,
+    pub display_name: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<ul>
+<li><strong>One model per <code>Foundry</code>.</strong> A second <code>#[ferra(me)]</code> model, or a model whose resource is <code>me</code>, makes <code>build()</code>
+panic with a message that names both. The resource of a model is its URL segment (<code>/profiles</code>): its
+<code>table_name</code>, unless <code>#[ferra(resource = "...")]</code> sets another (<a href="ferra-forge.html"><code>ferra-forge.md</code></a>), so a table
+called <code>me</code> is served at <code>/me</code> and clashes; give it another resource.</li>
+<li><strong><code>PUT /me</code> does not exist:</strong> the item route (<code>/profiles/{id}</code>) serves writes. A client
+learns the id from the <code>id</code> of the row <code>GET /me</code> answers, or from its <code>_links.self</code>. Whether a caller may write
+that row is the <code>update</code> rule of the model, not <code>/me</code>: put <code>IsOwner</code> in it to let a caller write only the row
+they own (<a href="ferra-auth.html#ownership">Ownership</a>).</li>
+<li><strong>A unique owner.</strong> The model needs a root <code>#[field(owner)]</code> (the field of the model itself, not the
+<code>owner(from = ...)</code> that copies the owner from a parent) that identifies one row: <code>#[sea_orm(unique)]</code>, or the
+single-column primary key (<a href="ferra-forge-diagnostics.html#frg-131--ferrame-without-a-unique-owner"><code>FRG-131</code></a>).
+The owner’s type is <code>Id</code>, <code>Uuid</code>, <code>i32</code> or <code>i64</code>; <code>Uuid</code> is sea-orm’s <code>with-uuid</code> feature, which a
+<code>default-features = false</code> dependency (the block of <a href="getting-started.html">Getting started</a>) does not enable: add it.
+The attribute declares the index to Ferra, it does not create it: a unique index declared only in a migration is
+refused the same way (add the attribute), and an attribute without the index in the database lets two rows share
+an owner. Then <code>/me</code> answers 500 <code>internal</code> and logs it (<code>tracing</code>, target <code>ferra_http::operations</code>); find the
+rows with <code>SELECT owner_column FROM table GROUP BY 1 HAVING count(*) &gt; 1</code>.</li>
+<li><strong><code>.with_auth()</code> is required.</strong> The model does not compile without it
+(<a href="ferra-forge-diagnostics.html#frg-151--mounting-without-with_auth-a-model-that-needs-an-identity"><code>FRG-151</code></a>),
+whatever its <code>auth</code> posture, <code>auth = "none"</code> included: a call with no credential is a 401.</li>
+<li><strong>The subject</strong> compared with the owner is <code>FerraIdentity::id()</code> of the caller’s identity
+(<a href="ferra-auth.html#identity--the-ferraidentity-trait">Identity</a>), for every credential kind: the <code>sub</code> of a bearer
+token or of the cookie’s JWT, the subject recorded when an API key was issued. To make an API key’s subject match
+an owner, issue the key with the id the owner column holds (<a href="ferra-auth.html#api-keys--machines">API keys</a>).</li>
+<li><strong>The path</strong> follows the version prefix: <code>/v1/me</code> under <code>.api_version("v1")</code>. A <code>.route</code> on <code>/me</code> makes
+<code>build()</code> panic too, as on any path Ferra serves.</li>
+<li><strong>One <code>SELECT</code></strong>, under the model’s read field rules, the soft-delete filter and the authority’s <code>filter</code>.
+<code>_links.self</code> is the item’s URL (<code>/profiles/{id}</code>).</li>
+<li><strong>Soft delete keeps the owner.</strong> On a soft-deletable model, a soft-deleted row still holds its unique owner
+value. <code>/me</code> answers 404 (the row is hidden), and a new <code>POST</code> for the same owner hits the unique constraint
+and answers 409 until the row is restored.</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Case</th><th>Status</th></tr>
+</thead>
+<tbody>
+<tr><td>no credential</td><td>401, before any statement</td></tr>
+<tr><td>the <code>get</code> rule refuses the caller before any row is read (see below)</td><td>403, before the <code>SELECT</code>, the same whether the caller owns a row or not</td></tr>
+<tr><td>no row, a soft-deleted row, a row the authority’s <code>filter</code> leaves out, <code>can(Get, row)</code> refused, a <code>get</code> rule that depends on the row refused on it, or a <code>default = true</code> projection whose <code>authorize</code> refuses the caller</td><td>404 <code>not_found</code>, detail <code>"profiles not found"</code>, with no id</td></tr>
+<tr><td>one row</td><td>200</td></tr>
+<tr><td>two rows</td><td>500 <code>internal</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>How a refusal is told apart. Ferra decides the <code>get</code> rule first, with no row, and takes <code>IsOwner</code> as true: the
+<code>SELECT</code> picks the row by <code>owner = subject</code>, so the caller owns whatever it returns. A rule that still refuses the
+caller is the 403. <code>get = HasRole("admin")</code> refuses a caller who is not an admin; <code>get = IsOwner + HasRole("admin")</code>
+refuses a caller who is not an admin even though they own a row, because <code>IsOwner</code> counted as true leaves
+<code>HasRole("admin")</code>; <code>get = IsOwner | IsAdmin</code> passes every caller, since <code>IsOwner</code> is true. The operators are
+<code>+</code> (all) and <code>|</code> (any), parenthesised when mixed (<a href="ferra-auth.html#the-vocabulary">the vocabulary</a>). Anything
+decided after the <code>SELECT</code> (the row, the soft-delete state, the authority, a <code>default = true</code> projection) is the 404.</p>
+<p>Every 404 of the table is the same answer, byte for byte (status, body, headers, length): a caller cannot tell
+a row that is refused from one that does not exist. A difference in time is not hidden.</p>
+<p>Responses carry <code>Cache-Control: no-store</code> and a <code>Vary</code> that names <code>Authorization</code>, <code>Cookie</code> and the API key
+header, like every other response (see <a href="ferra-http.html"><code>ferra-http.md</code></a>).</p>
 <hr>
 <h2 id="why-path-prefix-routing--and-what-it-costs"><a class="header" href="#why-path-prefix-routing--and-what-it-costs">Why path-prefix routing — and what it costs</a></h2>
 <p>Three alternative designs were considered and rejected. The honest trade-offs:</p>
@@ -460,11 +740,11 @@ pub struct Film {
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>

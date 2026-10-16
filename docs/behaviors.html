@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/ferra-a2ec8863.css">
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6f7ca5.js";
+            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a1ac9ff0.js"></script>
+        <script src="toc-5b3de983.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,56 +187,91 @@
 <hr>
 <h2 id="mental-model"><a class="header" href="#mental-model">Mental model</a></h2>
 <p>A behavior is a <strong>cohesive cohort of cross-cutting modifications</strong> the framework applies to a model: the fields it carries, the SQL the framework emits, the projections the framework derives, the hypermedia links the framework attaches, and the OpenAPI operations the framework documents — all at once, from one attribute line.</p>
-<p>The two behaviors that ship at this release:</p>
+<p>The three behaviors that ship at this release:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Name</th><th>Effect</th></tr>
 </thead>
 <tbody>
-<tr><td><code>soft_delete</code></td><td>Adds a <code>deleted_at</code> column. Every framework-generated <code>SELECT</code> filters rows whose stamp is non-null. The standard <code>DELETE</code> rewrites to an <code>UPDATE deleted_at = NOW()</code>. A new <code>POST /{resource}/{id}/restore</code> action sets the stamp back to <code>NULL</code>.</td></tr>
-<tr><td><code>timestampable</code></td><td>Adds <code>created_at</code> and <code>updated_at</code> columns. Every framework-generated <code>INSERT</code> stamps both. Every framework-generated <code>UPDATE</code> advances <code>updated_at</code>. Submitted values for either field in a create/update body are silently ignored.</td></tr>
+<tr><td><code>soft_delete</code></td><td>Uses a nullable <code>deleted_at</code> column of your table (any name, see below). Every framework-generated <code>SELECT</code> filters rows whose stamp is non-null. The standard <code>DELETE</code> rewrites to an <code>UPDATE deleted_at = NOW()</code>. A new <code>POST /{resource}/{id}/restore</code> action sets the stamp back to <code>NULL</code>. The column is in no response.</td></tr>
+<tr><td><code>timestampable</code></td><td>Uses <code>created_at</code> and <code>updated_at</code> columns of your table (any names, see below). Both are in every read response; every framework-generated <code>UPDATE</code> and restore sets <code>updated_at</code> in its own statement. A value for either in a create/update body is a 422.</td></tr>
+<tr><td><code>blameable</code></td><td>Uses <code>created_by</code> and <code>updated_by</code> <code>TEXT</code> columns of your table (any names, see below): the subject of the caller who wrote the row. Only callers that pass the behavior’s <code>read</code> rule see them (authenticated callers by default). A value for either in a create/update body is a 422.</td></tr>
 </tbody>
 </table>
 </div>
-<p>A model that declares zero <code>#[behavior(...)]</code> attributes observes <strong>byte-identical</strong> 0.6.5 behaviour. Adding a behavior is strictly additive to the model’s surface — the existing routes, the existing projections, and the existing OpenAPI emission all continue to exist; the behavior layers new structure on top.</p>
+<p>A model that declares zero <code>#[behavior(...)]</code> attributes has the plain CRUD surface. Adding a behavior is strictly additive to the model’s surface — the existing routes, the existing projections, and the existing OpenAPI emission all continue to exist; the behavior layers new structure on top.</p>
 <hr>
 <h2 id="the-attribute"><a class="header" href="#the-attribute">The attribute</a></h2>
-<pre><code>#[behavior(name1, name2, ...)]
+<pre><code class="language-text">#[behavior(name1, name2, ...)]
+#[behavior(timestampable(created = "inserted_at", updated = "modified_at"), soft_delete(column = "removed_at"))]
 </code></pre>
 <ul>
 <li><strong>Container-level</strong> — applied to the <code>struct</code> declaration, not to individual fields.</li>
-<li><strong>Closed vocabulary</strong> at this release: <code>soft_delete</code>, <code>timestampable</code>. An unknown name is a compile-time error.</li>
-<li><strong>Stackable</strong> — the attribute can appear multiple times on the same struct; the framework dedupes by set-union.</li>
+<li><strong>Closed vocabulary</strong> at this release: <code>soft_delete</code>, <code>timestampable</code>, <code>blameable</code>. An unknown name is a compile-time error.</li>
+<li><strong>Stackable</strong> — the attribute can appear multiple times on the same struct; the framework dedupes by set-union. A repeat must name the same columns: a behavior declared twice with different columns is FRG-327.</li>
 <li><strong>Order-irrelevant</strong> — <code>#[behavior(soft_delete, timestampable)]</code> and <code>#[behavior(timestampable, soft_delete)]</code> produce byte-identical <code>ModelMeta</code>.</li>
-<li><strong>No arguments</strong> at this release — each name is a bare identifier.</li>
+<li><strong>Column names</strong> (0.11.0) — each name takes an optional argument list that names the columns of your table. <code>timestampable(created = "..", updated = "..")</code> and <code>soft_delete(column = "..")</code>, and <code>blameable(created_by = "..", updated_by = "..", read = &lt;rule&gt;)</code> (<code>read</code> takes a rule, not a string; see <code>## #[behavior(blameable)]</code>); an argument left out keeps its default, and the bare form keeps <code>created_at</code>, <code>updated_at</code>, <code>deleted_at</code>, <code>created_by</code> and <code>updated_by</code>. Each name is a Rust identifier (letters, digits and <code>_</code>, not a keyword), which is also the SQL column name, quoted; a column whose name is not one cannot be named here. A behavior declared twice with different columns is an error too. An unknown key, an empty or non-identifier name, or two behavior columns with one name is <a href="ferra-forge-diagnostics.html#frg-327--a-behavior-column-name-is-malformed"><code>FRG-327</code></a>; a field of the struct with the same name, or the same <code>#[sea_orm(column_name)]</code>, is <a href="ferra-forge-diagnostics.html#frg-323--a-field-has-the-name-of-a-column-a-behavior-owns"><code>FRG-323</code></a>. The behaviors work on tables that already exist: the columns are not fields of the struct, and the table keeps its own names.</li>
 </ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
+)]
+#[ferra(auth = "none")]
+#[sea_orm(table_name = "films")]
+#[behavior(
+    timestampable(created = "inserted_at", updated = "modified_at"),
+    soft_delete(column = "removed_at")
+)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
 <hr>
 <h2 id="behaviorsoft_delete"><a class="header" href="#behaviorsoft_delete"><code>#[behavior(soft_delete)]</code></a></h2>
 <h3 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h3>
-<pre><code class="language-rust ignore">use ferra::*;
-use ferra_forge::FerraModel;
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">// Sea-ORM entity scaffolding (the `Relation` enum + `ActiveModelBehavior`
+</span><span class="boring">// impl) is required alongside every `DeriveEntityModel` — see
+</span><span class="boring">// `examples/hello-ferra/src/main.rs` for the canonical shape. The
+</span><span class="boring">// fence below shows the framework-facing surface; hidden setup keeps
+</span><span class="boring">// the visible example focused on `#[behavior(...)]`.
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
     Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
 )]
+#[ferra(auth = "none")]
 #[sea_orm(table_name = "films")]
 #[behavior(soft_delete)]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: Uuid,
+    pub id: i32,
     pub title: String,
-}</code></pre>
+}
+<span class="boring">}</span></code></pre>
 <p>The framework’s <code>ModelMeta</code> for <code>Film</code> carries:</p>
 <ul>
-<li>A <code>behaviors</code> slice containing <code>BehaviorKind::SoftDelete</code>.</li>
-<li>An automatically injected <code>deleted_at: Option&lt;jiff::Timestamp&gt;</code> field at the end of the user’s field list, flagged <code>read_only: true</code> so the default-read projection includes it and the default-write projection excludes it.</li>
+<li>A <code>behaviors</code> slice containing <code>BehaviorKind::soft_delete("deleted_at")</code>; <code>ModelMeta::soft_delete_column()</code> reads the name.</li>
+<li>An automatically injected <code>deleted_at: Option&lt;ferra::DateTime&gt;</code> field at the end of the user’s field list, flagged <code>skip</code>, so no read projection and no read schema lists it and no write projection takes it. It is a column the database keeps: the model has no such field, so no response carries it, for any caller.</li>
 <li>An auto-emitted <code>OperationMeta::new("restore", "POST", "restore")</code> on <code>operations</code>.</li>
 </ul>
 <h3 id="the-migration"><a class="header" href="#the-migration">The migration</a></h3>
-<p>The column shape is hand-written into your <code>sea-orm-migration</code> migration file at 0.7.0 (the <code>ferra-anvil migration create</code> scaffolder lands at 0.13.0 and emits the same shape automatically based on <code>M::meta().behaviors</code>):</p>
+<p>The column shape is hand-written into your <code>sea-orm-migration</code> migration file at 0.7.0 (no migration scaffolder ships with Ferra; the column shape below is what <code>M::meta().behaviors</code> declares):</p>
 <pre><code class="language-sql">ALTER TABLE films ADD COLUMN deleted_at TIMESTAMPTZ NULL;
 </code></pre>
 <p>That is the entire migration surface — the framework’s runtime SQL composes the predicate (<code>WHERE deleted_at IS NULL</code>) and the rewrites (<code>DELETE → UPDATE deleted_at = NOW()</code>) on top of this single column.</p>
@@ -245,49 +280,60 @@ pub struct Model {
 <li><code>DELETE /films/{id}</code> on a live row → <strong>204 No Content</strong>, no physical delete; the row’s <code>deleted_at</code> is set to <code>NOW()</code>.</li>
 <li><code>DELETE /films/{id}</code> on an already-soft-deleted row → <strong>404 Not Found</strong> (the framework’s <code>SELECT</code> predicate filters the row out before the handler reaches it).</li>
 <li><code>GET /films/{id}</code> on a soft-deleted row → <strong>404 Not Found</strong>.</li>
+<li><code>PUT /films/{id}</code> on a soft-deleted row → <strong>404 Not Found</strong>; nothing is written. Revive the row with <code>restore</code> first.</li>
 <li><code>GET /films</code> → soft-deleted rows are absent from the collection.</li>
-<li>The 1-to-1 read response shape is <strong>unchanged</strong> — your existing JSON consumers see <code>deleted_at: null</code> on every live row (the field is in the default-read projection by construction).</li>
+<li><code>deleted_at</code> does not appear in any response — not on a live row, not on the row <code>restore</code> returns — nor in any read schema of the OpenAPI document.</li>
 </ul>
+<h3 id="the-deletion-column-is-guarded-twice"><a class="header" href="#the-deletion-column-is-guarded-twice">The deletion column is guarded twice</a></h3>
+<p>The column is kept out of every response by two guards that fail independently (0.13.0):</p>
+<ol>
+<li><strong>At compile time</strong>, <a href="ferra-forge-diagnostics.html#frg-357--the-deletion-column-is-named-in-a-read-projection-or-a-field-takes-its-json-name"><code>FRG-357</code></a>: a projection whose <code>read = [...]</code> names the deletion column does not compile, and neither does a model with a field whose JSON name under <code>rename_all</code> is the column’s. Earlier releases compiled the first case and silently left the column out.</li>
+<li><strong>At run time</strong>: before a response object is returned, <code>ferra-core</code> refuses one that holds a key equal to the deletion column’s SQL name (a 500 <code>internal</code> with no row data, never the value). It reads only <code>ModelMeta::soft_delete_column</code>, not the generated read structs.</li>
+</ol>
 <h3 id="restoring-a-row"><a class="header" href="#restoring-a-row">Restoring a row</a></h3>
 <pre><code class="language-text">POST /films/{id}/restore
 </code></pre>
 <ul>
-<li>On a soft-deleted row → <strong>200 OK</strong> with the row’s HAL <code>ItemResponse</code>. The <code>deleted_at</code> is set back to <code>NULL</code>.</li>
+<li>On a soft-deleted row → <strong>200 OK</strong> with the row, as <code>GET</code> returns it. The <code>deleted_at</code> is set back to <code>NULL</code>.</li>
 <li>On a row that never existed → <strong>404 Not Found</strong>.</li>
 <li>On a row that is already live (<code>deleted_at IS NULL</code>) → <strong>404 Not Found</strong> (idempotent — re-restoring a live row is a no-op as far as the client is concerned).</li>
 <li>The route honours <code>Prefer: return=minimal</code> per the framework’s standard preference header rules: with the header → <strong>204 No Content</strong>, <code>Preference-Applied: return=minimal</code>, empty body.</li>
 </ul>
+<p>A served row is live, so it carries no <code>_links.restore</code> (0.13.0): a link is
+present only if following it answers 2xx, and <code>POST …/restore</code> on a live row
+answers 404. <code>restore</code> stays in the OpenAPI document.</p>
 <p>The restore action mounts under the standard Tower stack — CORS deny / body cap / mutation rate-limit / tracing — exactly like the standard CRUD mutation routes. It composes with per-projection URL prefixes by simple concatenation:</p>
 <pre><code class="language-text">POST /admin/films/{id}/restore   ← when the model has an `admin` projection
 </code></pre>
-<h3 id="_linksrestorehref"><a class="header" href="#_linksrestorehref"><code>_links.restore.href</code></a></h3>
-<p>Every live row’s HAL response carries:</p>
-<pre><code class="language-json">{
-  "data": { "id": "550e8400-...", "title": "Casablanca", "deleted_at": null },
-  "_links": {
-    "self":       { "href": "https://api.example/films/550e8400-..." },
-    "collection": { "href": "https://api.example/films" },
-    "restore":    { "href": "https://api.example/films/550e8400-.../restore" }
-  }
-}
+<p>Restore passes the same authorization checkpoint as every other route, with the
+model’s <code>restore</code> rule: <code>update + delete</code> (both must pass) when <code>#[authorize]</code> does
+not name <code>restore</code>. Under an <code>IsOwner</code> rule the checkpoint reads the soft-deleted row to
+compare its owner; someone else’s row answers 404, and an anonymous caller 401. On a
+<code>#[ferra(authority)]</code> model the authority judges the soft-deleted row too, and an answer of
+no is the same 404 (see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Programmatic authority).</p>
+<h3 id="no-_linksrestore"><a class="header" href="#no-_linksrestore">No <code>_links.restore</code></a></h3>
+<p>A row a response serves is live, so its HAL <code>_links</code> hold <code>self</code> and <code>collection</code> only (and
+<code>self</code> only when the caller may <code>GET</code> the row). Before 0.13.0 every live row carried a
+<code>_links.restore.href</code> that answered 404; a client that read it must call
+<code>POST /{resource}/{id}/restore</code> itself, on a row it knows was deleted.</p>
+<h3 id="other-named-operations"><a class="header" href="#other-named-operations">Other named operations</a></h3>
+<p><code>restore</code> is the only named operation. <code>#[operation(path = "...", method = "...")]</code>
+is a compile error since 0.9.0 (<strong>FRG-335</strong>): it produced a HAL link and an OpenAPI
+entry, but no route and no authorization rule. For an action route of your own —
+<code>POST /films/{id}/publish</code>, say — write the handler and add it to the router
+<code>Foundry::build()</code> returns; see <a href="custom-handlers.html"><code>custom-handlers.md</code></a>. Such a
+route is outside Ferra’s authorization policy: protect it yourself.</p>
+<pre><code class="language-text">error: FRG-335: `#[operation(...)]` declares a route Ferra does not mount
+         help: remove the attribute and add the route yourself with `.route(...)` or `.merge(...)` on the value `Foundry::build()` returns — see docs/user-guide/custom-handlers.md
 </code></pre>
-<p>The <code>_links.restore.href</code> is present <strong>only on live rows</strong> — soft-deleted rows are filtered before they ever reach the link-emission stage, so a client cannot observe a <code>_links.restore.href</code> on a row whose stamp is non-null. The URL composes through any configured <code>base_path</code> automatically (see <em>Foundry → Transport-layer overrides → base_path</em>).</p>
-<h3 id="the-allowsharddelete-opt-in-marker"><a class="header" href="#the-allowsharddelete-opt-in-marker">The <code>AllowsHardDelete</code> opt-in marker</a></h3>
-<p>The framework’s standard <code>DELETE /{r}/{id}</code> handler rewrites to <code>UPDATE deleted_at = NOW()</code> on every soft-delete model. A developer who registers a <strong>custom processor</strong> that bypasses this and issues <code>DELETE FROM films WHERE ...</code> directly is bypassing the soft-delete safety contract.</p>
-<p>The framework requires the bypass to be <strong>explicit</strong>:</p>
-<pre><code class="language-rust ignore">use ferra::AllowsHardDelete;
-
-pub struct PurgeProcessor;
-
-impl FerraProcessor&lt;Film&gt; for PurgeProcessor {
-    // ... developer's processor logic, including the physical DELETE ...
-}
-
-// The opt-in:
-impl AllowsHardDelete for PurgeProcessor {}</code></pre>
-<p>Without the <code>impl AllowsHardDelete</code> line, <code>Foundry::build()</code> panics at boot with a verbatim message naming the model, the processor type, and the exact <code>impl</code> line the developer must add. The framework refuses to wire the application together until the bypass is acknowledged.</p>
-<p>A custom processor that does NOT issue a physical <code>DELETE</code> — for example, one that mutates <code>deleted_at</code> directly via <code>UPDATE films SET deleted_at = NOW() WHERE id = $1</code> — does <strong>NOT</strong> require the marker. The marker gates only the physical-delete path.</p>
-<p><strong>Tip:</strong> directly mutating <code>deleted_at</code> from a custom processor is permitted without the <code>AllowsHardDelete</code> marker, but it bypasses the framework’s <code>restore</code> action and the HAL link emission. The framework provides the <code>restore</code> operation as the supported way to flip the stamp back; direct mutation is your responsibility.</p>
+<p>The codes that described the attribute’s grammar — <strong>FRG-330</strong> (missing key),
+<strong>FRG-331</strong> (unknown key), <strong>FRG-332</strong> (<code>/</code> in <code>path</code>), <strong>FRG-333</strong> (unsupported
+method) and <strong>FRG-334</strong> (duplicate name) — are retired: no build can produce them any
+more, and the numbers are never reused.</p>
+<h3 id="no-physical-delete-on-a-soft-delete-model"><a class="header" href="#no-physical-delete-on-a-soft-delete-model">No physical delete on a soft-delete model</a></h3>
+<p>Every <code>DELETE</code> route of a soft-delete model — the bare path and every projection
+prefix — sets <code>deleted_at</code>; none issues a physical <code>DELETE</code>. To purge rows for good
+(retention, legal erasure), run your own SQL against the database, outside the API.</p>
 <h3 id="edge-case--identifier-collision-with-a-soft-deleted-row"><a class="header" href="#edge-case--identifier-collision-with-a-soft-deleted-row">Edge case — identifier collision with a soft-deleted row</a></h3>
 <p>A <code>POST /films</code> that supplies an <code>id</code> matching an existing soft-deleted row returns the framework’s standard 409 conflict response:</p>
 <pre><code class="language-json">{
@@ -308,47 +354,112 @@ ALTER TABLE films ADD CONSTRAINT films_pkey PRIMARY KEY (id) DEFERRABLE INITIALL
 <hr>
 <h2 id="behaviortimestampable"><a class="header" href="#behaviortimestampable"><code>#[behavior(timestampable)]</code></a></h2>
 <h3 id="worked-example-1"><a class="header" href="#worked-example-1">Worked example</a></h3>
-<pre><code class="language-rust ignore">use ferra::*;
-use ferra_forge::FerraModel;
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
     Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
 )]
+#[ferra(auth = "none")]
 #[sea_orm(table_name = "films")]
 #[behavior(timestampable)]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: Uuid,
+    pub id: i32,
     pub title: String,
-}</code></pre>
-<p>The framework injects <code>created_at: jiff::Timestamp</code> and <code>updated_at: jiff::Timestamp</code> at the end of the field list, both flagged <code>read_only: true</code> (present in the default-read, absent from the default-write).</p>
+}
+<span class="boring">}</span></code></pre>
+<p>The framework injects <code>created_at: ferra::DateTime</code> and <code>updated_at: ferra::DateTime</code> at the end of the field list, both flagged <code>read_only: true</code> (absent from the default-write) and listed by the default read projection. They are columns the database keeps: the model has no such field, so the repository returns them next to the row and the response adds them (see below). <code>BehaviorKind::Timestampable { created, updated }</code> carries the names; <code>ModelMeta::timestamp_columns()</code> reads them.</p>
 <h3 id="the-migration-1"><a class="header" href="#the-migration-1">The migration</a></h3>
 <pre><code class="language-sql">ALTER TABLE films ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE films ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 </code></pre>
-<p><code>NOT NULL DEFAULT NOW()</code> ensures that pre-existing rows in the table receive a value at migration time. The framework’s runtime SQL stamps both columns on every <code>INSERT</code> and advances <code>updated_at</code> on every <code>UPDATE</code>, so the <code>DEFAULT NOW()</code> only matters for the migration path.</p>
+<p><code>NOT NULL DEFAULT NOW()</code> ensures that pre-existing rows in the table receive a value at migration time and that an <code>INSERT</code> fills both with one instant. The framework’s <code>UPDATE</code> and restore set <code>updated_at = NOW()</code> themselves.</p>
 <h3 id="what-changes-on-the-wire-1"><a class="header" href="#what-changes-on-the-wire-1">What changes on the wire</a></h3>
+<p>(Bodies below are for a caller who may <code>GET</code> the row. One who may write it but not read it gets <code>201</code> with no body on a create and <code>204</code> with no body on an update or a restore, see <a href="migrating-to-0.13.html"><code>migrating-to-0.13.md</code></a>.)</p>
 <ul>
-<li><code>POST /films</code> → the response carries <code>created_at</code> and <code>updated_at</code> populated to the server’s current time. The request body cannot set them; values submitted in either field are <strong>silently ignored</strong>.</li>
-<li><code>PATCH /films/{id}</code> → the response carries the advanced <code>updated_at</code>; <code>created_at</code> is unchanged.</li>
-<li><code>GET /films/{id}</code> and <code>GET /films</code> → both fields appear on every row.</li>
+<li><code>POST /films</code> → <strong>201</strong> with <code>created_at</code> and <code>updated_at</code> in the body, equal, read from the <code>INSERT … RETURNING</code> that wrote them.</li>
+<li><code>PUT /films/{id}</code> → <code>updated_at</code> advances in the <code>UPDATE … RETURNING</code> itself, one statement, and the response carries the new value; <code>created_at</code> is unchanged.</li>
+<li><code>POST /films/{id}/restore</code> → same, in the restore statement.</li>
+<li><code>GET /films/{id}</code> and <code>GET /films</code> → both fields on every item, under the column names, after <code>rename_all</code> if the model has one.</li>
+<li>A projection lists a stamp like any field: a named read projection with <code>read = [id, title]</code> answers neither key, and one with <code>read = [id, title, updated_at]</code> answers only that one. The stamps follow the projection’s field list; they are not a <code>_links</code>-style addition.</li>
+<li>The request body cannot set them: a body carrying <code>created_at</code> or <code>updated_at</code> (or the configured names) is a <strong>422</strong> <code>unknown_field</code>, and the stored values are unchanged.</li>
 </ul>
-<p>The “silently ignored on submit” behaviour follows from the <code>read_only: true</code> flag: the default-write projection excludes both fields, and the deserialisation rejects unknown fields when strict-projection-write is on (the framework’s default). Submitting a body with an explicit <code>created_at</code> value either returns a 422 (strict mode) or silently drops it (lenient mode) — the persisted value is always the framework’s <code>NOW()</code> stamp.</p>
+<p>The 422 follows from the <code>read_only: true</code> flag: the default-write projection excludes both fields and the write projections refuse a key they do not list. The persisted value is always the database’s <code>NOW()</code>.</p>
+<p>A <code>Resource&lt;M&gt;</code> route reads the same: the <code>Read</code> shape of the model has <code>created_at</code> and <code>updated_at</code> as <code>Option&lt;DateTime&gt;</code> fields, filled by <code>Resource&lt;M&gt;</code>; <code>From&lt;Model&gt;</code> alone leaves them <code>None</code>, since the model does not carry the columns, and a stamp that is <code>None</code> is absent from the serialized shape: the key is left out, not <code>null</code> (0.13.0).</p>
+<hr>
+<h2 id="behaviorblameable"><a class="header" href="#behaviorblameable"><code>#[behavior(blameable)]</code></a></h2>
+<p><code>timestampable</code> says when; <code>blameable</code> (0.13.0) says who. It stamps the <strong>subject</strong> of the caller who wrote the row: the string your <code>FerraIdentity::id()</code> returns for the identity Ferra validated on the request (conventionally the JWT <code>sub</code>, see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>), never a value from the body. The operations below need an identity: <code>create</code>, <code>update</code> and, on a soft-delete model, <code>delete</code> and <code>restore</code> (the rules <code>Authenticated</code>, <code>IsAdmin</code>, <code>HasRole(...)</code> of <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Authorization rules; <code>Anyone</code> is refused at compile time).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
+)]
+#[ferra(auth = "bearer")]
+#[sea_orm(table_name = "films")]
+#[behavior(blameable)] // or blameable(created_by = "author", updated_by = "editor", read = HasRole("auditor"))
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">}</span></code></pre>
+<p>The framework injects <code>created_by</code> and <code>updated_by</code> at the end of the field list. The names are configurable like the other behaviors: with <code>#[behavior(blameable(created_by = "author", updated_by = "editor"))]</code> the columns are <code>author</code> and <code>editor</code>, and the migration below uses those names. They are columns the database keeps: the model has no such field, they are read-only and in no write projection.</p>
+<h3 id="the-migration-2"><a class="header" href="#the-migration-2">The migration</a></h3>
+<p>Existing rows have no author. The migration below gives them the placeholder <code>'migration'</code> (choose your own); an audit that reads <code>created_by</code> will see that value as the author of every row that existed before, so decide what it should say.</p>
+<pre><code class="language-sql">ALTER TABLE films ADD COLUMN created_by TEXT NOT NULL DEFAULT 'migration';
+ALTER TABLE films ADD COLUMN updated_by TEXT NOT NULL DEFAULT 'migration';
+ALTER TABLE films ALTER COLUMN created_by DROP DEFAULT;
+ALTER TABLE films ALTER COLUMN updated_by DROP DEFAULT;
+ALTER TABLE films ADD CONSTRAINT films_author_not_empty CHECK (created_by &lt;&gt; '' AND updated_by &lt;&gt; '');
+</code></pre>
+<p>Both columns are <code>TEXT NOT NULL</code>: a subject is whatever <code>FerraIdentity::id()</code> returns (a JWT <code>sub</code>, the subject an API key was issued for), stored verbatim. The <code>CHECK</code> is a second line of defence: Ferra already refuses to write an empty subject.</p>
+<h3 id="what-is-written-and-when"><a class="header" href="#what-is-written-and-when">What is written, and when</a></h3>
+<ul>
+<li><code>created_by</code> on the insert; <code>updated_by</code> on the insert, an update, a soft delete and a restore (the writes that set <code>updated_at</code> on a <code>timestampable</code> model). Both are written in the statement that writes the row, as bound parameters; the model need not be <code>timestampable</code>.</li>
+<li><code>updated_by</code> is last-writer attribution: it says who made the latest change, not the history of the row.</li>
+<li>The subject is the <code>id()</code> of the validated identity of the request, or of the caller a <code>Resource&lt;M&gt;</code> is bound to. A body never chooses it: a body carrying <code>created_by</code> or <code>updated_by</code> (or the configured names) is a <strong>422</strong> <code>unknown_field</code>, and the stored values are unchanged.</li>
+<li>A write with no subject, or an empty one, is refused: <strong>500</strong> <code>internal</code>, one <code>error!</code>, nothing written. The compile-time rule (FRG-121, below) is the normal guard against a missing caller; this 500 is defence in depth for an identity whose <code>id()</code> is empty. The application must give a verified, stable, non-empty <code>id()</code> (the OIDC <code>sub</code>). A physical delete (a blameable model without soft delete) writes no author, so it needs no subject.</li>
+<li>A JWT <code>sub = "svc-1"</code> and an API key subject <code>svc-1</code> stamp the same author: one column serves every credential kind. Keep API key subjects in a namespace of their own (for example <code>svc:</code>).</li>
+</ul>
+<h3 id="who-writes-frg-121"><a class="header" href="#who-writes-frg-121">Who writes: <a href="ferra-forge-diagnostics.html#frg-121--a-blameable-model-lets-an-anonymous-caller-write"><code>FRG-121</code></a></a></h3>
+<p>An operation that writes the author must need an identity. <code>create</code> and <code>update</code>, and on a soft-delete model <code>delete</code> and <code>restore</code>, whose rule lets an anonymous caller through is a compile error: there would be no author to stamp. <code>#[ferra(auth = "none")]</code> is <code>Anyone</code> for every operation, so a blameable model cannot take it.</p>
+<h3 id="who-reads-blameableread--rule"><a class="header" href="#who-reads-blameableread--rule">Who reads: <code>blameable(read = &lt;rule&gt;)</code></a></h3>
+<p>The subject can be personal data (an email as <code>sub</code>), so by default only an authenticated caller sees the columns (<code>read = Authenticated</code>). <code>read = Anyone</code> shows them to every caller, an anonymous one included (do not copy it onto a model whose subjects are personal data); a role rule (<code>read = HasRole("auditor")</code>) shows them to that role. The rule is decided once per request, never per row, so <code>IsOwner</code> is refused (<a href="ferra-forge-diagnostics.html#frg-119--a-field-rule-that-cannot-take-effect"><code>FRG-119</code></a>). A caller who fails it gets the row without the keys: they are absent, not <code>null</code>, from the item, the list and <code>Resource&lt;M&gt;</code> reads. In OpenAPI they are optional read-only strings described “absent when the caller may not read it”. They are not filterable or sortable.</p>
 <hr>
 <h2 id="combined-behaviors"><a class="header" href="#combined-behaviors">Combined behaviors</a></h2>
 <p><code>#[behavior(soft_delete, timestampable)]</code> enrols both. The framework injects all three fields and the restore action. The composition behaves as the union of the two individual behaviors:</p>
-<pre><code class="language-rust ignore">#[derive(
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>#[derive(
     Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize,
 )]
+#[ferra(auth = "none")]
 #[sea_orm(table_name = "films")]
 #[behavior(soft_delete, timestampable)]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: Uuid,
+    pub id: i32,
     pub title: String,
-}</code></pre>
+}
+<span class="boring">}</span></code></pre>
 <p>Composition rules:</p>
 <ul>
 <li><code>DELETE /films/{id}</code> rewrites to <code>UPDATE films SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL</code>. Soft-delete refreshes <code>updated_at</code> because the soft-delete is logically a write.</li>
@@ -361,52 +472,594 @@ ALTER TABLE films ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE films ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 </code></pre>
 <hr>
+<h2 id="hooks"><a class="header" href="#hooks">Hooks</a></h2>
+<p><em>Application code that runs inside a write.</em> A model declares <code>#[ferra(hooks)]</code> and writes <code>impl FerraHooks for Model</code>;
+Ferra calls the hooks after it has authorized the request, inside the write’s transaction. The key and the impl go
+together: one without the other is <a href="ferra-forge-diagnostics.html#frg-129--hooks-without-an-impl-or-an-impl-without-hooks"><code>FRG-129</code></a>,
+and a key inside <code>hooks(...)</code> is <a href="ferra-forge-diagnostics.html#frg-132--an-unknown-key-inside-hooks"><code>FRG-132</code></a>.</p>
+<p>Every hook has a default that does nothing, so the impl names only the ones it uses:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Hook</th><th>Runs</th><th>Receives</th></tr>
+</thead>
+<tbody>
+<tr><td><code>before_save</code></td><td>before a create, an update or a restore writes</td><td><code>Saving</code>: the operation, the locked row for an update or a restore, and the pending values</td></tr>
+<tr><td><code>after_save</code></td><td>after the write, still in the transaction</td><td><code>Saved</code>: the row as written</td></tr>
+<tr><td><code>before_delete</code></td><td>before a delete</td><td><code>&amp;Self</code>: the locked row</td></tr>
+<tr><td><code>after_delete</code></td><td>after the delete, still in the transaction</td><td><code>&amp;Self</code>: the row that was locked, as it was before the delete</td></tr>
+<tr><td><code>after_commit</code></td><td>after the commit, before the response</td><td><code>Committed</code>: the operation and its row</td></tr>
+</tbody>
+</table>
+</div>
+<p>Every hook also receives the <code>&amp;RequestContext</code>. The four transactional hooks get a <code>&amp;mut HookTx</code> too (the rows of
+other models, the system grant); <code>after_commit</code> gets none. Here are the five signatures, with a body that does
+nothing; <code>Self</code> is the hooked model:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">#[sea_orm(table_name = "accounts")]
+</span><span class="boring">#[ferra(auth = "bearer", hooks)]
+</span><span class="boring">pub struct Model {
+</span><span class="boring">    #[sea_orm(primary_key)]
+</span><span class="boring">    pub id: i32,
+</span><span class="boring">    pub name: String,
+</span><span class="boring">}
+</span><span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>use ferra::hooks::{Committed, FerraHooks, HookError, HookTx, Saved, Saving};
+use ferra::request_context::RequestContext;
+
+/// Stand-in for your queue client.
+async fn enqueue(event: &amp;str, id: i32) -&gt; Result&lt;(), HookError&gt; {
+    let _ = (event, id);
+    Ok(())
+}
+
+impl FerraHooks for Model {
+    async fn before_save(
+        _w: Saving&lt;'_, Self&gt;,
+        _ctx: &amp;RequestContext,
+        _tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        Ok(())
+    }
+
+    async fn after_save(
+        _w: Saved&lt;'_, Self&gt;,
+        _ctx: &amp;RequestContext,
+        _tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        Ok(())
+    }
+
+    async fn before_delete(
+        _row: &amp;Self,
+        _ctx: &amp;RequestContext,
+        _tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        Ok(())
+    }
+
+    async fn after_delete(
+        _row: &amp;Self,
+        _ctx: &amp;RequestContext,
+        _tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        Ok(())
+    }
+
+    // No `HookTx`: the transaction is over.
+    async fn after_commit(
+        event: Committed&lt;'_, Self&gt;,
+        _ctx: &amp;RequestContext,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        match event {
+            Committed::Created(row) =&gt; enqueue("account.created", row.id).await,
+            Committed::Deleted(row) =&gt; enqueue("account.deleted", row.id).await,
+            // `Updated` and `Restored` hold the row as written.
+            _ =&gt; Ok(()),
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>Saving</code>, <code>Saved</code> and <code>Committed</code> are enums of <code>ferra::hooks</code>, <code>#[non_exhaustive]</code>: a <code>match</code> on one ends with a <code>_</code>
+arm. Each variant says which operation it is.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Enum</th><th>Variants</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Saving&lt;'_, Self&gt;</code></td><td><code>Create { values }</code>, <code>Update { before, values }</code> (a <code>PUT</code> or a patch), <code>Restore { before, values }</code>; <code>before</code> is the locked row, <code>values</code> the pending values (<a href="#the-pending-values-modeldraft">below</a>). <code>w.values()</code> reaches <code>values</code> in all three, <code>w.before()</code> is <code>None</code> for a create.</td></tr>
+<tr><td><code>Saved&lt;'_, Self&gt;</code></td><td><code>Create(&amp;row)</code>, <code>Update(&amp;row)</code>, <code>Restore(&amp;row)</code>: the row as written.</td></tr>
+<tr><td><code>Committed&lt;'_, Self&gt;</code></td><td><code>Created(&amp;row)</code>, <code>Updated(&amp;row)</code> (a <code>PUT</code> or a patch), <code>Restored(&amp;row)</code>: the row as written. <code>Deleted(&amp;row)</code>: the row that was locked, as it was before the delete.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="order-and-rollback"><a class="header" href="#order-and-rollback">Order and rollback</a></h3>
+<p>A create, an update or a patch (<code>Resource::update</code>) runs in this order, in one transaction:</p>
+<ol>
+<li>Ferra’s own checks: the rule, the field rules, the owner scope, the authority, the body and its validation, the
+lock of the row (an update) and the parent check (<code>owner(from)</code>). A request refused here runs <strong>no hook</strong>.</li>
+<li><code>before_save</code>, which may rewrite the pending values.</li>
+<li>The draft’s <code>Some</code> fields are put on the row, and the statement runs.</li>
+<li>The authority’s post-check, when the model has an authority.</li>
+<li><code>after_save</code>, then the commit, then <a href="#after-commit"><code>after_commit</code></a>.</li>
+</ol>
+<p>A delete runs the same checks and the lock of the row, then <code>before_delete</code>, the statement (a soft delete or a
+physical one), <code>after_delete</code>, the commit and <code>after_commit</code>. A restore runs its checks and the lock of the
+soft-deleted row, then <code>before_save</code> (<code>Saving::Restore</code>, whose draft starts empty: the hook may fill it), the
+statement, <code>after_save</code> (<code>Saved::Restore</code>), the commit and <code>after_commit</code>.</p>
+<p>An <code>Err</code> or a panic from a hook rolls the whole write back, whatever the hook already wrote. The answer is the
+<code>HookError</code>’s. A <code>HookError</code> is built with one of four constructors of <code>ferra::hooks::HookError</code>
+(<a href="ferra-error-handling.html#hook-errors">Hook errors</a> has the examples):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Constructor</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td><code>HookError::failed(msg)</code></td><td><code>500</code> with the generic body; <code>msg</code> (<code>impl Into&lt;String&gt;</code>) is logged, never sent. A panic in a hook is the same.</td></tr>
+<tr><td><code>HookError::conflict(detail)</code></td><td><code>409</code>, <code>detail</code> (<code>impl Into&lt;String&gt;</code>) as given</td></tr>
+<tr><td><code>HookError::unprocessable(field, code, message)</code></td><td><code>422</code>, one error on <code>field</code> (a <code>&amp;'static str</code>) with <code>code</code> (a <code>ferra::ValidationCode</code>) and <code>message</code> (<code>impl Into&lt;String&gt;</code>)</td></tr>
+<tr><td><code>HookError::unavailable(detail)</code></td><td><code>503</code>, <code>detail</code> (<code>impl Into&lt;String&gt;</code>) as given</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>after_commit</code> answers these differently, because its write stands: see <a href="#after-commit">After commit</a>. A hook reads the
+whole row, hidden columns included, and Ferra gives it no way into the response: the text of a <code>HookError</code> is yours,
+so put no value in it that the caller may not read. A
+refusal after the statement (the authority’s <code>403</code> on the row as written, a unique
+violation) also rolls back: <code>before_save</code> ran, <code>after_save</code> does not, and nothing it wrote survives. An empty patch
+writes nothing and runs no hook. A write made directly through <code>FerraRepository</code> (<code>*_in_tx</code>, <code>insert_active</code>) bypasses
+the hooks: it is raw access, outside the contract.</p>
+<h3 id="after-commit"><a class="header" href="#after-commit">After commit</a></h3>
+<p><code>after_commit</code> runs once per committed create, update, patch, delete and restore, after the commit and before the
+response, outside the transaction. It receives a <code>Committed</code> (which operation it was, and the row: see
+<a href="#hooks">the variants</a>) and the request context, and no <code>HookTx</code>: it has no handle on the database. It never runs for
+a refused or rolled-back write. A write made by <code>tx.resource</code> inside a hook runs no hook of its model. The signature
+and a <code>match</code> on <code>Committed</code> are in the example above.</p>
+<ul>
+<li><strong>Effects go here.</strong> A message to a queue sent from <code>before_save</code> or <code>after_save</code> goes out for a write that is
+then rolled back. Ferra 0.13.0 does not retry a write; the retry of a serialization failure planned for 0.14.0
+will rerun the transactional hooks, so a message sent from them would go out once per attempt. <code>after_commit</code>
+runs once, whatever the attempts.</li>
+<li><strong>It can still be lost.</strong> The process may die between the commit and the enqueue: the row stands and the message
+is never sent. The transactional outbox planned for 1.1.0 closes that window. Until then the consumers must be
+idempotent, and <code>after_commit</code> should do an enqueue and nothing slower, since it holds the response.</li>
+<li><strong>The commit stands whatever it returns.</strong> <code>Err(failed)</code> is a <code>500</code>, <code>Err(unavailable(..))</code> a <code>503</code> with your
+detail, and a panic a <code>500</code>. <code>conflict</code> and <code>unprocessable</code> are a <code>500</code> too: a <code>409</code> or a <code>422</code> would claim that
+nothing was written. Each is logged once through <code>tracing</code>, at the <code>error</code> level, target <code>ferra_http::hooks</code>, with
+the word “committed” in the message. On an <code>Err</code> the answer is the error, never the row (on <code>Ok(())</code> the answer is
+the write’s usual one: a create still answers <code>201</code>), and <code>can(Get)</code> and the list <code>filter</code> of the response
+links are not called.</li>
+<li><strong>A <code>5xx</code> after a <code>POST</code> invites a duplicate retry.</strong> On a non-idempotent write, log inside <code>after_commit</code> and
+return <code>Ok(())</code>; keep <code>Err</code> for the failures a client may safely hear about.</li>
+<li><strong>The request budget cuts it.</strong> With <a href="foundry.html#request-time-budget"><code>.request_budget(..)</code></a>, Ferra runs
+<code>after_commit</code> under a timeout of the budget that is left (never a <code>503</code> <code>timeout</code> after a commit). There is no
+call that reads the time left. When it runs out the hook’s future is dropped where it waits (at an <code>.await</code>), the
+answer is a <code>500</code> and the commit stands. A slow <code>COMMIT</code> can use up the whole budget: the timeout is then zero, and
+the hook is dropped at its first <code>.await</code>. Without a budget nothing bounds it.</li>
+<li><strong>The <code>503</code> detail is served as it is</strong>, whatever the caller may read: put no value in it that the caller may not
+read.</li>
+</ul>
+<h3 id="the-pending-values-modeldraft"><a class="header" href="#the-pending-values-modeldraft">The pending values: <code>{Model}Draft</code></a></h3>
+<p>For a model <code>Model</code> the derive writes <code>ModelDraft</code>, and <code>before_save</code> rewrites it through <code>Saving::values()</code>. It has
+one field per column you declared, <code>Option&lt;T&gt;</code> (<code>Option&lt;Option&lt;T&gt;&gt;</code> when the column is nullable): <code>Some</code> is written,
+<code>None</code> is not. A <code>read_only</code> field is there, because a hook is your trusted code. It has no field for what the server
+writes itself: the primary key, the <code>#[field(owner)]</code> column, the timestamp, blame and deletion columns, a <code>computed</code>
+field and a <code>#[sea_orm(ignore)]</code> field. A hook cannot forge them: <code>draft.id</code> does not compile.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>use ferra::hooks::{FerraHooks, HookError, HookTx, Saving};
+use ferra::request_context::RequestContext;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "accounts")]
+#[ferra(auth = "bearer", hooks)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub email: String,
+    pub title: String,
+    #[ferra(read_only)]
+    pub status: String,
+    pub slug: Option&lt;String&gt;,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+impl FerraHooks for Model {
+    async fn before_save(
+        mut w: Saving&lt;'_, Self&gt;,
+        _ctx: &amp;RequestContext,
+        _tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        let is_create = matches!(w, Saving::Create { .. });
+        let values = w.values();
+        // Normalize: the email is stored trimmed and in lower case.
+        if let Some(email) = values.email.as_mut() {
+            *email = email.trim().to_lowercase();
+        }
+        // Set a `read_only` column: a client cannot send `status`, the hook can.
+        if is_create {
+            values.status = Some("draft".to_owned());
+        }
+        // Derive a column from another: the slug follows the title.
+        if let Some(title) = values.title.as_deref() {
+            values.slug = Some(Some(title.to_lowercase().replace(' ', "-")));
+        }
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The values a hook writes are trusted: Ferra validates the request body, not what a hook then puts in the draft. There is
+no second <code>garde</code> validation and no write field rule on them; the storage constraints (a unique index, a foreign key)
+still apply, and a violation is the <code>409</code> the client sees.</p>
+<p>Three more things to know:</p>
+<ul>
+<li><code>ActiveModelBehavior</code> runs after the draft is applied, inside the statement, and can still change any column, the
+owner and the <code>owner(from)</code> foreign key included. It is your trusted code too.</li>
+<li><code>HookError</code> implements <code>From&lt;FerraError&gt;</code>, so a <code>?</code> on any <code>FerraError</code> inside a hook (a <code>tx.resource</code> call, for
+one) becomes a <code>HookError::failed</code>: a <code>500</code> with the generic body, never the source’s status or detail. To refuse
+with a <code>409</code> or a <code>422</code>, build the <code>HookError</code> yourself.</li>
+<li>A hook holds the row lock for as long as it runs, and the request budget can cut a hook only where it waits (an
+<code>.await</code>), not a thread it blocks. Write hooks as <code>async</code> code with async I/O, and keep them short: no synchronous
+I/O and no heavy computation (hand CPU-bound work to <code>tokio::task::spawn_blocking</code> and await it). A request that
+the budget drops while a hook waits for a lock may leave that wait running on the database server, notably behind
+PgBouncer.</li>
+</ul>
+<h3 id="rows-of-other-models-txresource"><a class="header" href="#rows-of-other-models-txresource">Rows of other models: <code>tx.resource</code></a></h3>
+<p>A hook reaches the rows of any other model <code>N</code> through <code>tx.resource::&lt;N&gt;()</code>. It has the six methods of <code>Resource&lt;N&gt;</code>
+(<code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code>), and they run in the write’s transaction, on its
+connection: the side rows commit with the main row, and a failure of the hook or of the write rolls both back.</p>
+<p>They are an ordinary operation on <code>N</code> for the caller of the write: <code>N</code>’s rules, owner scope and field rules, its
+authority, its parent check, and its blame (the caller’s subject). The authority of <code>N</code> reads the request context the
+hook receives. A side write that <code>N</code> refuses is a <code>FerraError</code>; the <code>?</code> makes it a <code>HookError::failed</code>
+(<code>From&lt;FerraError&gt;</code>), so the write is a <code>500</code> with the generic body, and nothing is written. <code>N</code> need not be
+mounted. <code>create</code> takes the write shape of <code>N</code>, which the derive names <code>{Model}WriteProjection</code>
+(<code>entry::ModelWriteProjection</code> below, since the struct is called <code>Model</code>): the fields a <code>POST</code> body may carry, so no
+key, no owner column, no <code>read_only</code> field and nothing the server writes. It is not the <code>{Model}Draft</code> of
+<code>before_save</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">mod entry {
+</span><span class="boring">    use ferra::FerraModel;
+</span><span class="boring">    use sea_orm::entity::prelude::*;
+</span><span class="boring">    use serde::{Deserialize, Serialize};
+</span><span class="boring">    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+</span><span class="boring">    #[sea_orm(table_name = "ledger_entries")]
+</span><span class="boring">    #[ferra(auth = "bearer")]
+</span><span class="boring">    pub struct Model {
+</span><span class="boring">        #[sea_orm(primary_key)]
+</span><span class="boring">        pub id: i32,
+</span><span class="boring">        pub account_id: i32,
+</span><span class="boring">        pub note: String,
+</span><span class="boring">    }
+</span><span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}
+</span>use ferra::hooks::{FerraHooks, HookError, HookTx, Saved};
+use ferra::request_context::RequestContext;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "accounts")]
+#[ferra(auth = "bearer", hooks)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub name: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+impl FerraHooks for Model {
+    async fn after_save(
+        w: Saved&lt;'_, Self&gt;,
+        _ctx: &amp;RequestContext,
+        tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        let Saved::Create(account) = w else {
+            return Ok(());
+        };
+        // A row of another model, under the caller's rules, in this transaction.
+        // If the caller may not write ledger entries, the account is not created.
+        tx.resource::&lt;entry::Model&gt;()
+            .create(entry::ModelWriteProjection {
+                account_id: account.id,
+                note: "opened".to_owned(),
+            })
+            .await?;
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre>
+<ul>
+<li><strong>A hook is not a write boundary.</strong> A write made through <code>tx.resource</code> runs no hook of <code>N</code>, and none of <code>M</code>’s own
+when <code>N</code> is <code>M</code>: there is no re-entry. An invariant that <code>N</code> keeps in its own hooks does not hold for a write made
+from another hook; enforce it with a database constraint.</li>
+<li><strong>The rows it returns are not read-checked.</strong> A row that a <code>tx.resource</code> write returns is not checked against <code>N</code>’s
+read authority (<code>can(Get)</code>). Do not echo it to the caller.</li>
+</ul>
+<hr>
+<h2 id="system-grant"><a class="header" href="#system-grant">System grant</a></h2>
+<p><em>A model that only a grant writes.</em> An audit log must not be rewritten through the API that serves it. The model that
+holds the log is marked <code>#[ferra(system_only)]</code>; the grant that appends to it is declared by a hooked model
+(<code>#[ferra(hooks(system = T))]</code>), and its hooks read the head of the log and append to it in the write’s transaction.</p>
+<h3 id="the-target-ferrasystem_only"><a class="header" href="#the-target-ferrasystem_only">The target: <code>#[ferra(system_only)]</code></a></h3>
+<p>A <code>system_only</code> model is a read-only resource as far as Ferra’s API goes:</p>
+<ul>
+<li><strong>No write route.</strong> Ferra registers no <code>POST</code>, <code>PUT</code>, <code>PATCH</code> or <code>DELETE</code> for it, and no <code>restore</code>, under the bare
+path or under a projection prefix. A write method on its path is a <code>405</code> whose <code>Allow</code> header lists the reads only
+(<code>401</code> without a credential, as on any model that needs one).</li>
+<li><strong>No write in the document.</strong> The OpenAPI document has its <code>list</code> and <code>get</code> operations and no other, and holds no
+write schema (<code>Create{Model}Input</code>, <code>Update{Model}Input</code>, under a projection prefix too).</li>
+<li><strong>No write rule.</strong> A write through <code>Resource&lt;T&gt;</code> is refused like an operation without a rule: <code>403</code> with an identity,
+<code>401</code> without. A <code>create</code>, <code>update</code>, <code>delete</code> or <code>restore</code> rule in its <code>#[authorize]</code> block is
+<a href="ferra-forge-diagnostics.html#frg-135--a-write-rule-on-a-system_only-model"><code>FRG-135</code></a>, and the block asks for <code>list</code>
+and <code>get</code> only.</li>
+<li><strong>Reads keep their rules.</strong> <code>list</code> and <code>get</code> follow the model’s <code>#[authorize]</code> block or its posture, as for any model.
+It needs a posture like every model (<a href="ferra-forge-diagnostics.html#frg-100--model-declares-no-authorization-posture"><code>FRG-100</code></a>):
+the <code>#[authorize]</code> block of the example is one, so no <code>auth = ...</code> key is needed beside it.</li>
+<li><strong>Mounting.</strong> A target need not be mounted for the grant to work: <code>tx.system()</code> reaches the table without a
+route. Mount it to let <code>#[authorize]</code>d readers list the log through the API. The hooked model is mounted as any model.</li>
+<li><strong>No hooks.</strong> <code>#[ferra(hooks)]</code> on a <code>system_only</code> model is
+<a href="ferra-forge-diagnostics.html#frg-135--a-write-rule-on-a-system_only-model"><code>FRG-135</code></a> too, spanned on the <code>hooks</code> key:
+the model serves no write, and the grant inserts without its hooks, so they would never run. The hooks of a grant
+are the hooked model’s, never the target’s.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "audit_entries")]
+#[ferra(system_only)]
+#[authorize(list = HasRole("auditor"), get = HasRole("auditor"))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i64,
+    pub action: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p>Ferra writes the table only through the grant. SQL that does not go through Ferra is the application’s: give the
+database role of the API <code>INSERT</code> and <code>SELECT</code> on the table only, refuse <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> with a
+trigger, and make the column that holds the previous hash unique, as a safety net against a fork. A sketch of the
+table of the example, for PostgreSQL (<code>api_role</code> is the role the API connects as; run the migration as another one,
+since an owner can drop a trigger):</p>
+<pre><code class="language-sql">CREATE TABLE audit_entries (
+    id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    action    TEXT NOT NULL,
+    prev_hash TEXT,            -- NULL for the first entry only
+    hash      TEXT NOT NULL
+);
+-- Two entries cannot share a predecessor...
+CREATE UNIQUE INDEX audit_entries_one_successor ON audit_entries (prev_hash);
+-- ...and a UNIQUE index lets NULLs repeat, so the first entry needs its own guard.
+CREATE UNIQUE INDEX audit_entries_one_first ON audit_entries ((true)) WHERE prev_hash IS NULL;
+
+CREATE FUNCTION audit_entries_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'audit_entries is append-only';
+END $$;
+CREATE TRIGGER audit_entries_no_rewrite BEFORE UPDATE OR DELETE ON audit_entries
+    FOR EACH ROW EXECUTE FUNCTION audit_entries_append_only();
+CREATE TRIGGER audit_entries_no_truncate BEFORE TRUNCATE ON audit_entries
+    FOR EACH STATEMENT EXECUTE FUNCTION audit_entries_append_only();
+
+REVOKE ALL ON audit_entries FROM PUBLIC;
+GRANT SELECT, INSERT ON audit_entries TO api_role;
+</code></pre>
+<h3 id="the-grant-hookssystem--t"><a class="header" href="#the-grant-hookssystem--t">The grant: <code>hooks(system = T)</code></a></h3>
+<p>A hooked model declares at most one target, shared by all its hooks. <code>tx.system()</code> exists only on a model that declares
+it: without the grant the call does not compile. It gives two calls, both in the write’s transaction, so an entry
+exists only for a write that committed:</p>
+<ul>
+<li><code>latest().await</code> is the head of the log: a <code>Result&lt;Option&lt;T&gt;, HookError&gt;</code>, the row with the highest primary key as
+a <code>T</code> (the model itself), or <code>None</code> for an empty table. The key is an <code>i32</code> or an <code>i64</code> generated by the database
+(a target with a key of your own, or of another type, is <a href="ferra-forge-diagnostics.html#frg-130--a-system-grant-toward-a-model-that-cannot-take-it"><code>FRG-130</code></a>).</li>
+<li><code>insert(value).await</code> appends a row and returns the row as written, a <code>Result&lt;T, HookError&gt;</code>. <code>value</code> is the write
+shape of <code>T</code>, <code>{Model}WriteProjection</code> (<code>audit_entry::ModelWriteProjection</code> below: the fields a <code>POST</code> body would
+carry, so not the key), as for <code>tx.resource::&lt;N&gt;().create(..)</code> <a href="#rows-of-other-models-txresource">above</a>. Ferra
+hashes nothing: the hook computes the chain hash from the head.</li>
+</ul>
+<p>Both fail with a <code>HookError</code>, the type a hook returns, so a <code>?</code> inside a hook needs no conversion. The example drops
+the row that <code>insert</code> returns because the response carries nothing of the target.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>use ferra::hooks::{FerraHooks, HookError, HookTx, Saved};
+use ferra::request_context::RequestContext;
+
+mod audit_entry {
+<span class="boring">    use ferra::FerraModel;
+</span><span class="boring">    use sea_orm::entity::prelude::*;
+</span><span class="boring">    use serde::{Deserialize, Serialize};
+</span>    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "audit_entries")]
+    #[ferra(system_only)]
+    #[authorize(list = HasRole("auditor"), get = HasRole("auditor"))]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i64,
+        pub action: String,
+        pub prev_hash: Option&lt;String&gt;,
+        pub hash: String,
+    }
+<span class="boring">    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">    pub enum Relation {}
+</span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
+</span>}
+
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "transfers")]
+#[ferra(auth = "bearer", hooks(system = audit_entry::Model))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub amount: i32,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+/// Stand-in for your hash function (SHA-256 of the previous hash and the action, say).
+fn sign(prev: Option&lt;&amp;str&gt;, action: &amp;str) -&gt; String {
+    format!("{}|{action}", prev.unwrap_or_default())
+}
+
+impl FerraHooks for Model {
+    async fn after_save(
+        w: Saved&lt;'_, Self&gt;,
+        _ctx: &amp;RequestContext,
+        tx: &amp;mut HookTx&lt;'_, Self&gt;,
+    ) -&gt; Result&lt;(), HookError&gt; {
+        let Saved::Create(transfer) = w else {
+            return Ok(());
+        };
+        // The head the previous entry left; `None` for the first one.
+        let prev = tx.system().latest().await?.map(|head| head.hash);
+        let action = format!("transfer {} created", transfer.id);
+        let hash = sign(prev.as_deref(), &amp;action);
+        tx.system()
+            .insert(audit_entry::ModelWriteProjection {
+                action,
+                prev_hash: prev,
+                hash,
+            })
+            .await?;
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>What <code>insert</code> does with the target:</p>
+<ul>
+<li><strong>Its validation and behaviors run</strong> (the validation attributes of <code>T</code>’s fields, such as <code>min_length</code>, timestamps,
+<code>ActiveModelBehavior</code>), and so do the database’s constraints. <strong>Its authorization does not</strong>: <code>T</code>’s <code>#[authorize]</code>
+rules, its <a href="ferra-auth.html#field-rules">field rules</a> (the <code>read</code> and <code>write</code> rules of a field, which say who may see
+or write it), its authority and its hooks are skipped. The caller of the write may have no right at all on <code>T</code>;
+that is the point of the grant, and why it is declared on the hooked model, narrow (one target) and logged at
+startup (<a href="#the-startup-log">below</a>).</li>
+<li><strong>The owner and the blame are the caller’s.</strong> A <code>#[field(owner)]</code> column of <code>T</code> is stamped with the caller’s id, and
+so is the author of a <code>#[behavior(blameable)]</code> target. An anonymous caller has no id: the insert is refused, so a
+target with an owner column cannot serve a hooked model that lets an anonymous caller write, and a blameable target
+cannot (the compiler says so, <a href="ferra-forge-diagnostics.html#frg-134--a-blameable-grant-target-while-an-anonymous-caller-may-write"><code>FRG-134</code></a>).</li>
+<li><strong>Nothing of the target is in the response.</strong> The hook returns <code>()</code>, and the target’s hooks never run for the
+grant’s insert.</li>
+<li><strong>A refusal is a <code>500</code>.</strong> An invalid value, a storage constraint (a duplicate previous hash) or a missing subject
+fails the hook with <code>HookError::failed</code>: the whole write is rolled back and the body is the generic <code>500</code>. One
+<code>error!</code> (<code>tracing</code>, target <code>ferra_http::hooks</code>) says why: the model, the target, and the failing field names with
+their validation codes, or the SQLSTATE and the constraint, or “no subject”, and never a value. The <code>HookError</code>
+tells nothing more (a hook cannot inspect it), but a hook can handle the <code>Err</code> and answer for itself, for example
+<code>return Err(HookError::unprocessable("amount", ValidationCode::Max, "..."))</code> for a <code>422</code> on a field of its own model.</li>
+<li><strong>Each call runs in a savepoint</strong>, a mark inside the write’s transaction that undoes one failed call and keeps the
+rest. A hook that swallows a failed <code>insert</code> leaves no half-written row and its write still commits. If the
+database cannot release or roll back the savepoint itself (a lost connection, say), the transaction is unusable:
+the write fails with a <code>500</code> and nothing is committed.</li>
+</ul>
+<h3 id="serialization"><a class="header" href="#serialization">Serialization</a></h3>
+<p>Two operations that append at once must not sign the same predecessor. <code>latest()</code> and <code>insert()</code> first take a
+transaction-level advisory lock, <code>pg_advisory_xact_lock(a, b)</code> where <code>a</code> is the constant <code>0x46455252</code> (1178948178,
+the ASCII bytes of <code>FERR</code>) and <code>b</code> is the 32-bit FNV-1a hash (offset basis 2166136261, prime 16777619) of the UTF-8
+bytes of the target’s schema-qualified table name, read as a signed <code>integer</code> (<code>public.</code> when the entity names no
+schema). The same in every binary, so a rolling deploy agrees: for <code>public.audit_entries</code> the call is
+<code>pg_advisory_xact_lock(1178948178, 580943822)</code>. The second operation waits for the first one’s commit or rollback,
+then reads the head the first left. <code>a</code> and <code>b</code> are the two-<code>integer</code> key space, shared with your own two-<code>integer</code>
+advisory locks: do not use <code>0x46455252</code> as the first key of your own.</p>
+<ul>
+<li><strong>The key order is the commit order only with <code>CACHE 1</code>.</strong> The head is the highest primary key. The sequence of a
+<code>SERIAL</code> or an identity column has <code>CACHE 1</code> by default; with a larger cache the values are distinct but not
+ordered. Ferra assumes <code>CACHE 1</code> and does not check it.</li>
+<li><strong>One lock per target, held to the end.</strong> A transaction-level lock is released at commit or rollback. A slow hook
+holds every other appender; there is no lock timeout, the request budget is the bound. Two hooked models that lock
+two targets in opposite orders can deadlock: the database aborts one (<code>40P01</code>), which answers <code>500</code> in 0.13.0 (a
+bounded retry is planned for 0.14.0).</li>
+<li><strong>A write of a model with a grant runs at <code>READ COMMITTED</code>.</strong> The head read after the lock must see the last
+commit, so Ferra sets the level at <code>BEGIN</code> whatever <code>default_transaction_isolation</code> says; the hooks of that model
+run at that level too. Other writes keep the server’s level: there a stale snapshot fails closed (<code>40001</code>, a <code>500</code>
+until the retry of 0.14.0).</li>
+<li><strong>Neon’s pooled endpoint.</strong> A transaction-level advisory lock works behind a pooler in transaction mode (only
+session-level locks do not). This is inferred from PgBouncer’s documentation, not stated by Neon’s.</li>
+</ul>
+<h3 id="the-startup-log"><a class="header" href="#the-startup-log">The startup log</a></h3>
+<p><code>Foundry::build()</code> writes one <code>tracing</code> <code>info!</code> line per system grant of a mounted model, target <code>ferra::grants</code>
+(enable that target in your subscriber’s filter), so the grants of a binary can be listed from its logs:</p>
+<pre><code class="language-text">system grant: hooks of "transfers" may read the latest row of and insert into "public.audit_entries"
+</code></pre>
+<p>A model without a grant writes no line.</p>
+<h3 id="what-the-hook-cannot-put-in-an-entry"><a class="header" href="#what-the-hook-cannot-put-in-an-entry">What the hook cannot put in an entry</a></h3>
+<ul>
+<li><strong>Hooks do not see the stamps.</strong> Timestamps and blame are written by the statement, so a chain hash cannot include
+them: hash what the hook has (the action, the row’s values, the previous hash).</li>
+<li><strong>Client-supplied headers are recorded as sent.</strong> <code>X-Forwarded-For</code>, <code>Host</code> and <code>User-Agent</code> read from the request
+context are the client’s claims: record them as claims, not as facts.</li>
+</ul>
+<hr>
 <h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common pitfalls</a></h2>
 <h3 id="manually-declaring-an-injected-column-on-the-struct"><a class="header" href="#manually-declaring-an-injected-column-on-the-struct">Manually declaring an injected column on the struct</a></h3>
-<pre><code class="language-rust ignore">#[behavior(soft_delete)]
+<pre><code class="language-text">#[behavior(soft_delete)]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: Uuid,
     pub title: String,
-    pub deleted_at: Option&lt;jiff::Timestamp&gt;,   // ← compile error
-}</code></pre>
-<p>The framework emits <strong>FRG-323</strong> at proc-macro time:</p>
-<pre><code class="language-text">error: field `deleted_at` conflicts with the soft_delete behavior's auto-injected field
-help: remove the field declaration; the behavior injects it automatically
+    pub deleted_at: Option&lt;ferra::DateTime&gt;,   // ← compile error
+}
 </code></pre>
-<p>The same diagnostic applies to <code>created_at</code> and <code>updated_at</code> under <code>#[behavior(timestampable)]</code>. Behaviors own their injected column shape; if you need a column whose name happens to match one of the framework’s reserved names but holds different data, choose a different column name.</p>
-<h3 id="forgetting-the-allowsharddelete-marker-on-a-custom-processor"><a class="header" href="#forgetting-the-allowsharddelete-marker-on-a-custom-processor">Forgetting the <code>AllowsHardDelete</code> marker on a custom processor</a></h3>
-<p>A <code>FerraProcessor</code> registered against a soft-delete model that issues a physical <code>DELETE</code> triggers a boot-time panic:</p>
-<pre><code class="language-text">the model `Film` is enrolled in the soft-delete behavior AND a custom processor
-`PurgeProcessor` is registered against it. The processor MUST opt in via
-`impl AllowsHardDelete for PurgeProcessor {}` to acknowledge that a physical
-delete bypasses the soft-delete safety contract. See
-https://ferra.rs/guide/behaviors#the-allowshard-delete-opt-in-marker.
+<p>The framework emits <strong>FRG-323</strong> at proc-macro time (the complete model, bad and good, compiled:
+<a href="ferra-forge-diagnostics.html#frg-323--a-field-has-the-name-of-a-column-a-behavior-owns"><code>FRG-323</code></a>):</p>
+<pre><code class="language-text">error: FRG-323: field `deleted_at` conflicts with the `soft_delete` behavior's column `deleted_at`
+help: remove the field (the behavior reads and writes that column itself), or name the behavior's column differently in `#[behavior(...)]`
 </code></pre>
-<p>Add the marker (<code>impl AllowsHardDelete for PurgeProcessor {}</code>) or rewrite the processor to soft-delete instead. The check runs at <code>Foundry::build()</code> — it does not require a request to surface.</p>
+<p>The same diagnostic applies to <code>created_at</code> and <code>updated_at</code> under <code>#[behavior(timestampable)]</code>, to the names you configure, and to a field whose <code>#[sea_orm(column_name)]</code> is one of them. Behaviors own their columns; if you need a column of that name for something else, name the behavior’s column differently.</p>
 <h3 id="submitting-a-timestamp-value-in-a-request-body"><a class="header" href="#submitting-a-timestamp-value-in-a-request-body">Submitting a timestamp value in a request body</a></h3>
-<p>A <code>POST /films</code> request whose body carries <code>created_at: "2020-01-01T00:00:00Z"</code> does NOT plant the past date — the framework silently ignores submitted values for behavior-injected timestamps. The persisted value is the server’s <code>NOW()</code> at the moment of the <code>INSERT</code>. This is by construction (the field is excluded from the default-write projection).</p>
+<p>A <code>POST /films</code> or <code>PUT /films/{id}</code> body carrying <code>created_at</code>, <code>updated_at</code> or
+<code>deleted_at</code> (or the names configured) is refused with <strong>422</strong> <code>unknown_field</code>:
+behavior-managed columns are outside every write projection. The persisted values
+are the server’s own (<code>NOW()</code> at <code>INSERT</code> / <code>UPDATE</code>; <code>restore</code> clears <code>deleted_at</code>).</p>
 <p>If your application needs to record a different “as-of” date (e.g., for retroactive imports), declare a separate column with a non-reserved name (<code>recorded_at</code>, <code>effective_at</code>, …) and write it normally — the framework’s behaviors own only the names listed in the closed vocabulary above.</p>
 <h3 id="unknown-behavior-name"><a class="header" href="#unknown-behavior-name">Unknown behavior name</a></h3>
-<pre><code class="language-rust ignore">#[behavior(softdelete)]    // typo — missing underscore</code></pre>
-<p>The framework emits <strong>FRG-320</strong> at proc-macro time:</p>
+<pre><code class="language-text">#[behavior(softdelete)]    // typo — missing underscore
+</code></pre>
+<p>The framework emits <strong>FRG-320</strong> at proc-macro time (<a href="ferra-forge-diagnostics.html#frg-320--unknown-behavior-name"><code>FRG-320</code></a>, compiled):</p>
 <pre><code class="language-text">error: unrecognised behavior name `softdelete`
 help: did you mean `soft_delete`?
-note: recognised behaviors: soft_delete, timestampable.
+note: recognised behaviors: soft_delete, timestampable, blameable.
       See docs/user-guide/behaviors.md.
 </code></pre>
 <p>The recognised vocabulary is closed; future releases add new names additively (the <code>#[non_exhaustive]</code> <code>BehaviorKind</code> enum makes the additions non-breaking by construction).</p>
 <h3 id="empty-behavior"><a class="header" href="#empty-behavior">Empty <code>#[behavior()]</code></a></h3>
-<pre><code class="language-rust ignore">#[behavior()]    // empty</code></pre>
-<p>The framework emits <strong>FRG-321</strong>:</p>
+<pre><code class="language-text">#[behavior()]    // empty
+</code></pre>
+<p>The framework emits <strong>FRG-321</strong> (<a href="ferra-forge-diagnostics.html#frg-321--behavior-is-empty"><code>FRG-321</code></a>, compiled):</p>
 <pre><code class="language-text">error: behavior attribute requires at least one name
-help: remove the attribute or supply at least one of: soft_delete, timestampable
+help: remove the attribute or supply at least one of: soft_delete, timestampable, blameable
 </code></pre>
 <p>An empty attribute is rejected because it has no effect and most likely indicates an editor template that was not filled in.</p>
-<h3 id="non-identifier-syntax-inside-the-attribute"><a class="header" href="#non-identifier-syntax-inside-the-attribute">Non-identifier syntax inside the attribute</a></h3>
-<pre><code class="language-rust ignore">#[behavior(soft_delete = true)]      // key/value — not the grammar
-#[behavior("soft_delete")]            // string literal — not the grammar</code></pre>
-<p>Both fire <strong>FRG-322</strong> at proc-macro time. The grammar is bare comma-separated identifiers; key/value pairs and string literals are reserved for future widening.</p>
+<h3 id="syntax-outside-the-grammar"><a class="header" href="#syntax-outside-the-grammar">Syntax outside the grammar</a></h3>
+<pre><code class="language-text">#[behavior(soft_delete = true)]      // key/value — not the grammar
+#[behavior("soft_delete")]            // string literal — not the grammar
+</code></pre>
+<p>Both fire <strong>FRG-322</strong> at proc-macro time (<a href="ferra-forge-diagnostics.html#frg-322--behavior-has-syntax-it-does-not-accept"><code>FRG-322</code></a>, compiled). The grammar is comma-separated identifiers, each with an optional <code>(key = "name")</code> list; a key and a value on the identifier itself, and a string literal in place of it, are not part of it.</p>
 <hr>
 <h2 id="forward-compatibility"><a class="header" href="#forward-compatibility">Forward compatibility</a></h2>
 <p>The behaviors namespace is <code>#[non_exhaustive]</code> at the IR level — future releases add behaviors additively without breaking existing call sites. Future releases will likely add behaviors such as <code>audit_log</code>, <code>tenanted</code>, <code>versioned</code>, and other model-level concerns — the namespace is designed for additive growth and no specific shape is contracted at this release. Argument-bearing behaviors (e.g., <code>#[behavior(versioned(strategy = "snapshot"))]</code>) are explicitly not part of the 0.7.0 surface; the grammar widens additively when the first argument-bearing behavior lands.</p>
@@ -419,7 +1072,7 @@ help: remove the attribute or supply at least one of: soft_delete, timestampable
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="ferra-openapi.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="pagination.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -433,7 +1086,7 @@ help: remove the attribute or supply at least one of: soft_delete, timestampable
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="ferra-openapi.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="pagination.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -455,11 +1108,11 @@ help: remove the attribute or supply at least one of: soft_delete, timestampable
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="theme/ferra-32527555.js"></script>
