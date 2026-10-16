@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>unsupported_media_type (415) — Ferra Error Types</title>
-  <meta name="description" content="Ferra RFC 7807 error type: unsupported_media_type. Returned when a write request body is not declared as application/json." />
+  <meta name="description" content="Ferra RFC 7807 error type: unsupported_media_type. Returned when a write request body is not declared as application/json (application/merge-patch+json for PATCH)." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
@@ -54,7 +54,7 @@
 <div class="bleed bleed--white">
   <div class="wrap errpage-body">
     <p class="errpage-body__desc">
-      Returned when a write request (<code>POST</code> or <code>PUT</code>)
+      Returned when a write request (<code>POST</code>, <code>PUT</code> or <code>PATCH</code>)
       carries a body that is not declared as JSON — a missing
       <code>Content-Type</code> header, or a media type other than
       <code>application/json</code> (for example <code>text/plain</code> or
@@ -74,7 +74,14 @@
       the authorization checkpoint: a caller who is not allowed to perform
       the operation receives <code>401</code>, <code>403</code> or
       <code>404</code> without learning which body type the route expects.
-      The <code>detail</code> field is the constant literal shown below.
+      The <code>detail</code> field is a constant literal, shown below.
+    </p>
+    <p class="errpage-body__desc" style="margin-top:-16px">
+      <strong><code>PATCH</code>.</strong> A <code>PATCH</code> takes one media
+      type only, <code>application/merge-patch+json</code> (RFC 7396). Any
+      other <code>Content-Type</code>, <code>application/json</code> included,
+      is a <code>415</code> whose <code>detail</code> names that type (New in
+      v0.14.0).
     </p>
     <p class="errpage-body__label">Example RFC 7807 body</p>
     <pre class="doc-codeblock">{
@@ -82,6 +89,13 @@
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Unsupported Media Type"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">415</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the request body must be JSON: send `Content-Type: application/json`"</span>
+}</pre>
+    <p class="errpage-body__label">Example RFC 7807 body for a <code>PATCH</code></p>
+    <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/unsupported_media_type"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Unsupported Media Type"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">415</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the request body must be a JSON merge patch: send `Content-Type: application/merge-patch+json`"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>

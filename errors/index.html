@@ -369,7 +369,9 @@
         Returned when a write request carries a body that is not declared
         as <code>application/json</code>. Checked after the authorization
         checkpoint; nothing is written. The <code>detail</code> field is a
-        fixed literal. New in v0.9.0.
+        fixed literal. A <code>PATCH</code> takes
+        <code>application/merge-patch+json</code> alone, and its
+        <code>detail</code> names that type. New in v0.9.0.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/unsupported_media_type"</span><span class="tok-pun">,</span>
