@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>retry_exhausted (503) — Ferra Error Types</title>
+  <meta name="description" content="Ferra error type: retry_exhausted. HTTP 503 with Retry-After: 1 when the database aborted a write on each of its three attempts. Nothing was written." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css" />
+  <link rel="stylesheet" href="../errors.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+<header>
+<nav class="nav" id="nav">
+  <div class="nav__brand">
+    <a href="/" style="display:flex;align-items:baseline;gap:10px;text-decoration:none">
+      <span class="mark">Ferra<span style="color:var(--ember)">.</span>rs</span>
+    </a>
+  </div>
+  <button class="nav__hamburger" aria-label="Toggle menu"
+          onclick="document.getElementById('nav').classList.toggle('nav--open')">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav__links">
+    <a href="/#why">Why Ferra</a>
+    <a href="/#install">Install</a>
+    <a href="/#roadmap">Roadmap</a>
+    <a href="/errors/" class="doc-nav-active">Docs</a>
+    <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" class="pill">
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:0.04em">★ GitHub</span>
+    </a>
+  </div>
+</nav>
+</header>
+<main id="main">
+<div class="bleed bleed--ink">
+  <div class="wrap errpage-hero">
+    <p class="errpage-hero__breadcrumb">
+      <a href="/">Ferra.rs</a> / <a href="/errors/">Error Types</a> / retry_exhausted
+    </p>
+    <p class="errpage-hero__slug">retry_exhausted</p>
+    <h1 class="errpage-hero__h1" id="retry_exhausted">Retries Exhausted</h1>
+    <span class="errpage-hero__http errpage-hero__http--5xx">503 Service Unavailable</span>
+  </div>
+</div>
+<div class="bleed bleed--white">
+  <div class="wrap errpage-body">
+    <p class="errpage-body__desc">Returned when a write was aborted by the database on each of its three attempts, with SQLSTATE <code>40001</code> (serialization failure) or <code>40P01</code> (deadlock): two requests wrote the same rows at the same time, and the loser lost every time it was run again. Ferra runs the whole write again, up to three attempts with a short random wait before each retry; this is the answer past the third. <strong>Nothing was written</strong>, so it is safe to send the request again, after the <code>Retry-After: 1</code> second the response carries. The <code>detail</code> is one fixed text for every cause: it names no SQLSTATE, table or constraint. When the server sets a request time budget and it leaves no room for another attempt, the answer is <code>timeout</code> instead. A conflict that no retry can fix (<code>conflict</code>, 409) and a refusal your own hook chose are not retried. New in v0.14.0.</p>
+    <p class="errpage-body__label">Example RFC 7807 body</p>
+    <pre class="doc-codeblock">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/retry_exhausted"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Retries Exhausted"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">503</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the write conflicted with concurrent writes on every attempt; nothing was written, retry the request"</span>
+}</pre>
+    <a href="/errors/" class="errpage-back">← All error types</a>
+  </div>
+</div>
+</main>
+<footer class="bleed bleed--iron">
+  <div class="wrap" style="padding-top:40px;padding-bottom:40px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+    <div style="font:500 13px/1 var(--mono);color:rgba(255,255,255,0.4)">&copy; 2026 Ferra contributors &middot; Apache-2.0 / MIT</div>
+    <div style="display:flex;gap:24px;font:500 13px/1 var(--sans)">
+      <a href="/" style="color:rgba(255,255,255,0.5)">Home</a>
+      <a href="/errors/" style="color:rgba(255,255,255,0.5)">Error types</a>
+      <a href="https://github.com/ferra-rs/ferra" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.5)">GitHub</a>
+    </div>
+  </div>
+</footer>
+<script>
+  document.querySelectorAll('.nav__links a').forEach(function(a) {
+    a.addEventListener('click', function() { document.getElementById('nav').classList.remove('nav--open'); });
+  });
+</script>
+</body>
+</html>

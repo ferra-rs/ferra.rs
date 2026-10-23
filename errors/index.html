@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Error Type URIs — Ferra.rs Docs</title>
-  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these sixteen URIs." />
+  <meta name="description" content="The closed set of RFC 7807 type URIs a Ferra-served API can emit. Every error response carries one of these seventeen URIs." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +51,7 @@
     <h1 class="doc-hero__title">Error type URIs</h1>
     <p class="doc-hero__lead">
       Every Ferra error response carries an RFC&nbsp;7807 body whose
-      <code>type</code> field is one of these sixteen URIs. The set is closed
+      <code>type</code> field is one of these seventeen URIs. The set is closed
       — no URI outside this table will ever appear on the wire.
     </p>
   </div>
@@ -143,6 +143,7 @@
       <tr><td class="slug-cell"><a href="/errors/identity_unavailable">identity_unavailable</a></td><td class="status-cell status-5xx">503 Service Unavailable</td><td class="title-cell">Identity Unavailable</td><td><code>FerraError::IdentityUnavailable</code></td></tr>
       <tr><td class="slug-cell"><a href="/errors/service_unavailable">service_unavailable</a></td><td class="status-cell status-5xx">503 Service Unavailable</td><td class="title-cell">Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code></td></tr>
       <tr><td class="slug-cell"><a href="/errors/precondition_failed">precondition_failed</a></td><td class="status-cell status-4xx">412 Precondition Failed</td><td class="title-cell">Precondition Failed</td><td><code>If-Match</code> / <code>If-None-Match</code> on a write</td></tr>
+      <tr><td class="slug-cell"><a href="/errors/retry_exhausted">retry_exhausted</a></td><td class="status-cell status-5xx">503 Service Unavailable</td><td class="title-cell">Retries Exhausted</td><td>a write aborted by the database on every attempt (<code>Retry-After: 1</code>)</td></tr>
 </tbody>
     </table>
 
@@ -395,6 +396,8 @@
 <div class="variant" id="service_unavailable"><p class="variant__slug">service_unavailable</p><h2 class="variant__h2">Service Unavailable</h2><span class="variant__http variant__http--5xx">503 Service Unavailable</span><p class="variant__desc">A hook of the application reported that something it depends on is unavailable (<code>HookError::unavailable</code>); the detail is the application's. No Retry-After. After a commit the write stands: do not retry a non-idempotent request blindly. New in v0.13.0.</p><pre class="doc-codeblock">{"type":"https://ferra.rs/errors/service_unavailable","title":"Service Unavailable","status":503,"detail":"the payment provider is not reachable"}</pre><a href="/errors/service_unavailable" class="variant__link">Full documentation →</a></div>
 
 <div class="variant" id="precondition_failed"><p class="variant__slug">precondition_failed</p><h2 class="variant__h2">Precondition Failed</h2><span class="variant__http variant__http--4xx">412 Precondition Failed</span><p class="variant__desc">An <code>If-Match</code> or <code>If-None-Match</code> condition on a write does not hold on the row: the tag is stale, <code>If-None-Match</code> names the row's tag, or the header is no list of entity tags. The row is unchanged; the detail is one fixed text and names no tag. A row you may not see is a 404 first. New in v0.14.0.</p><pre class="doc-codeblock">{"type":"https://ferra.rs/errors/precondition_failed","title":"Precondition Failed","status":412,"detail":"an `If-Match` or `If-None-Match` condition of the request is not met; read the row again and retry"}</pre><a href="/errors/precondition_failed" class="variant__link">Full documentation →</a></div>
+
+<div class="variant" id="retry_exhausted"><p class="variant__slug">retry_exhausted</p><h2 class="variant__h2">Retries Exhausted</h2><span class="variant__http variant__http--5xx">503 Service Unavailable</span><p class="variant__desc">The database aborted a write (SQLSTATE <code>40001</code> or <code>40P01</code>, two requests writing the same rows at once) on each of its three attempts. Nothing was written and the request may be sent again after <code>Retry-After: 1</code>. The detail is one fixed text and names no SQLSTATE, table or constraint. A request time budget that leaves no room for another attempt answers <code>timeout</code> instead. New in v0.14.0.</p><pre class="doc-codeblock">{"type":"https://ferra.rs/errors/retry_exhausted","title":"Retries Exhausted","status":503,"detail":"the write conflicted with concurrent writes on every attempt; nothing was written, retry the request"}</pre><a href="/errors/retry_exhausted" class="variant__link">Full documentation →</a></div>
 </main>
 
 <footer class="bleed bleed--iron">
