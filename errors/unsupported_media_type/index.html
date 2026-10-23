@@ -74,6 +74,13 @@
       the authorization checkpoint: a caller who is not allowed to perform
       the operation receives <code>401</code>, <code>403</code> or
       <code>404</code> without learning which body type the route expects.
+      On a write to one row, the <code>404</code> of a missing or hidden row
+      comes before the <code>415</code> when a rule, an authority, an
+      <code>owner</code> field or an <code>If-Match</code> /
+      <code>If-None-Match</code> header reads the row; for a model nothing
+      reads the row of, sent with no such header, the body is judged first
+      and the same <code>415</code> answers a live, a missing and a deleted
+      row.
       The <code>detail</code> field is a constant literal, shown below.
     </p>
     <p class="errpage-body__desc" style="margin-top:-16px">
