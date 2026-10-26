@@ -1,3 +1,9 @@
 # mdBook build output is committed for GitHub Pages
 # Exclude Claude session memory
 .claude/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Visibility audits and plans (local working notes, never deployed).
+/visibilite/
