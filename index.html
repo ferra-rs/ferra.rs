@@ -8,13 +8,18 @@
   <meta property="og:title" content="Ferra.rs: The API Framework Forged in Rust" />
   <meta property="og:description" content="One Sea-ORM entity gives you routes, SQL, OpenAPI and HAL links. Aiming at production-ready for 1.0." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://ferra.rs" />
+  <meta property="og:url" content="https://ferra.rs/" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebSite","@id":"https://ferra.rs/#site",
+   "name":"Ferra.rs","alternateName":"Ferra","url":"https://ferra.rs/","inLanguage":"en"}
+  </script>
 </head>
 <body>
 
@@ -65,6 +70,10 @@
             gives you routes, SQL, OpenAPI, docs and HAL links. You write the
             struct once. Production-ready is the goal for 1.0.
           </p>
+          <p class="heroA__entity">
+            Ferra is a Rust framework for building HTTP APIs from a single source
+            of truth: a Sea-ORM entity with one derive.
+          </p>
           <div class="heroA__cta">
             <a class="btn btn--amber" href="#roadmap">
               See the Roadmap <span class="arrow">&#8594;</span>
@@ -78,8 +87,8 @@
 <span class="tok-mu"># The source opens with the 1.0 release candidates.</span></div>
               <div class="install-snippet__use"><span class="tok-kw">use</span> <span class="tok-ty">ferra</span>::prelude::*;</div>
             </div>
-            <a href="#roadmap" class="watch-link">
-              <span class="watch-icon">★</span> Follow the roadmap
+            <a href="https://github.com/ferra-rs/ferra" class="watch-link">
+              <span class="watch-icon">★</span> Watch releases on GitHub
             </a>
           </div>
         </div>
@@ -574,6 +583,7 @@
           <ul>
             <li>Source opening at the 1.0 RCs</li>
             <li><a href="#roadmap">Roadmap</a></li>
+            <li><a href="https://github.com/ferra-rs/ferra">GitHub</a></li>
           </ul>
         </div>
       </div>

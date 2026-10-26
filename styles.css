@@ -256,6 +256,12 @@ header {
   max-width: 540px;
   margin: 0 0 32px;
 }
+.heroA__entity {
+  font: 400 17px/1.5 var(--sans);
+  color: var(--ink-soft);
+  max-width: 540px;
+  margin: -16px 0 32px;
+}
 .heroA__cta { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 
 /* Hero meta strip */
