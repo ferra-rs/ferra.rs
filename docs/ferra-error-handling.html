@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,7 +190,7 @@ HTTP status / title / example body for each variant, and the
 consumer-side branching pattern.</p>
 <hr>
 <h2 id="the-closed-error_types-uri-set"><a class="header" href="#the-closed-error_types-uri-set">The closed <code>ERROR_TYPES</code> URI set</a></h2>
-<p>The framework can emit exactly fifteen <code>type</code> URIs on the wire. Every
+<p>The framework can emit exactly seventeen <code>type</code> URIs on the wire. Every
 literal in framework source (and in any consumer crate) MUST appear
 in this set; a CI gate (<code>cargo run -p xtask --bin error_types_closed</code>) fails the build on
 any drift.</p>
@@ -216,12 +215,17 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/multiple_credentials</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Multiple Credentials</td><td><code>FerraError::MultipleCredentials</code> (0.12.0: a request that presents more than one credential: <code>Authorization</code>, the API key header and the cookie in any combination, and any of them twice; refused before any verification, whatever they hold)</td></tr>
 <tr><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Identity Unavailable</td><td><code>FerraError::IdentityUnavailable</code> (0.12.0: a credential could not be verified because the identity source is out of reach: the key set of the identity provider could not be fetched with no fresh key cached, or the API key store failed; no <code>Retry-After</code>)</td></tr>
 <tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (0.13.0: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach; unlike <code>timeout</code>, it can follow a commit; no <code>Retry-After</code>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/precondition_failed</code></td><td style="text-align: right"><code>412 Precondition Failed</code></td><td>Precondition Failed</td><td>the generated <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> and <code>restore</code> routes (0.14.0: an <code>If-Match</code> or <code>If-None-Match</code> that does not hold on the row, or is no list of entity tags; the row is unchanged, the <code>detail</code> is one fixed text that echoes nothing and names no tag, and the response carries no <code>ETag</code>; a row the caller may not see is a <code>404</code> first, a wrong <code>Content-Type</code> a <code>415</code>; see <a href="ferra-http.html#preconditions-on-a-write"><code>ferra-http.md</code> § Preconditions on a write</a>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Retries Exhausted</td><td>the generated write routes and <code>Resource&lt;M&gt;</code> writes (0.14.0: the database aborted the write’s transaction with <code>40001</code> or <code>40P01</code> on each of its three attempts; the write given up was not applied, so the client may retry it (an earlier write of a route of your own stands); carries <code>Retry-After: 1</code>, a <code>detail</code> that is one fixed text naming no SQLSTATE, table or constraint, and no <code>FerraError</code> variant; while a request budget is set, a deadline that leaves no room for the next attempt is the <code>timeout</code> above instead)</td></tr>
 </tbody>
 </table>
 </div>
-<p>Three of the fifteen URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
+<p>Three of the seventeen URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
 <code>unauthorized</code>) are emitted by middleware layers, not through
-<code>FerraError</code>. The framework’s full URI surface is the union of the
+<code>FerraError</code>; a fourth, <code>precondition_failed</code>, is answered by the generated
+write routes and has no <code>FerraError</code> variant, and nor has a fifth,
+<code>retry_exhausted</code> (a <code>FerraError::Internal</code> over a private cause, which
+answers 503 wherever it is returned). The framework’s full URI surface is the union of the
 two paths; both are governed by the same <code>ERROR_TYPES</code> slice.
 (<code>unauthorized</code> is emitted from both — the docs-protection middleware
 and, since 0.8.0, <code>FerraError::Unauthorized</code> on the per-operation
@@ -279,6 +283,17 @@ the separate 422 path — see <a href="#validation-failures-422">§ Validation f
 the same shape as on the 422 path. <code>code</code> is drawn from the closed list in
 <a href="#validation-codes">§ Validation codes</a>; <code>field</code> is the decoded query
 parameter, <code>body</code> for a malformed body, or the path parameter’s name.</p>
+<p>A write body (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, and the body of an action) is decoded once from its
+bytes, and this 400 (<code>invalid_json</code>, field <code>body</code>) is the first refusal of that decoding: a
+body that is not a JSON object, a key <strong>repeated</strong> at any depth (a JSON field included; the
+message reads <code>a key is repeated at line L column C</code>, and carries no value of the body), or a
+value of the wrong type on a key the caller may read. A key the caller may not read is never
+judged here: its type is not looked at, and it is the 422 <code>unknown_field</code> of an unknown key.
+Send each key once. The refusals of a write come in one order: the row’s <code>404</code>, then <code>415</code>,
+<code>412</code>, <code>413</code>, this <code>400</code>, the <code>422</code> <code>unknown_field</code>, the <code>403</code>, the <code>422</code> of the
+bounds and the rules, and last the <code>400</code> of a required key the body does not send (<code>missing field</code>): typed first, it
+would answer a caller who sends a hidden required key with a <code>400</code> where an absent name gets the <code>422</code>,
+and reveal that the field exists.</p>
 <h3 id="conflict--409"><a class="header" href="#conflict--409"><code>conflict</code> — <code>409</code></a></h3>
 <p>Returned when a write would violate a unique constraint (duplicate slug, primary-key
 collision, etc.). The <code>detail</code> is fixed: the database’s message — which names the
@@ -295,7 +310,9 @@ constraint and the table — goes to the server log (<code>INFO</code>, target
 <p>Returned for any database / infrastructure failure not classifiable
 as one of the typed variants above. <code>detail</code> is always the constant
 literal <code>"internal server error"</code> — no internal path fragment, no
-crate name, no underlying-library substring leaks (constitution §I).</p>
+crate name, no underlying-library substring leaks (constitution §I). A stored
+typed JSON document that no longer decodes into its struct makes the row
+unreadable: a <code>GET</code> of it and a <code>PATCH</code> of it are a <code>500</code>, whatever the patch sets.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/internal",
   "title": "Internal Server Error",
@@ -380,6 +397,33 @@ was committed); <code>identity_unavailable</code> is about the credential, never
   "detail": "the payment provider is not reachable"
 }
 </code></pre>
+<h3 id="retry_exhausted--503"><a class="header" href="#retry_exhausted--503"><code>retry_exhausted</code> — <code>503</code></a></h3>
+<p>Returned when the database aborted a write’s transaction with <code>40001</code> (serialization
+failure) or <code>40P01</code> (deadlock) on each of its three attempts, a refused <code>COMMIT</code>
+included. The write that was given up was not applied, so the client may retry it; the
+response carries <code>Retry-After: 1</code> (whole seconds). The <code>detail</code> is one fixed text that
+speaks for that write, not for the request, and names no SQLSTATE, table or constraint;
+the SQLSTATE goes to a <code>warn</code> trace, one line per aborted attempt. A generated route makes
+one write per request, so nothing of the request was written. In a route of your own, an
+earlier write of the same handler through <code>Resource&lt;M&gt;</code> stands: do not retry a
+non-idempotent request blindly (RFC 9110 § 9.2.2). The generated write routes and
+<code>Resource&lt;M&gt;</code> writes answer it; there is no <code>FerraError</code>
+variant for it. With a <a href="foundry.html#request-time-budget">request budget</a>, a deadline
+that leaves no room for the next attempt is the <a href="#timeout--503"><code>timeout</code></a> instead, with
+no <code>Retry-After</code>. The attempts, the wait between them and what is rerun:
+<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>. New in
+0.14.0.</p>
+<pre><code class="language-http">HTTP/1.1 503 Service Unavailable
+Content-Type: application/problem+json
+Retry-After: 1
+</code></pre>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/retry_exhausted",
+  "title": "Retries Exhausted",
+  "status": 503,
+  "detail": "this write conflicted with concurrent writes on every attempt and was not applied; retry it"
+}
+</code></pre>
 <h3 id="rate_limited--429"><a class="header" href="#rate_limited--429"><code>rate_limited</code> — <code>429</code></a></h3>
 <p>Emitted by the framework’s default rate-limiter on mutation routes
 (POST / PUT / DELETE). The response carries a <code>Retry-After</code> header,
@@ -436,6 +480,12 @@ short form:</p>
 every violation observed during the validation pass is included
 (no short-circuiting), so a consumer never needs to retry to
 discover further violations.</p>
+<p>On a write, this 422 comes after the 400 of <a href="#validation--400"><code>validation</code></a> in the one order
+of every write: the row’s <code>404</code>, <code>415</code>, <code>412</code>, <code>413</code>, <code>400</code>, then the <code>422</code> <code>unknown_field</code>
+(the unknown keys and the keys the caller may not read, in one list), the <code>403</code> of a field
+the caller may read and not write, the <code>422</code> of the bounds and of the <code>#[field(...)]</code>
+rules, and last the <code>400</code> of a required key the body does not send. A body with an unknown key and a wrong-typed value on a key the caller may read is
+therefore the 400, not this 422.</p>
 <hr>
 <h2 id="validation-failures-422"><a class="header" href="#validation-failures-422">Validation failures (422)</a></h2>
 <p>A 422 response fires when the request body is <em>well-formed</em> — it
@@ -535,12 +585,25 @@ hypermedia to follow. A consumer that branches on the response’s
 <h3 id="update-vs-create-symmetry"><a class="header" href="#update-vs-create-symmetry">Update-vs-create symmetry</a></h3>
 <p>The validation step runs identically on <code>POST /&lt;resource&gt;</code> and
 <code>PUT /&lt;resource&gt;/{id}</code>. The 422 body is identical across both.
-A field omitted from a <code>PUT</code> body is “no change” (Ferra’s
-existing partial-update semantics) and bypasses that field’s
-per-field rules. A field present with explicit <code>null</code> on a <code>PUT</code>
-body for a <code>#[field(required)]</code> <code>Option&lt;T&gt;</code> field fails with
-the code <code>required</code> — <code>null</code> on the wire is a positive declaration
-of “set to none”, which the rule rejects.</p>
+A <code>PUT</code> is a replacement: a field omitted from its body is not “no
+change”. An optional field without a <code>read</code> or <code>write</code> rule becomes
+<code>NULL</code> and its per-field rules do not fire; a field with such a rule is
+kept; a <code>#[field(required)]</code> <code>Option&lt;T&gt;</code> field fails with the code
+<code>required</code>, and so does one present with an explicit <code>null</code> — <code>null</code> on
+the wire is a positive declaration of “set to none”, which the rule
+rejects.</p>
+<p><code>PATCH /&lt;resource&gt;/{id}</code> is the partial update
+(<a href="ferra-http.html#partial-updates-with-patch"><code>ferra-http.md</code></a>): a field
+absent from the patch is untouched, and only the values the patch sets are
+judged. A <code>null</code> on a field that cannot be null is the 422 <code>required</code>, and a
+body that is not a JSON object, or a value of the wrong type, is the 400
+<code>invalid_json</code>.</p>
+<p>For a model nothing reads the row of (no rule, projection, authority or <code>owner</code>
+field does), a <code>PUT</code> or a <code>PATCH</code> sent with no precondition header does not read the
+row first, so its body is judged first: a wrong <code>Content-Type</code> is a <code>415</code>, a body that
+is not an object a <code>400</code>, an unknown key a <code>422</code>, whether the row is live, absent or
+soft-deleted (the refusal is the same for the three, so it tells nothing about the
+row).</p>
 <h3 id="consumer-side-branching-pattern"><a class="header" href="#consumer-side-branching-pattern">Consumer-side branching pattern</a></h3>
 <p>Add one branch to the existing <code>match</code> on the wire <code>type</code> field:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -632,6 +695,52 @@ fn read_other_model(found: Result&lt;(), FerraError&gt;) -&gt; Result&lt;(), Hoo
 opposite. <code>failed</code> answers <code>500</code>, <code>unavailable</code> answers <code>503</code>, and <code>conflict</code> and
 <code>unprocessable</code> answer <code>500</code> <code>internal</code>. Do not put in a <code>detail</code> a value the caller may
 not read.</p>
+<p><strong>From a computed field</strong> (<code>FerraComputed</code>) the hook returns a <code>FerraComputeError</code>, not a
+<code>HookError</code>, and there is one answer: <code>500</code> <code>internal</code> with the generic body, a panic caught
+as a failure (unless <code>panic = "abort"</code>). On a read, a request budget that runs out is the
+budget’s own <code>503</code> <code>timeout</code>, with no partial body. Ferra logs one <code>error!</code> line for the request with the model, the operation and
+your message, and no row value. On a write response the row is already committed and the line
+says so; if the request budget runs out during that compute the answer is the same <code>500</code>, not
+<code>503</code> <code>timeout</code>. See <a href="computed-fields.html#when-a-hook-fails">When a hook fails</a>.</p>
+<hr>
+<h2 id="rust-errors-and-their-causes"><a class="header" href="#rust-errors-and-their-causes">Rust errors and their causes</a></h2>
+<p>A <code>500</code> tells the client nothing: its body is one literal. The cause is for you, and
+<code>FerraError::Internal</code> keeps it, as an <code>InternalError</code>, in the error’s <code>source()</code> chain:</p>
+<ul>
+<li><code>FerraError::Internal(InternalError)</code> displays <code>internal server error</code>, and its
+<code>source()</code> is the <code>InternalError</code>, which displays <code>internal error</code>. The cause (a
+database error, the error a hook returned) is one link further. Neither <code>Display</code>
+repeats it, so a log line that prints the error with <code>{err}</code> carries no database
+message, and the response body never does.</li>
+<li>A database cause has a SQLSTATE: <code>InternalError::sqlstate()</code> returns the five characters
+(<code>40001</code>, <code>55P03</code>…) when the database’s own answer carried one, and <code>None</code> otherwise.
+Ferra logs a database cause as its SQLSTATE and nothing else, because a Postgres
+message can quote the request’s values. The full chain stays reachable through
+<code>source()</code> for your own subscriber, which then owns the question of what it may print.</li>
+<li>The same holds for a <code>HookError</code>: after a <code>?</code> on a <code>FerraError</code>, its <code>source()</code> returns that
+error, so the <code>Debug</code> of a <code>HookError</code> can quote the Postgres error, row values included.
+Do not log a <code>HookError</code> with <code>{:?}</code> where row values are sensitive.</li>
+<li>To answer a <code>500</code> from a route of your own, wrap the cause: <code>InternalError::new</code> takes
+a text or any error.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::error::Error;
+
+use ferra::{FerraError, InternalError};
+
+fn ledger_is_out_of_sync(cause: std::io::Error) -&gt; FerraError {
+    FerraError::Internal(InternalError::new(cause))
+}
+
+let err = ledger_is_out_of_sync(std::io::Error::other("the ledger file is locked"));
+assert_eq!(err.to_string(), "internal server error");
+let internal = err.source().unwrap();
+assert_eq!(internal.to_string(), "internal error");
+assert_eq!(internal.source().unwrap().to_string(), "the ledger file is locked");
+<span class="boring">}</span></code></pre>
+<p>Before 0.14.0 <code>FerraError::Internal</code> held a <code>String</code> and <code>FerraDbError::Db</code> held the
+<code>sea_orm::DbErr</code> itself; see <a href="migrating-to-0.14.html">Migrating from 0.13 to 0.14</a>.</p>
 <hr>
 <h2 id="validation-codes"><a class="header" href="#validation-codes">Validation codes</a></h2>
 <p>Every entry of <code>errors</code> carries a <code>code</code> from this closed list
@@ -643,7 +752,7 @@ add codes, never change one.</p>
 <tr><th>Code</th><th>Status</th><th>Where</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_json</code></td><td>400</td><td>the body is malformed or of the wrong shape</td></tr>
+<tr><td><code>invalid_json</code></td><td>400</td><td>the body is malformed or of the wrong shape (on <code>PATCH</code>: not a JSON object, or a value of the wrong type)</td></tr>
 <tr><td><code>invalid_path_param</code></td><td>400</td><td>a path segment cannot be read</td></tr>
 <tr><td><code>duplicate_parameter</code></td><td>400</td><td>a query key Ferra reads is repeated</td></tr>
 <tr><td><code>invalid_parameter</code></td><td>400</td><td><code>page</code> or <code>per_page</code> is not an integer</td></tr>
@@ -654,9 +763,10 @@ add codes, never change one.</p>
 <tr><td><code>invalid_date</code></td><td>400</td><td>a malformed date filter, or a non-UTC <code>DateTime</code> filter</td></tr>
 <tr><td><code>invalid_pagination</code></td><td>400</td><td>the page and cursor mode rules</td></tr>
 <tr><td><code>unknown_field</code></td><td>422</td><td>a body key outside the write projection</td></tr>
-<tr><td><code>required</code>, <code>min_length</code>, <code>max_length</code>, <code>min</code>, <code>max</code>, <code>pattern</code>, <code>email</code>, <code>url</code></td><td>422</td><td>the <code>#[field(...)]</code> rules</td></tr>
+<tr><td><code>required</code>, <code>min_length</code>, <code>max_length</code>, <code>min</code>, <code>max</code>, <code>pattern</code>, <code>email</code>, <code>url</code></td><td>422</td><td>the <code>#[field(...)]</code> rules (<code>required</code> also: a <code>null</code> in a <code>PATCH</code> on a field that cannot be null)</td></tr>
 <tr><td><code>json_too_deep</code>, <code>json_too_large</code></td><td>422</td><td>JSON field bounds</td></tr>
 <tr><td><code>reference_not_found</code></td><td>422</td><td>the parent a foreign key names does not exist or is not usable by the caller; <code>field</code> is the foreign key, one fixed message</td></tr>
+<tr><td><code>min_items</code>, <code>max_items</code>, <code>unique_items</code></td><td>422</td><td>the <code>ids</code> list of a collection action is empty, too long, or repeats an id; <code>field</code> is <code>ids</code>, fixed messages that echo no id</td></tr>
 </tbody>
 </table>
 </div>

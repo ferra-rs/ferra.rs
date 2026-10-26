@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -245,17 +244,19 @@ chooses.</p>
 <p><strong>Before.</strong> A hand-written <code>FerraModel</code> (no derive) that satisfied <code>Mountable</code> could be
 mounted.</p>
 <p><strong>After.</strong> <code>Mountable</code> also requires the hidden hook slot <code>FerraDraft</code>, with a runner for
-its <code>Hooks</code>. The derive writes it for every model, so a derived model changes nothing.</p>
+its <code>Hooks</code>. The derive writes it for every model, so a derived model changes nothing. (0.14.0 adds
+the <code>Actions</code> slot to it: see <a href="migrating-to-0.14.html">migrating to 0.14</a>.)</p>
 <p><strong>Migration.</strong> Add to a hand-written, mounted model:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use ferra::ferra_core::hooks::{FerraDraft, NoHooks};
+</span>use ferra::ferra_core::hooks::{FerraDraft, NoActions, NoHooks};
 
 struct Film;
 
 impl FerraDraft for Film {
     type Draft = ();
     type Hooks = NoHooks;
+    type Actions = NoActions;
 }
 <span class="boring">}</span></code></pre>
 <p><code>Draft = ()</code> also satisfies the bound <code>Mountable</code> puts on the draft (<code>ApplyDraft</code> for the entity’s active
@@ -364,7 +365,8 @@ subject and the header names, never a value. Every other header is client-suppli
 <a href="ferra-core.html#requestcontext"><code>ferra-core.md</code></a>.</p>
 <p><strong>Migration.</strong> Code that copied a <code>RequestContext</code> (<code>let c = *ctx;</code>, a <code>Copy</code> bound, a
 <code>const</code> fixture used twice) calls <code>.clone()</code> instead. The <code>FerraComputed</code> signatures take
-<code>&amp;RequestContext</code> and do not change. Code that moved one across <code>catch_unwind</code> needs
+<code>&amp;RequestContext</code> and do not change in 0.13 (0.15 replaced the three methods:
+see <a href="migrating-to-0.15.html#ferracomputed-computes-one-field-at-a-time-match-on-modelcomputed">migrating-to-0.15.md</a>). Code that moved one across <code>catch_unwind</code> needs
 <code>AssertUnwindSafe</code>.</p>
 
                     </main>

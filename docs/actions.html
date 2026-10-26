@@ -1,0 +1,625 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Declared actions - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-6e4afefc.svg">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-f6e1ccda.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/actions.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="declared-actions"><a class="header" href="#declared-actions">Declared actions</a></h1>
+<p><em>A business verb on a row, served and judged by Ferra.</em> <code>POST /jobs/{id}/mark_seen</code>, <code>POST /invoices/{id}/cancel</code>:
+a model declares the action, writes the function that changes the row, and Ferra serves the route on the bare path
+with what a <code>PUT</code> gets: the rule, the lock, the preconditions, the validation of what the function returned, the
+write, the hooks, the retry, the <code>ETag</code> and the <code>_links</code>; the action has its own <code>OpenAPI</code> operation. 0.14.0.</p>
+<p>This page covers the <strong>row</strong> action, and the <a href="#collection-actions">collection form</a> (<code>collection</code>): the same action
+on up to 100 rows in one request.
+A route that is not a row’s verb (a webhook, an aggregate, a derived list) stays a <a href="custom-handlers.html">custom handler</a>.</p>
+<ul>
+<li><a href="#declaring-an-action">Declaring an action</a></li>
+<li><a href="#the-rule">The rule</a></li>
+<li><a href="#the-handler">The handler</a></li>
+<li><a href="#the-typed-body">The typed body</a></li>
+<li><a href="#what-a-request-is-refused-with">What a request is refused with</a></li>
+<li><a href="#what-the-handler-may-change">What the handler may change</a></li>
+<li><a href="#writes"><code>writes</code></a></li>
+<li><a href="#the-answer">The answer</a></li>
+<li><a href="#retries-and-the-request-budget">Retries and the request budget</a></li>
+<li><a href="#sending-the-same-request-twice">Sending the same request twice</a></li>
+<li><a href="#_linksname"><code>_links.&lt;name&gt;</code></a></li>
+<li><a href="#collection-actions">Collection actions</a></li>
+<li><a href="#openapi">OpenAPI</a></li>
+</ul>
+<h2 id="declaring-an-action"><a class="header" href="#declaring-an-action">Declaring an action</a></h2>
+<p>One <code>#[ferra(action(...))]</code> per action, on the model, next to the derive. It is repeatable, in one or several
+<code>#[ferra(...)]</code> attributes. The handler is a function you write, named by <code>handler = path</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::{ActionBody, FerraModel};
+</span><span class="boring">use ferra::hooks::{HookError, HookTx};
+</span><span class="boring">use ferra::request_context::RequestContext;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "jobs")]
+#[ferra(auth = "bearer")]
+#[ferra(action(name = "mark_seen", authorize = IsOwner, handler = mark_seen))]
+#[ferra(action(
+    name = "set_progress",
+    authorize = IsOwner + HasRole("etl"),
+    handler = set_progress,
+    body = ProgressBody
+))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[field(owner)]
+    pub owner_id: Uuid,
+    pub title: String,
+    pub seen: bool,
+    pub progress: i32,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+/// The handler receives the locked row and returns its new state.
+async fn mark_seen(
+    mut job: Model,
+    _ctx: &amp;RequestContext,
+    _tx: &amp;mut HookTx&lt;'_, Model&gt;,
+) -&gt; Result&lt;Model, HookError&gt; {
+    if job.seen {
+        return Err(HookError::conflict("the job is already seen"));
+    }
+    job.seen = true;
+    Ok(job)
+}
+
+/// The body of `set_progress`, decoded and handed over as the second argument.
+#[derive(Deserialize, ActionBody)]
+pub struct ProgressBody {
+    #[field(min = 0, max = 100)]
+    pub progress: i32,
+}
+
+async fn set_progress(
+    mut job: Model,
+    body: ProgressBody,
+    _ctx: &amp;RequestContext,
+    _tx: &amp;mut HookTx&lt;'_, Model&gt;,
+) -&gt; Result&lt;Model, HookError&gt; {
+    job.progress = body.progress;
+    Ok(job)
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p>Mount the model as any other (<code>.mount::&lt;job::Model&gt;()</code>, <a href="foundry.html">Foundry</a>); the actions need no setting of their
+own, but a rule that needs an identity (<code>IsOwner</code>, <code>HasRole</code>) needs <code>.with_auth()</code> on the <code>Foundry</code>, as for any write.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Value</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>string literal</td><td>Required. The last path segment, the key of <code>_links</code> and the base of the <code>operationId</code>. Snake case (<code>[a-z][a-z0-9]*(_[a-z0-9]+)*</code>); not <code>list</code>, <code>get</code>, <code>create</code>, <code>update</code>, <code>patch</code>, <code>delete</code>, <code>restore</code>, <code>self</code> or <code>collection</code>.</td></tr>
+<tr><td><code>collection</code></td><td>flag</td><td>Optional. Serves the action on <code>POST /{resource}/{name}</code>, for several rows: <a href="#collection-actions">Collection actions</a>.</td></tr>
+<tr><td><code>authorize</code></td><td>a rule</td><td>Required. <a href="#the-rule">The rule</a>.</td></tr>
+<tr><td><code>handler</code></td><td>a path</td><td>Required. <a href="#the-handler">The handler</a>.</td></tr>
+<tr><td><code>body</code></td><td>a type</td><td>Optional. <a href="#the-typed-body">The typed body</a>.</td></tr>
+<tr><td><code>writes</code></td><td>a list of fields</td><td>Optional. <a href="#writes"><code>writes</code></a>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The derive refuses a bad declaration at compile time, with the code and the line of your attribute:
+<code>FRG-139</code> (a name outside the grammar or reserved), <code>FRG-140</code> (two actions with one name), <code>FRG-141</code> (an unknown or
+repeated key), <code>FRG-142</code> (a missing <code>name</code>, <code>authorize</code> or <code>handler</code>), <code>FRG-143</code> (<code>collection</code> on a composite key),
+<code>FRG-144</code> (an action on a <code>system_only</code> model), <code>FRG-145</code> (a body type that cannot be one) and <code>FRG-146</code> (a <code>writes</code>
+entry the action cannot write). The rule’s own errors
+are <code>FRG-101</code> to <code>FRG-103</code> and <code>FRG-110</code>. <a href="ferra-forge-diagnostics.html#frg-139--an-action-name-that-is-not-allowed">The codes</a>
+each have a section. A wrong handler path, a wrong handler signature or a <code>body = T</code> without the derive is rustc’s
+error, spanned on the path or the type you wrote. At <code>Foundry::build()</code>, two operations that get one <code>operationId</code>,
+or two body components with one name, are refused by <a href="ferra-forge-diagnostics.html#frg-153--an-openapi-name-produced-twice"><code>FRG-153</code></a>.</p>
+<h2 id="the-rule"><a class="header" href="#the-rule">The rule</a></h2>
+<p><code>authorize</code> is the action’s own rule, in the grammar of <code>#[authorize(...)]</code> (<code>IsOwner</code>, <code>HasRole("etl")</code>,
+<code>Authenticated</code>, <code>Anyone</code>, <code>+</code>, <code>|</code>; <a href="ferra-auth.html">Authentication and Authorization</a>).</p>
+<ul>
+<li><strong>It replaces <code>update</code>’s.</strong> An action does not borrow the rule of <code>PUT</code>, nor the posture, nor the <code>#[authorize]</code>
+block: an owner who may <code>PUT</code> a row may not run an action whose rule refuses them, and the reverse.</li>
+<li><strong>It is required, whatever the posture.</strong> There is no default rule and no deny-by-default shortcut: <code>auth = "none"</code>
+does not excuse the key (<code>FRG-142</code>). <code>Anyone</code> is a rule you write knowingly.</li>
+<li><strong>It is judged like every rule.</strong> A rule that needs an identity needs <code>.with_auth()</code> (<a href="ferra-forge-diagnostics.html#frg-151--mounting-without-with_auth-a-model-that-needs-an-identity"><code>FRG-151</code></a>),
+<code>IsOwner</code> needs a <code>#[field(owner)]</code> (<a href="ferra-forge-diagnostics.html#frg-110--isowner-without-an-owner-field"><code>FRG-110</code></a>), and a rule that reads no row (<code>HasRole("etl")</code> alone) is refused
+with a <code>403</code> before any row is read, the same bytes for a row that exists and one that does not.</li>
+<li><strong>An authority sees it.</strong> A model with <a href="ferra-auth.html#writing-can-and-filter"><code>#[ferra(authority)]</code></a> gets
+<code>can(Operation::Action(name), row)</code> on the locked row and again on the row as the handler wrote it; its <code>filter</code>
+hides rows from the action as it does from <code>get</code>. End your <code>can</code> with <code>_ =&gt; false</code> and name each action you allow.</li>
+</ul>
+<h2 id="the-handler"><a class="header" href="#the-handler">The handler</a></h2>
+<pre><code class="language-text">async fn(Model, &amp;RequestContext, &amp;mut HookTx&lt;'_, Model&gt;) -&gt; Result&lt;Model, HookError&gt;
+</code></pre>
+<p>With a <code>body</code>, the decoded body is the second argument: <code>async fn(Model, Body, &amp;RequestContext, &amp;mut HookTx&lt;'_, Model&gt;)</code>.</p>
+<p>The handler gets the row locked, as it stands, and returns the row as it should be. Ferra compares the two, writes the
+columns that differ in the same statement and transaction as a <code>PUT</code>, and runs the model’s <a href="behaviors.html#hooks-of-a-declared-action">hooks</a>
+around it (<code>before_save</code> sees <code>Saving::Update</code>, <code>after_commit</code> sees <code>Committed::Updated</code>). <code>RequestContext</code> is the
+caller; <code>HookTx</code> is the handle on the same transaction (<code>tx.resource::&lt;Other&gt;()</code>, <code>tx.system()</code>: <a href="behaviors.html#hooks">Hooks</a>).
+The handler runs while the row is locked and the request budget runs: keep it short, and leave the external effects
+(an e-mail, a queue, a call to another service) to <code>after_commit</code>.</p>
+<p>A handler runs under the same rules as a hook:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>It returns</th><th>The answer</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ok(row)</code></td><td>the row is judged and written (<a href="#what-the-handler-may-change">what it may change</a>)</td></tr>
+<tr><td><code>HookError::failed(msg)</code>, or a <code>?</code> on a <code>FerraError</code></td><td><code>500</code> <code>internal</code>, the generic body; nothing written</td></tr>
+<tr><td><code>HookError::conflict(detail)</code></td><td><code>409</code> <code>conflict</code>, your <code>detail</code> as given</td></tr>
+<tr><td><code>HookError::unprocessable(field, code, message)</code></td><td><code>422</code> <code>validation_failed</code>, one error</td></tr>
+<tr><td><code>HookError::unavailable(detail)</code></td><td><code>503</code> <code>service_unavailable</code>, your <code>detail</code>, no <code>Retry-After</code></td></tr>
+<tr><td>a panic</td><td><code>500</code> <code>internal</code>, the generic body</td></tr>
+</tbody>
+</table>
+</div>
+<p>Every <code>Err</code> rolls the write back. The <code>detail</code> of a <code>409</code>, a <code>422</code> or a <code>503</code> reaches the caller as you wrote it:
+put no value in it that the caller may not read. A failed handler is logged at <code>error</code> level, target
+<code>ferra_http::hooks</code>, as “action handler failed”, with the resource, the action, the message you gave and, for a
+database error, its SQLSTATE: never a row value. That is one <code>error!</code> line for a <code>HookError::failed</code>, and two for a
+<code>?</code> on a <code>FerraError</code>, whose conversion logs “a hook propagated a FerraError; answered 500” first, with the status,
+the problem type and the SQLSTATE of the error. A panic is caught, answered <code>500</code>, and logged (one <code>error!</code> line)
+as “action handler failed” too, whose <code>error</code> field is the constant text “an action handler panicked”, without the
+panic’s payload in Ferra’s log; the standard panic hook still prints it to stderr unless the application replaces it. <code>panic = "abort"</code> in the release profile defeats
+the catch, as for a hook.</p>
+<h2 id="the-typed-body"><a class="header" href="#the-typed-body">The typed body</a></h2>
+<p>An action takes a value when it declares <code>body = T</code>. <code>T</code> derives <code>ActionBody</code> next to <code>Deserialize</code>:
+<code>#[derive(Deserialize, ferra::ActionBody)]</code>, no <code>#[serde(...)]</code> attribute. The body is read by the Rust names of the
+fields (a model’s <code>rename_all</code> does not apply to it), and its list of fields is the one source of the
+<code>unknown_field</code> refusal, the validation and the <code>OpenAPI</code> schema. What a body admits (scalar fields, the eight
+validation keys) is in <a href="ferra-forge.html#the-body-of-an-action-deriveferraactionbody">Ferra Forge</a>.</p>
+<p>The content is read once, judged before the handler runs, kept, and decoded again at each call of the handler, a
+retried attempt included. An action with no <code>body</code> reads no content: whatever a client sends is ignored.</p>
+<p>A field that is not an <code>Option</code> is required by its type: a body that leaves it out is a <code>400</code> <code>invalid_json</code>, because
+the body does not deserialize, and not the <code>422</code> <code>required</code> of a <code>PUT</code>.</p>
+<p>On a collection action the typed body is the member <code>"body"</code> of the request, and a key of the typed body is named
+<code>body.&lt;key&gt;</code> in an error (<code>body.progress</code>); a row action’s body is the whole request, so its keys keep their own name.</p>
+<h2 id="what-a-request-is-refused-with"><a class="header" href="#what-a-request-is-refused-with">What a request is refused with</a></h2>
+<p>Each refusal comes before the next one, and none of them calls the handler or a hook, or changes a row. Cookie
+requests also face the CSRF guard, and the rate limiter answers <code>429</code>, as for every write.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Condition</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>no credential, or an invalid one, where the model reads tokens</td><td><code>401</code></td></tr>
+<tr><td>2</td><td>the rule fails without reading a row (<code>HasRole("etl")</code> alone)</td><td><code>403</code></td></tr>
+<tr><td>3</td><td>the row is absent, soft-deleted, hidden by <code>IsOwner</code>, by the authority’s <code>filter</code> or by <code>can(Action(name))</code></td><td><code>404</code>, the bytes of an absent row (<code>detail</code> <code>&lt;resource&gt;/&lt;id&gt; not found</code>)</td></tr>
+<tr><td>4</td><td>the part of the rule that reads the row fails</td><td><code>403</code></td></tr>
+<tr><td>5</td><td>the action has a body and the <code>Content-Type</code> is not JSON</td><td><code>415</code></td></tr>
+<tr><td>6</td><td><code>If-Match</code> or <code>If-None-Match</code> does not hold on the locked row, or is malformed or lists more than 32 tags</td><td><code>412</code> <code>precondition_failed</code></td></tr>
+<tr><td>7</td><td>the body is over the cap</td><td><code>413</code></td></tr>
+<tr><td>8</td><td>the body is not a JSON object, or does not deserialize</td><td><code>400</code> <code>invalid_json</code></td></tr>
+<tr><td>9</td><td>the body has a key <code>T</code> does not declare</td><td><code>422</code> <code>unknown_field</code></td></tr>
+<tr><td>10</td><td>a value breaks a validation key of <code>T</code></td><td><code>422</code> <code>validation_failed</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>404</code> of a row comes before every precondition, <code>If-Match: *</code> included, so a header never tells a caller
+anything about a row they cannot see. An announced <code>Content-Length</code> over the cap is refused <code>413</code> earlier still, right after
+the credential check and before the row is looked up, even for an action with no body. The preconditions are the ones of <a href="ferra-http.html#preconditions-on-a-write">every write</a>,
+decided on the locked row. Then the handler runs, and its answer and the checks below follow.</p>
+<h2 id="what-the-handler-may-change"><a class="header" href="#what-the-handler-may-change">What the handler may change</a></h2>
+<p>The row it returns is judged against the row it was given, in this order. Nothing is written when one fails.</p>
+<ol>
+<li><strong>The key and the owner stay.</strong> A handler that changes either one is a bug of yours: <code>500</code> <code>internal</code>, the
+generic body, one <code>error!</code> that names the model, the action and the column and no value.</li>
+<li><strong>The field rules apply.</strong> A changed field the caller may not write on the bare <code>PUT</code> is a <code>403</code>: a <code>read_only</code> or
+<code>computed</code> field, or a field whose <code>write</code> rule the caller does not meet. A field the handler leaves alone is
+never judged. A field the action lists in <a href="#writes"><code>writes</code></a> is the exception.</li>
+<li><strong>The validators apply</strong> to the changed fields: a <code>422</code> that names the fields the caller may read; a <code>500</code> with the
+generic body when only fields the caller may not read fail, logged with their names.</li>
+<li><strong>The parent chain.</strong> On a model with <code>owner(from = ..)</code>, a foreign key moved under a parent the caller may not
+see is a <code>422</code> <code>reference_not_found</code>.</li>
+<li><strong>Its own row stays untouched.</strong> A handler or a hook that updates, soft-deletes or deletes the row it was given
+through <code>tx.resource</code> is a <code>500</code> with the generic body, never a <code>404</code> (<a href="behaviors.html#a-hook-cannot-write-its-own-row">A hook cannot write its own row</a>).
+Other models’ rows, written through <code>tx.resource</code>, are written under the caller’s rules.</li>
+<li><strong><code>can(Action(name))</code> on the row as written.</strong> An authority that refuses the new state is a <code>403</code>.</li>
+</ol>
+<p>A returned row equal to the locked one writes nothing: no <code>UPDATE</code>, the same <code>ETag</code>, the hooks still run.</p>
+<h2 id="writes"><a class="header" href="#writes"><code>writes</code></a></h2>
+<p>A <code>read_only</code> field is closed to every caller, and a field with a <code>write</code> rule is closed to the callers who fail it.
+An action that must set one lists it: <code>writes = [status]</code>. The field is then set under the action’s own rule, which has
+already passed by the time the handler runs, and not under the field’s.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use ferra::hooks::{HookError, HookTx};
+</span><span class="boring">use ferra::request_context::RequestContext;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "tickets")]
+#[ferra(auth = "bearer")]
+#[ferra(action(name = "close", authorize = HasRole("support"), handler = close, writes = [status]))]
+#[ferra(action(name = "reprioritize", authorize = HasRole("support"), handler = reprioritize, writes = [priority]))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    #[ferra(read_only)]
+    #[field(max_length = 8)]
+    pub status: String,
+    #[field(write = IsAdmin)]
+    pub priority: Option&lt;i32&gt;,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span>
+async fn close(
+    mut ticket: Model,
+    _ctx: &amp;RequestContext,
+    _tx: &amp;mut HookTx&lt;'_, Model&gt;,
+) -&gt; Result&lt;Model, HookError&gt; {
+    ticket.status = "closed".to_owned();
+    Ok(ticket)
+}
+
+async fn reprioritize(
+    mut ticket: Model,
+    _ctx: &amp;RequestContext,
+    _tx: &amp;mut HookTx&lt;'_, Model&gt;,
+) -&gt; Result&lt;Model, HookError&gt; {
+    ticket.priority = Some(1);
+    Ok(ticket)
+}
+<span class="boring">fn main() {}</span></code></pre>
+<ul>
+<li><strong>What it opens.</strong> Only the fields it names, and only to the action that lists them. <code>close</code> sets <code>status</code> for a
+support agent, and <code>reprioritize</code> sets <code>priority</code> for one who is not an admin; neither opens the other’s field, and an
+action that lists nothing and changes <code>status</code> is a <code>403</code>, as before.</li>
+<li><strong>To whom.</strong> To the callers the action’s <a href="#the-rule">rule</a> admits, and to them alone. The field’s <code>write</code> rule is not
+asked of them in this action.</li>
+<li><strong>What it keeps.</strong> The field’s <code>#[field(...)]</code> rules apply to the value the handler returns: a <code>status</code> over eight
+characters is a <code>422</code> that names it, and nothing is written. The row’s other checks are unchanged
+(<a href="#what-the-handler-may-change">What the handler may change</a>).</li>
+<li><strong>What it never opens.</strong> A <code>PUT</code>, a <code>PATCH</code> or a <code>POST</code> never reads <code>writes</code>: a client that sends <code>status</code> gets the
+<code>422</code> <code>unknown_field</code> it got before, and one that sends <code>priority</code> is judged by the field’s own <code>write</code> rule
+(<a href="ferra-auth.html#field-rules">Field rules</a>). The key, the owner, the foreign key behind <code>owner(from = ..)</code>, a
+<code>computed</code> field and a <code>skip</code> field cannot be listed: that is <a href="ferra-forge-diagnostics.html#frg-146--a-field-an-action-cannot-write"><code>FRG-146</code></a>,
+at compile time, and so is a field that anyone who may write the row can already write, or a name the model does not have.</li>
+</ul>
+<h2 id="the-answer"><a class="header" href="#the-answer">The answer</a></h2>
+<ul>
+<li><code>200</code> with the row, as <code>GET</code> serves it to this caller: the read projection of the bare path, the <code>ETag</code> of the new
+state, the <code>_links</code>. No <code>Location</code>.</li>
+<li><code>204</code> with the <code>ETag</code> under <code>Prefer: return=minimal</code>.</li>
+<li><code>204</code> with no body, no <code>ETag</code> and no <code>Location</code> when the caller may not <code>GET</code> the row as written: the write stands,
+and nothing of the row is told.</li>
+</ul>
+<h2 id="retries-and-the-request-budget"><a class="header" href="#retries-and-the-request-budget">Retries and the request budget</a></h2>
+<p>When the database aborts the write with <code>40001</code> or <code>40P01</code> (at the statement or at <code>COMMIT</code>), Ferra runs the whole
+action again: the lock, the preconditions, the handler, the hooks. Three attempts, then a <code>503</code> <code>retry_exhausted</code>
+with <code>Retry-After: 1</code>, and the action was not applied. Details and constants:
+<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>.</p>
+<p>So a handler must be <strong>re-runnable</strong>:</p>
+<ul>
+<li><strong>No external I/O before the commit.</strong> A message, an HTTP call or a file written from the handler goes out once
+per attempt, and for an action that is then rolled back. Work on the database through <code>tx</code>, which the abort rolls
+back; send effects from <a href="behaviors.html#after-commit"><code>after_commit</code></a>, which runs once, for the attempt that committed.</li>
+<li><strong>Keep no state between attempts.</strong> A counter or a flag changed in the application is changed once per attempt.</li>
+<li><strong>A precondition is decided again.</strong> If another writer committed between two attempts, the new attempt locks the
+new row, and a stale <code>If-Match</code> is a <code>412</code>.</li>
+</ul>
+<p>Set a <a href="foundry.html#request-time-budget">request budget</a>. Without one, only the three attempts bound the work. With
+one, the deadline cuts a handler at its next <code>.await</code> before the commit starts (<code>503</code> <code>timeout</code>, nothing written);
+a handler that blocks the thread without awaiting is not cut, and neither is a commit once it has started.</p>
+<h2 id="sending-the-same-request-twice"><a class="header" href="#sending-the-same-request-twice">Sending the same request twice</a></h2>
+<p>Ferra does not deduplicate a request, and there is no <code>Idempotency-Key</code>. <code>If-Match</code> is the guard against running an
+action twice:</p>
+<ul>
+<li>A client that sends the <code>ETag</code> it read as <code>If-Match</code> and gets no answer can send the same request again. If the first
+one committed a change, the row has a new tag and the replay is a <code>412</code>: it ran once.</li>
+<li>An action that changed nothing leaves the tag as it was, so the replay passes and the handler runs again.</li>
+<li>Without <code>If-Match</code>, the handler runs again.</li>
+</ul>
+<p>Write the handler so that running it twice on the same row is harmless, or make the client send <code>If-Match</code>.</p>
+<h2 id="_linksname"><a class="header" href="#_linksname"><code>_links.&lt;name&gt;</code></a></h2>
+<p>A served row carries <code>_links.&lt;name&gt;</code> for each action the caller may run on that row, only when <code>self</code> is present:
+the action’s rule and <code>can(Action(name), row)</code> both pass, judged in memory from the row in hand, with no statement.
+The <code>href</code> is the action’s bare path (<code>/jobs/1/mark_seen</code>), whatever projection prefix served the row. A link is a
+hint: following it is judged again by the route.</p>
+<pre><code class="language-json">{
+  "id": 1,
+  "seen": false,
+  "_links": {
+    "self": { "href": "/jobs/1" },
+    "collection": { "href": "/jobs" },
+    "mark_seen": { "href": "/jobs/1/mark_seen" }
+  }
+}
+</code></pre>
+<h2 id="collection-actions"><a class="header" href="#collection-actions">Collection actions</a></h2>
+<p><code>collection</code> in the attribute serves the action on <code>POST /{resource}/{name}</code> (<code>POST /jobs/mark_all_seen</code>): one request
+runs the handler on up to <strong>100</strong> rows of the model, in one transaction. The rule, the handler, the typed body and
+<code>writes</code> are those of a row action; the handler runs once per row, in the order of the keys. A model with a composite
+key cannot declare one (<a href="ferra-forge-diagnostics.html#frg-143--a-collection-action-on-a-composite-key"><code>FRG-143</code></a>).</p>
+<p>The request is an envelope, a JSON object with the <code>Content-Type</code> <code>application/json</code>:</p>
+<pre><code class="language-json">{ "ids": [3, 7, 12], "body": { "progress": 40 } }
+</code></pre>
+<ul>
+<li><code>ids</code> is required: one to 100 distinct keys of the model’s key type, in any order. An empty list is <code>422</code>
+<code>min_items</code>, a key listed twice is <code>422</code> <code>unique_items</code> and a list over 100 is <code>422</code> <code>max_items</code>;
+a missing <code>ids</code> is <code>422</code> <code>required</code>; an id of the wrong JSON type or that does not parse as the key is <code>400</code>
+<code>invalid_json</code>. The message never holds an id.</li>
+<li><code>body</code> is the <a href="#the-typed-body">typed body</a>, required when the action declares one (<code>422</code> <code>required</code>) and the same
+for every row. An error of the typed body names its key <code>body.&lt;key&gt;</code> (<code>body.progress</code>). A key other than <code>ids</code> and
+<code>body</code> is <code>422</code> <code>unknown_field</code>, and so is <code>body</code> on an action that declares none.</li>
+<li>A key repeated in the envelope (<code>ids</code> twice) or in the typed body is <code>400</code> <code>invalid_json</code>.</li>
+<li><code>If-Match: *</code> passes and <code>If-Match</code> with a tag is a <code>412</code>: no tag is served for a batch. <code>If-None-Match: *</code> is a
+<code>412</code> and <code>If-None-Match</code> with tags passes. <code>Prefer</code> is ignored.</li>
+</ul>
+<p>The order of refusals is the row action’s, with the envelope judged first: <code>401</code>, then <code>413</code> for an announced
+<code>Content-Length</code> over the cap, <code>403</code> (a rule that reads no row), <code>415</code>, <code>412</code>, <code>413</code> for a body read over the cap,
+<code>400</code>, the <code>422</code> of the envelope and of the typed body, then the rows. None of them calls the handler.</p>
+<ul>
+<li><strong>One <code>404</code>, naming no id.</strong> If any listed row is absent, soft-deleted or hidden from the caller (<code>IsOwner</code>, the
+authority’s <code>filter</code>, <code>can(Action(name))</code>), the answer is one <code>404</code> with the status, type, title and headers of an absent row’s, and the <code>detail</code>
+<code>&lt;resource&gt; not found</code>, whatever the number of rows or which one: the rows are locked in one read, in key order, so the number of statements does not tell either.</li>
+<li><strong>All or nothing.</strong> A <code>403</code> on one row (the part of the rule that reads the row, a field the action may not write,
+<code>can(Action(name))</code> on the row as written), a handler error, a failed validator: the whole batch is rolled back
+and nothing is written. The first error is the answer. The checks of <a href="#what-the-handler-may-change">What the handler may change</a>
+run on every row.</li>
+<li><strong><code>after_commit</code> once per row</strong>, after the commit of the batch, for each row that was committed, even if the hook of
+one row fails (the answer is then the first error).</li>
+<li><strong>The batch is the retried unit.</strong> On <code>40001</code> or <code>40P01</code> the whole batch runs again, the handlers and hooks of
+every row with it (<a href="#retries-and-the-request-budget">Retries and the request budget</a>). The rows are locked in key
+order, so two batches that list the same rows in opposite orders do not deadlock. Set a request budget: without
+one, a batch of 100 rows holds its locks as long as its handlers run.</li>
+</ul>
+<p>The answer is <code>204</code>, with no body, no <code>ETag</code> and no <code>_links</code>: a batch serves no row. A collection action never
+appears in <code>_links</code>.</p>
+<p>On a model whose key is a <code>String</code>, <code>POST /{resource}/{name}</code> is a literal route: <code>GET</code>, <code>PUT</code>, <code>PATCH</code> and <code>DELETE</code>
+<code>/{resource}/{name}</code> answer <code>405</code>, and a row whose key equals the action’s name is unreachable on those methods. Pick
+a name no row will have as a key.</p>
+<h2 id="openapi"><a class="header" href="#openapi">OpenAPI</a></h2>
+<p>Each action is one <code>POST</code> operation on the bare path, in the document exactly as the router serves it:
+<code>/{resource}/{id}/{name}</code> for a row action, <code>/{resource}/{name}</code> for a collection action. The <code>operationId</code> is the name
+in lower camel case followed by the model (<code>mark_seen</code> on <code>Job</code> is <code>markSeenJob</code>); the suffix of a promoted default
+projection, and the version prefix, are added as for <code>restore</code>. A body is a component named
+<code>{Pascal(operationId)}Input</code> (<code>SetProgressJobInput</code>), <code>additionalProperties: false</code>. The responses of a row action are
+<code>200</code> and <code>204</code>, <code>400</code>, <code>401</code> where the model reads tokens, <code>403</code>, <code>404</code>, <code>409</code>, <code>412</code>, <code>422</code>, <code>429</code> unless the limiter
+is off, <code>500</code> and <code>503</code>; <code>413</code> and <code>415</code> only for an action with a body. A collection action answers <code>204</code> (no
+<code>ETag</code>) and the same errors, <code>413</code>, <code>415</code> and <code>422</code> included, since its envelope is a body, the component <code>{Pascal(operationId)}Request</code> (<code>AckAllJobRequest</code>): <code>minItems: 1</code>,
+<code>maxItems: 100</code>, <code>uniqueItems: true</code> on <code>ids</code>, and <code>body</code> a <code>$ref</code> to the component when the action declares one. The
+details are in <a href="ferra-openapi.html">Ferra OpenAPI</a>.</p>
+<h2 id="under-a-projection-prefix"><a class="header" href="#under-a-projection-prefix">Under a projection prefix</a></h2>
+<p>An action is served on the bare path only. <code>/{prefix}/{resource}/{id}/{name}</code> (<code>/{prefix}/{resource}/{name}</code> for a
+collection action) under a projection prefix answers <code>404</code> or <code>405</code>, and the handler does not run.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="behaviors.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="computed-fields.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="behaviors.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="computed-fields.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

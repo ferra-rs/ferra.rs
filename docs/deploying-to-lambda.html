@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,7 +214,7 @@ its prepared-statement tracking is enabled. Do not rely on <code>LISTEN/NOTIFY</
 <code>SET</code> or other session state, session advisory locks, SQL <code>PREPARE</code>/<code>DEALLOCATE</code>,
 or <code>WITH HOLD</code> cursors. Ferra’s guarded writes use one transaction and one
 server connection. The operator canary verifies these properties on the real
-Neon service; the ordinary test suite exercises PostgreSQL directly.</p>
+Neon service; the ordinary test suite exercises PostgreSQL directly, and the <code>pooler_acceptance</code> binary exercises a local PgBouncer in transaction mode.</p>
 <h2 id="server-side-timeouts-on-the-application-role"><a class="header" href="#server-side-timeouts-on-the-application-role">Server-side timeouts on the application role</a></h2>
 <p>A Lambda environment can be frozen right after a 503 <code>timeout</code>: the dropped
 transaction’s <code>ROLLBACK</code> then waits for the thaw, and the transaction keeps its
@@ -246,7 +245,8 @@ The function timeout is 30 seconds. A started database commit is awaited rather
 than canceled, and the <code>after_commit</code> hook after it is bounded by the remaining
 budget (a 500 when cut, the commit standing); the raw connection escape is
 outside the rollback guarantee.</p>
-<p>Keep <code>DATABASE_URL</code> and <code>JWT_SECRET</code> in SSM Parameter Store <code>SecureString</code>
+<p>Keep <code>DATABASE_URL</code>, <code>JWT_SECRET</code> and <code>ETAG_KEY</code> (the entity-tag key, at least 32
+bytes, never the JWT secret) in SSM Parameter Store <code>SecureString</code>
 parameters. The template carries only their names and ARNs. The operator sets
 the values separately, so credentials never enter OpenTofu state or Lambda
 configuration. The example reads them through the Parameters and Secrets

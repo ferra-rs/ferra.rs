@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -226,6 +225,7 @@ surface, applies version prefixes, and produces the final
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let conn = sea_orm::Database::connect(&amp;std::env::var("DATABASE_URL")?).await?;
     let app = Foundry::new(conn)
+        .etag_key(std::env::var("ETAG_KEY")?)?
         .mount::&lt;Film&gt;()
         .mount::&lt;Actor&gt;()
         .with_docs()
@@ -250,7 +250,7 @@ returned router land outside the framework’s Tower stack.</p>
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -266,6 +266,7 @@ serde   = { version = "1", features = ["derive"] }
 <tr><td><code>Foundry::new(conn)</code></td><td>begins the chain</td><td>—</td></tr>
 <tr><td><code>.with_auth::&lt;Claims&gt;(jwt)</code></td><td>configures JWT bearer validation; required to mount a model whose rules need an identity (without it, <code>.mount::&lt;M&gt;()</code> is a compile error, FRG-151 — see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Compile-time auth defense)</td><td>—</td></tr>
 <tr><td><code>.with_api_keys(keys)</code></td><td>accepts API keys next to the JWT (after <code>.with_auth()</code>; see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>)</td><td>—</td></tr>
+<tr><td><code>.etag_key(secret)?</code></td><td>the key that signs the entity tags: at least 32 bytes, the same on every replica, never the JWT secret (see <a href="#entity-tag-key">Entity-tag key</a>)</td><td>—</td></tr>
 <tr><td><code>.api_version("v1")?</code></td><td>nests every route under <code>/v1/</code></td><td>—</td></tr>
 <tr><td><code>.default_representation(Representation::Flat)</code></td><td>the shape of a 2xx for a client that states no <code>Accept</code> preference (<code>Hal</code> unless set); see <a href="ferra-http.html#response-representations"><code>ferra-http.md</code></a></td><td>—</td></tr>
 <tr><td><code>.layer(layer)</code></td><td>per-application transport settings</td><td><code>.mount_with_layer::&lt;M&gt;(layer)</code></td></tr>
@@ -279,7 +280,7 @@ serde   = { version = "1", features = ["derive"] }
 </tbody>
 </table>
 </div>
-<p><code>.with_auth()</code>, <code>.with_api_keys()</code> (after <code>.with_auth()</code>), <code>.api_version()</code>, <code>.default_representation()</code> and <code>.layer()</code> come before the first <code>.mount()</code>, in
+<p><code>.with_auth()</code>, <code>.with_api_keys()</code> (after <code>.with_auth()</code>), <code>.api_version()</code>, <code>.etag_key()</code>, <code>.default_representation()</code> and <code>.layer()</code> come before the first <code>.mount()</code>, in
 any order among themselves; the JWT configuration survives <code>.api_version()</code>.
 <code>.with_auth()</code> is called at most once per chain. Call <code>.with_docs()</code> after
 <code>.api_version()</code>: it picks its default path (<code>/docs</code> or <code>/docs/v1</code>) when it is called.</p>
@@ -291,7 +292,7 @@ segment are rejected at construction time.</p>
 <p>Mounting the same model twice <strong>panics when the chain is assembled</strong>, at the second
 <code>.mount::&lt;M&gt;()</code> call — before the server starts:</p>
 <pre><code class="language-text">the model `Film` is already mounted on this Foundry chain — remove the duplicate
-`.mount::&lt;Film&gt;()` or rename the model. See https://ferra.rs/guide/foundry#duplicate-mount.
+`.mount::&lt;Film&gt;()` or rename the model. See https://ferra.rs/docs/foundry.html#the-no-duplicate-mount-rule.
 </code></pre>
 <p>Stable Rust cannot express “<code>M</code> is not already mounted on this chain” as a trait bound, so the
 check runs at assembly time rather than at <code>cargo build</code>. If you need two shapes of
@@ -319,10 +320,11 @@ the same underlying type, define two Rust types.</p>
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
 </span>use ferra::Foundry;
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let (foundry, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let (foundry, films) = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount_and_handle::&lt;Film&gt;();
 let app = foundry.build(); // the generated routes; merge your own router with `.with_state(films)`
 <span class="boring">let _ = (app, films);
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>The handle holds the connection of the mounted routes and, after <code>.with_auth()</code>, what verifies a bearer token. A model that is not mounted has no handle: a handler that extracts <code>Resource&lt;M&gt;</code> from a state without one does not compile (<code>FRG-152</code>).</p>
@@ -331,8 +333,8 @@ let app = foundry.build(); // the generated routes; merge your own router with `
 <p><code>.api_version(...)</code> is callable only on an empty chain. Mounting an
 un-versioned model first and then calling <code>.api_version("v1")</code> is a
 compile error (FR-014a, ADR-0025). The same error, with the same text,
-covers <code>.with_auth(...)</code> and <code>.layer(...)</code> called after a mount:</p>
-<pre><code class="language-text">error[E0277]: `.api_version(...)`, `.with_auth(...)` and `.layer(...)` must come before the first `.mount(...)`
+covers <code>.with_auth(...)</code>, <code>.etag_key(...)</code> and <code>.layer(...)</code> called after a mount:</p>
+<pre><code class="language-text">error[E0277]: `.api_version(...)`, `.with_auth(...)`, `.etag_key(...)` and `.layer(...)` must come before the first `.mount(...)`
  --&gt; src/main.rs:6:10
   |
 6 |         .api_version("v1")?
@@ -340,7 +342,7 @@ covers <code>.with_auth(...)</code> and <code>.layer(...)</code> called after a 
   |
   = help: the trait `IsEmpty` is not implemented for `Mounted`
   = note: these are chain-wide settings: move the call before the first `.mount(...)` of the chain
-  = note: to ship mixed-mode (legacy + versioned) routes, build two assemblies and merge them via `axum::Router::merge`. See https://ferra.rs/guide/foundry#mixed-mode for a worked example.
+  = note: to ship mixed-mode (legacy + versioned) routes, build two assemblies and merge them via `axum::Router::merge`. See https://ferra.rs/docs/foundry.html#mixed-mode-pattern-two-assemblies-merged for a worked example.
 </code></pre>
 <h3 id="mixed-mode-pattern-two-assemblies-merged"><a class="header" href="#mixed-mode-pattern-two-assemblies-merged">Mixed-mode pattern: two assemblies merged</a></h3>
 <p>If you want a top-level <code>/films</code> <em>and</em> a <code>/v1/films</code>, build two
@@ -366,11 +368,13 @@ Foundry chains and merge them with <code>axum::Router::merge</code>:</p>
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let legacy = Foundry::new(conn.clone())
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;Film&gt;()
     .with_docs() // serves /docs/openapi.json
     .build();
 
 let v1 = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .api_version("v1")?
     .mount::&lt;Film&gt;()
     .deprecated(date!(2026-07-01), date!(2027-01-05))?
@@ -420,6 +424,7 @@ same JWT layer and the same authorization rules as on an un-versioned chain.</p>
 </span><span class="boring">}
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let v1 = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .with_auth::&lt;MyClaims&gt;(jwt)   // before or after `.api_version(...)`
     .api_version("v1")?
     .mount::&lt;Film&gt;()
@@ -464,6 +469,7 @@ root.</li>
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let v1 = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .api_version("v1")?
     .mount::&lt;Film&gt;()
     .deprecated(date!(2026-07-01), date!(2027-01-05))?
@@ -528,7 +534,7 @@ is configured the same way.</p>
 <p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
 When the <code>observability</code> feature is enabled:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0", features = ["observability"] }
 </code></pre>
 <p>the framework also advances a <code>metrics::counter!</code> named
 <code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,
@@ -584,12 +590,13 @@ use ferra::Foundry;
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>// Constant time: `==` on a secret stops at the first differing byte, and the delay tells it.
 fn same(a: &amp;[u8], b: &amp;[u8]) -&gt; bool {
     a.len() == b.len() &amp;&amp; a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 let app = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;Film&gt;()
     .with_docs_protected(|req: &amp;axum::extract::Request| {
         let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
@@ -597,6 +604,7 @@ let app = Foundry::new(conn)
     })
     .build();
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>The verifier runs synchronously and MUST NOT perform I/O — the
@@ -719,7 +727,7 @@ use tower_http::cors::CorsLayer;
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">}
 </span><span class="boring">use document::Model as Document;
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, permissive_cors: CorsLayer) {
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, permissive_cors: CorsLayer) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let global = FerraLayer::new()
     .body_limit(5 * 1024 * 1024)         // 5 MiB
     .build();
@@ -728,11 +736,13 @@ let document = FerraLayer::new()
     .build();
 
 let app = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .layer(global)                       // 5 MiB on every model …
     .mount_with_layer::&lt;Document&gt;(document) // … EXCEPT Document
     .mount::&lt;Film&gt;()
     .build();
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>Observable behaviour:</p>
@@ -795,12 +805,14 @@ needs multiple prefixes simultaneously, declare a separate
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .layer(FerraLayer::new().base_path("/api").build())
     .mount::&lt;Film&gt;()
     .build();
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>Every <code>_links.*.href</code> (self, collection, and <code>restore</code> on a soft-delete
@@ -996,6 +1008,16 @@ request answers 503 <code>application/problem+json</code>, with type
 <code>https://ferra.rs/errors/timeout</code> and no <code>Retry-After</code>. Its unfinished
 transaction rolls back. Create, update, delete, soft delete and restore
 all use this boundary.</p>
+<p>The budget also bounds the <a href="ferra-http.html#transient-conflicts-are-retried">retry of a transient conflict</a>.
+A write the database aborts with <code>40001</code> or <code>40P01</code> is run again, up to three
+attempts; the deadline bounds every attempt as it bounds the first. No attempt
+starts once it has passed and no wait ends past it, and each of these answers the
+same 503 <code>timeout</code>, with no <code>Retry-After</code> and nothing written. A <code>COMMIT</code> the
+database refuses with <code>40001</code> or <code>40P01</code> committed nothing, so it is not a started
+commit: the gate below is taken back, and the attempts that follow are cut at the
+deadline until their own commit starts. Without a budget only the three attempts
+bound the work, and the answer past them is the 503 <code>retry_exhausted</code>, with
+<code>Retry-After: 1</code>.</p>
 <p>Once any commit starts, the commit is never cancelled and never answered
 503 <code>timeout</code>: the handler finishes and returns its own response. The gate
 stays set until the request ends, so your own work in that handler is not cut.
@@ -1081,6 +1103,92 @@ is a Ferra bug, please report it”. It is a Ferra bug, not something to fix in
 your chain. The server does not start with a document that silently lost part
 of its content; please report it.</li>
 </ul>
+<hr>
+<h2 id="entity-tag-key"><a class="header" href="#entity-tag-key">Entity-tag key</a></h2>
+<p>One line every application adds, before the first <code>.mount(...)</code> (ADR-0077):</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::Foundry;
+
+fn configure(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _chain = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?;
+    Ok(())
+}
+<span class="boring">}</span></code></pre>
+<p><code>.etag_key(secret)</code> is the key that signs the entity tags of a row. Five rules:</p>
+<ul>
+<li><strong>At least 32 bytes.</strong> Generate one with <code>openssl rand -base64 32</code>. A shorter key
+is refused by <code>.etag_key(...)</code> itself with <code>EtagKeyError::TooShort { len, min }</code>,
+whose text gives the length and the minimum, never a byte of the key.</li>
+<li><strong>The same on every replica.</strong> Read it from the environment or a secret store,
+never from a literal in the source. Two replicas with two keys compute two tags
+for one row.</li>
+<li><strong>Rotating it changes every tag.</strong> Each client’s next conditional write on a row
+answers 412 once; it reads the row again and retries with the new tag.</li>
+<li><strong>Never the JWT secret.</strong> <code>.try_build()</code> returns
+<code>BuildError::EtagKeyEqualsJwtSecret</code> when the key equals any HMAC secret of
+<code>.with_auth(...)</code> (the comparison runs in constant time), and <code>.build()</code> panics
+with the same text. A key-set (<code>EdDSA</code>) configuration has no HMAC secret to compare
+with.</li>
+<li><strong>Never printed.</strong> <code>Debug</code> of the builder shows the key as <code>[REDACTED]</code>, in a log
+line or in a <code>tracing</code> event.</li>
+</ul>
+<p>Like <code>.with_auth(...)</code>, <code>.etag_key(...)</code> is callable only before the first mount.</p>
+<p><strong>What the key signs.</strong> A tag is <code>HMAC-SHA256</code> over the table, the primary key and the
+row’s PostgreSQL version (<code>xmin</code>). So, for the operator:</p>
+<ul>
+<li>Rewriting a row with identical values still gives it a new version, so a client
+holding the old tag gets a 412 it could not have avoided.</li>
+<li>A logical replica, or a dump and restore, gives every row a new <code>xmin</code>; as with a
+rotation, each outstanding tag is stale once. A physical standby keeps it.</li>
+<li><code>VACUUM FREEZE</code> changes nothing: PostgreSQL 9.4 and later do not rewrite <code>xmin</code> when
+they freeze a row.</li>
+<li><code>xmin</code> wraparound is accepted. After 2^32 transactions a stale tag could match
+again, with probability 2^-32 per stale tag and no leverage without the key.</li>
+</ul>
+<hr>
+<h2 id="try_build"><a class="header" href="#try_build"><code>try_build</code></a></h2>
+<p><code>.build()</code> panics at startup when the chain is misconfigured. <code>.try_build()</code>
+does the same checks and returns the refusal as a <code>ferra::BuildError</code> instead,
+for a launcher that reports it its own way or a test that asserts it. <code>.build()</code>
+is <code>.try_build()</code> that panics with the error’s <code>Display</code>, so the two never
+disagree.</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{BuildError, Foundry};
+use std::time::Duration;
+
+fn configure(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;axum::Router, BuildError&gt; {
+    Foundry::new(conn)
+        .request_budget(Duration::from_secs(25))
+        .route("/live", axum::routing::get(|| async { "ok" }))
+        .try_build()
+}
+<span class="boring">}</span></code></pre>
+<p><code>BuildError</code> is <code>#[non_exhaustive]</code>; give the match a catch-all arm. One
+variant per refusal:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variant</th><th>The refusal</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ProjectionPrefixes</code></td><td>two projections resolve to the same URL prefix (<code>FRG-310</code>), a projection’s prefix collides with another model’s resource (<code>FRG-312</code>), or an <code>OpenAPI</code> name is produced twice (<code>FRG-153</code>)</td></tr>
+<tr><td><code>Policies</code></td><td>a mounted model leaves an operation without an authorization rule (<code>FRG-150</code>), or <code>GET /me</code> is not held to one model</td></tr>
+<tr><td><code>KeySetTimeoutExceedsBudget { timeout, budget }</code></td><td>the key-set fetch timeout is not below the request budget</td></tr>
+<tr><td><code>CookieWithCustomCors { culprit }</code></td><td>the cookie credential is configured next to a custom <code>FerraLayer::cors</code></td></tr>
+<tr><td><code>RouteOverlap { path, owned }</code></td><td>a route declared with <code>.route</code> overlaps a route Ferra mounts, or the docs page</td></tr>
+<tr><td><code>EtagKeyMissing</code></td><td>a model is mounted and the chain has no <code>.etag_key(...)</code>; a chain with only <code>.route(..)</code> needs none (see <a href="#entity-tag-key">Entity-tag key</a>)</td></tr>
+<tr><td><code>EtagKeyEqualsJwtSecret</code></td><td>the entity-tag key equals an HMAC secret of <code>.with_auth(...)</code></td></tr>
+<tr><td><code>Docs</code></td><td>the <code>OpenAPI</code> document cannot be finished: a Ferra bug, please report it</td></tr>
+</tbody>
+</table>
+</div>
+<p>Each <code>Display</code> says what is wrong, where and how to fix it. <code>Docs</code> wraps the
+opaque <code>ferra::InternalError</code>: the document error is behind <code>source()</code>, in the
+error chain, and its type is not part of the contract.</p>
+<p>The duplicate-path panics of <code>.route(...)</code> and <code>.mount(...)</code> are raised where
+the call is made, not by <code>try_build</code>.</p>
 <hr>
 <h2 id="escape-hatches"><a class="header" href="#escape-hatches">Escape hatches</a></h2>
 <ul>

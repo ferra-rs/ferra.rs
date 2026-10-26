@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -226,7 +225,7 @@ upstream documentation is the canonical reference.</p>
 <tr><th>Namespace</th><th>What it is</th></tr>
 </thead>
 <tbody>
-<tr><td><code>ferra::Foundry</code></td><td>The router builder — <code>Foundry::new(conn).mount::&lt;M&gt;().build()</code>.</td></tr>
+<tr><td><code>ferra::Foundry</code></td><td>The router builder — <code>Foundry::new(conn).etag_key(key)?.mount::&lt;M&gt;().build()</code>.</td></tr>
 <tr><td><code>ferra::Id</code></td><td>The framework’s identifier type (a UUID v7), usable as a key.</td></tr>
 <tr><td><code>ferra::FerraError</code></td><td>The framework-wide error enum surfaced in HTTP responses.</td></tr>
 <tr><td><code>ferra::FerraLayer</code></td><td>The Tower layer composition entry point.</td></tr>
@@ -304,7 +303,7 @@ Both are off by default.</p>
 </table>
 </div>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0", features = ["observability"] }
 </code></pre>
 <p>The implementation crates have features of their own that you do not set:</p>
 <ul>
@@ -343,7 +342,7 @@ Rust ecosystem.</p>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <p>A complete Ferra application written the re-export way, with no <code>sea-orm</code> of its
 own, demonstrating both halves of the principle:</p>
-<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 // (plus tokio, axum and serde, as in Getting started)
 
 // Direct re-export (half A): upstream `sea_orm` reached without renaming.
@@ -378,7 +377,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let conn = Database::connect("postgres://localhost/films").await?;
 
     // Ferra-defined: the router composition surface.
-    let app = Foundry::new(conn).mount::&lt;film::Model&gt;().build();
+    let app = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;film::Model&gt;().build();
 
     // Upstream API (axum): Ferra returns a standard axum Router.
     axum::serve(

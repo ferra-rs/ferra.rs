@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -267,6 +266,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
         ClaimCheck::expect("films-api"),
     )?;
     let app = Foundry::new(conn)
+        .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;MyClaims&gt;(jwt)
         .mount::&lt;film::Model&gt;()
         // Public in development: /docs needs no token (see `with_docs_protected` in ferra-openapi.md).
@@ -281,7 +281,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
 <p>Running it gives you all of the following, with no further code.</p>
-<h3 id="five-crud-routes"><a class="header" href="#five-crud-routes">Five CRUD routes</a></h3>
+<h3 id="crud-routes"><a class="header" href="#crud-routes">CRUD routes</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -292,6 +292,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tr><td><code>GET</code></td><td><code>/films/{id}</code></td><td>One resource by key</td></tr>
 <tr><td><code>POST</code></td><td><code>/films</code></td><td>Create: <code>201</code> and a <code>Location</code> header; the server chooses the key</td></tr>
 <tr><td><code>PUT</code></td><td><code>/films/{id}</code></td><td>Update the row the path names: <code>200</code>, or <code>404</code></td></tr>
+<tr><td><code>PATCH</code></td><td><code>/films/{id}</code></td><td>Change the fields the body names (<code>application/merge-patch+json</code>) and leave the others: <code>200</code>, or <code>404</code></td></tr>
 <tr><td><code>DELETE</code></td><td><code>/films/{id}</code></td><td>Delete: <code>204</code>, or <code>404</code></td></tr>
 </tbody>
 </table>
@@ -360,7 +361,8 @@ possible error.</p>
 <p>The complete error URI table is in <a href="./ferra-error-handling.html">Error Handling</a>.</p>
 <h3 id="validation-on-the-field"><a class="header" href="#validation-on-the-field">Validation on the field</a></h3>
 <p><code>#[field(min_length, max_length, min, max, pattern, email, url, required)]</code>
-become <code>garde</code> validators, applied on <code>POST</code> and <code>PUT</code> before the query runs. A
+become <code>garde</code> validators, applied on <code>POST</code> and <code>PUT</code> before the query runs, and on
+the values a <code>PATCH</code> sets (a field it leaves out is not judged). A
 violation answers <code>422</code> with an <code>errors</code> array of <code>{field, code, message}</code>, every failing field in one
 response (<a href="./ferra-forge.html">Ferra Forge</a>).</p>
 <h3 id="behaviors"><a class="header" href="#behaviors">Behaviors</a></h3>
@@ -373,7 +375,7 @@ response carries), and a soft-deleted row is a <code>404</code>, never a deleted
 record (<a href="./behaviors.html">Behaviors</a>).</p>
 <h3 id="security-defaults-not-security-options"><a class="header" href="#security-defaults-not-security-options">Security defaults, not security options</a></h3>
 <ul>
-<li><strong>Rate limiting</strong> on mutation routes (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>), out of the box,
+<li><strong>Rate limiting</strong> on mutation routes (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>), out of the box,
 keyed on the peer address (serve with <code>into_make_service_with_connect_info</code>).</li>
 <li><strong>Body size cap</strong>: requests over 1 MiB are rejected before the body is read.</li>
 <li><strong>CORS</strong>: restrictive by default. You opt in to origins, not out of open access.</li>
@@ -408,12 +410,14 @@ ones, and answer with a body of their own:</p>
     let count = film::Entity::find()
         .count(&amp;conn)
         .await
-        .map_err(|err| FerraError::Internal(err.to_string()))?;
+        .map_err(|err| FerraError::Internal(ferra::InternalError::new(err)))?;
     Ok(Json(count))
 }
 
 <span class="boring">fn demo(conn: DatabaseConnection) {
 </span>let app: Router = Foundry::new(conn.clone())
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
     .mount::&lt;film::Model&gt;()
     .build()
     .merge(Router::new().route("/films/count", get(film_count)).with_state(conn));

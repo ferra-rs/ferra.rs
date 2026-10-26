@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,14 +181,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="custom-handlers"><a class="header" href="#custom-handlers">Custom handlers</a></h1>
-<p>Most Ferra apps need at least one route that is not pure CRUD — a publish action, a derived collection, an aggregation, a webhook receiver. This page is the authoritative guide to writing those handlers on top of a Ferra-served API. A reader with this page plus standard Rust knowledge produces a compiling action route on the first attempt — no framework source, no ADR, no constitution required.</p>
+<p>Most Ferra apps need at least one route that is not pure CRUD — a publish verb, a derived collection, an aggregation, a webhook receiver. This page is the authoritative guide to writing those handlers on top of a Ferra-served API. A reader with this page plus standard Rust knowledge produces a compiling custom handler on the first attempt — no framework source, no ADR, no constitution required.</p>
 <p>The companion CRUD / envelope / Tower-stack / typed-extraction reference is <code>ferra-http.md</code>. The router-assembly facade is <code>foundry.md</code>.</p>
 <hr>
 <p><strong>Dependencies.</strong> The examples on this page assume the dependencies of
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -199,7 +198,7 @@ serde   = { version = "1", features = ["derive"] }
 <p>The five built-in handlers cover the resource-shaped endpoints — list, read, create, update, delete. They are all you need for ~80 % of the surface a typical app exposes.</p>
 <p>You write a custom handler when the route is not one of those five operations. Common reasons:</p>
 <ul>
-<li><strong>Action routes.</strong> <code>POST /films/{id}/publish</code>, <code>POST /invoices/{id}/cancel</code>, <code>POST /accounts/{id}/transfer</code> — verbs on a resource that aren’t expressible as <code>PUT</code>.</li>
+<li><strong>Verbs on a resource.</strong> <code>POST /films/{id}/publish</code>, <code>POST /invoices/{id}/cancel</code>, <code>POST /accounts/{id}/transfer</code> — verbs on a resource that aren’t expressible as <code>PUT</code>. A verb on one row of one model is a <a href="actions.html">declared action</a> first: Ferra serves it with its own rule, the row lock, the preconditions and the write of a <code>PUT</code>. Write a handler of your own when the route is not a verb on one row: a collection, a webhook, an aggregate.</li>
 <li><strong>Derived collections.</strong> <code>GET /films/popular</code>, <code>GET /actors/{id}/films</code> — collections whose membership is computed, not just <code>SELECT * WHERE ...</code>.</li>
 <li><strong>Multi-resource projections.</strong> <code>GET /dashboard</code> returning a join of three resources at once.</li>
 <li><strong>Webhook receivers.</strong> <code>POST /webhooks/stripe</code> reading a non-Ferra payload shape.</li>
@@ -208,7 +207,7 @@ serde   = { version = "1", features = ["derive"] }
 <p>Custom handlers are plain Axum handlers. They accept Axum extractors, return <code>Result&lt;_, FerraError&gt;</code> for RFC 7807 error continuity, and compose with the framework router by appending <code>.route(...)</code> or <code>.merge(...)</code> on the value <code>Foundry::build()</code> returns.</p>
 <hr>
 <h2 id="the-worked-example-post-filmsidpublish"><a class="header" href="#the-worked-example-post-filmsidpublish">The worked example: <code>POST /films/{id}/publish</code></a></h2>
-<p>The complete shape of an action route — model declaration, handler signature, composition with <code>Foundry</code> — in one file. The route reaches the <code>films</code> table through <code>Resource&lt;Film&gt;</code>: it is judged by the rules of <code>PUT /films/{id}</code>, not by whatever the handler remembers to check. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical dependency set (<code>ferra</code>, <code>tokio</code>, <code>serde</code>, <code>sea-orm</code> as in <a href="getting-started.html">Getting Started</a>, and <code>axum</code> with its <code>macros</code> feature, which <code>#[axum::debug_handler]</code> needs) and it compiles.</p>
+<p>The complete shape of a custom handler for a verb on one row — model declaration, handler signature, composition with <code>Foundry</code> — in one file. The route reaches the <code>films</code> table through <code>Resource&lt;Film&gt;</code>: it is judged by the rules of <code>PUT /films/{id}</code>, not by whatever the handler remembers to check. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical dependency set (<code>ferra</code>, <code>tokio</code>, <code>serde</code>, <code>sea-orm</code> as in <a href="getting-started.html">Getting Started</a>, and <code>axum</code> with its <code>macros</code> feature, which <code>#[axum::debug_handler]</code> needs) and it compiles. The route is a custom handler, not a declared action: for a verb that Ferra serves itself, with its own rule, the row lock and the preconditions, see <a href="actions.html">Declared actions</a>.</p>
 <pre class="playground"><code class="language-rust no_run">use axum::{Json, Router, routing::post};
 use ferra::{
     ClaimCheck, Date, FerraError, FerraIdentity, FerraJson, FerraModel, FerraPath, Foundry,
@@ -273,7 +272,7 @@ impl FerraIdentity for Claims {
     }
 }
 
-// --- The action's request body -------------------------------------
+// --- The handler's request body -------------------------------------
 
 // Plain serde struct — nothing Ferra-specific. The `FerraJson&lt;T&gt;`
 // extractor on the handler signature accepts any `T: DeserializeOwned`.
@@ -282,7 +281,7 @@ struct PublishRequest {
     release_date: Option&lt;Date&gt;,
 }
 
-// --- The action's response body ------------------------------------
+// --- The handler's response body ------------------------------------
 
 // A route of your own answers with a body of its own: the fields you
 // choose, under the names you choose.
@@ -321,7 +320,7 @@ async fn publish_film(
     };
     let film = films.update(id, patch).await?;
 
-    // Answer with the fields this action exposes.
+    // Answer with the fields this handler exposes.
     Ok(Json(PublishedFilm {
         id: film.id,
         title: film.title,
@@ -349,11 +348,12 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // routes, the JWT layer — and returns the handle that routes of your own
     // use to reach the films.
     let (foundry, films) = Foundry::new(conn)
+        .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;Claims&gt;(jwt)
         .mount_and_handle::&lt;Film&gt;();
     let api = foundry.with_docs().build();
 
-    // The action route lives on a sibling sub-router whose state is the
+    // The custom handler lives on a sibling sub-router whose state is the
     // handle. `ResourceHandle&lt;M&gt;: Clone` (reference counts only).
     let custom = Router::new()
         .route("/films/{id}/publish", post(publish_film))
@@ -366,7 +366,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
     Ok(())
 }</code></pre>
-<p><code>film::ModelPatch</code> is the struct <code>#[derive(FerraModel)]</code> generates next to <code>Model</code> (<code>{Model}Patch</code>, one <code>Option&lt;T&gt;</code> per writable field, <code>None</code> leaving the column; also <code>&lt;Film as FerraViews&gt;::Patch</code>). The owner column is compared with the token’s <code>sub</code> rendered as a string, so a <code>Uuid</code> <code>owner_id</code> matches a <code>sub</code> holding that UUID (<a href="ferra-auth.html"><code>ferra-auth.md</code></a>).</p>
+<p><code>film::ModelPatch</code> is the struct <code>#[derive(FerraModel)]</code> generates next to <code>Model</code> (<code>{Model}Patch</code>, one <code>Option&lt;T&gt;</code> per writable field, <code>None</code> leaving the column; also <code>&lt;Film as FerraViews&gt;::Patch</code>); the struct is unchanged by the <code>PATCH</code> route of 0.14.0, which reads the same <code>Value</code> it serializes to. The owner column is compared with the token’s <code>sub</code> rendered as a string, so a <code>Uuid</code> <code>owner_id</code> matches a <code>sub</code> holding that UUID (<a href="ferra-auth.html"><code>ferra-auth.md</code></a>).</p>
+<p><code>update</code> does what <code>PATCH /films/{id}</code> does (RFC 7396): <code>None</code> leaves the column, and a JSON object set on a stored JSON object is merged into it instead of replacing it (a <code>null</code> member removes its key). A <code>null</code> set on a field that cannot be null (<code>Some(serde_json::Value::Null)</code> on a required JSON field) is the 422 <code>required</code>.</p>
 <p><code>Resource&lt;Film&gt;</code> has six methods — <code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code> — each of which does what the generated route of the same name does: it runs the authorization checkpoint of the operation, scopes a list to the caller’s rows under <code>IsOwner</code>, stamps the owner on <code>create</code>, validates with the model’s <code>#[field(...)]</code> rules, and writes under the owner’s guard. What it hands back is the model’s <em>read view</em>, <code>&lt;Film as FerraViews&gt;::Read</code>: a <code>#[ferra(write_only)]</code> column is not a member of that type, so a route cannot send it by mistake. <a href="ferra-http.html#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a> is the reference.</p>
 <blockquote>
 <p><strong>Field rules reach a route of your own (0.13.0).</strong> A field with a
@@ -523,7 +524,7 @@ use ferra::Foundry;
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">async fn publish_film() {}
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let (builder, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+</span>let (builder, films) = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
 let api = builder.with_docs().build();
 
 let custom = Router::new()
@@ -534,7 +535,7 @@ let app: Router = api.merge(custom);
 <span class="boring">let _ = app;
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your action endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
+<p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your custom endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
 <h3 id="2-hand-rolled-router-with-no-ferra-crud-at-all"><a class="header" href="#2-hand-rolled-router-with-no-ferra-crud-at-all">2. Hand-rolled <code>Router</code> with no Ferra CRUD at all</a></h3>
 <pre class="playground"><code class="language-rust">use axum::{Router, routing::{get, post}};
 <span class="boring">use ferra::FerraModel;
@@ -563,7 +564,7 @@ let app: Router = api.merge(custom);
 <span class="boring">let _ = app;
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>For apps that are <em>only</em> action routes, with no CRUD surface to derive (and so no model to reach: your own state, if the routes need one, is yours). You retain <code>FerraJson</code> / <code>FerraPath</code> / <code>FerraError</code>; you give up the auto-generated CRUD, the HAL <code>_links</code> on the responses, and the docs surface.</p>
+<p>For apps that are <em>only</em> custom handlers, with no CRUD surface to derive (and so no model to reach: your own state, if the routes need one, is yours). You retain <code>FerraJson</code> / <code>FerraPath</code> / <code>FerraError</code>; you give up the auto-generated CRUD, the HAL <code>_links</code> on the responses, and the docs surface.</p>
 <p>In both patterns, consumer-added <code>.layer(...)</code> calls on the final <code>Router</code> wrap the framework stack from the outside. Place observability and authentication layers there; place per-route policy where the policy belongs (a sub-router scoped to that route).</p>
 <p>A route you add yourself is outside Ferra’s authorization policy: <code>Foundry</code> protects the routes it mounts, not yours. Protect a custom route yourself, for instance with the <code>CurrentUser&lt;YourClaims&gt;</code> extractor behind the JWT layer (see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>).</p>
 <pre class="playground"><code class="language-rust">use std::sync::Arc;
@@ -608,7 +609,7 @@ async fn publish_film(
 
 <span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt_config: JwtConfig) {
 </span>let jwt = Arc::new(jwt_config); // the same `JwtConfig` settings you give `.with_auth`
-let (_api, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+let (_api, films) = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
 let custom: Router = Router::new()
     .route("/films/{id}/publish", post(publish_film))
     .with_state(films)
@@ -665,7 +666,7 @@ async fn count_films(State(conn): State&lt;DatabaseConnection&gt;) -&gt; Result&
 }
 
 <span class="boring">fn demo(conn: DatabaseConnection) {
-</span>let (builder, films) = Foundry::new(conn.clone()).mount_and_handle::&lt;Film&gt;();
+</span>let (builder, films) = Foundry::new(conn.clone()).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
 let app: Router = builder.build().merge(
     Router::new()
         .route("/films/count", get(count_films))
@@ -680,7 +681,7 @@ let app: Router = builder.build().merge(
 <p>Pointers below trace decisions back to their arbitration. They are <em>not</em> required reading for correct use of the APIs above — every guarantee stated on this page stands on its own.</p>
 <ul>
 <li><code>ferra-http.md</code> — the typed-extraction reference, the full RFC 7807 taxonomy, and the Tower layer-ordering diagram. Cross-read it when wiring observability or auth around custom handlers.</li>
-<li><code>foundry.md</code> — the router-assembly facade. The composition patterns above attach action routes to a <code>Foundry::build()</code> output.</li>
+<li><code>foundry.md</code> — the router-assembly facade. The composition patterns above attach custom handlers to a <code>Foundry::build()</code> output.</li>
 <li><code>ferra-error-handling.md</code> — the closed <code>ERROR_TYPES</code> URI namespace and the consumer-side error-branching pattern.</li>
 <li><code>ferra-core.md</code> §“Time vocabulary” — <code>Date</code> and <code>DateTime</code> (used in the worked example’s <code>release_date</code> field).</li>
 </ul>

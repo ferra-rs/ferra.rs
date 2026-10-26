@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -203,7 +202,7 @@ Transactions are the same: begin one on your own connection with <code>conn.begi
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -311,6 +310,38 @@ tx.commit().await?; // dropped without commit: rolled back
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <hr>
+<h2 id="behind-a-transaction-pooler"><a class="header" href="#behind-a-transaction-pooler">Behind a transaction pooler</a></h2>
+<p>Ferra’s writes run behind a pooler in transaction mode: PgBouncer, or Neon’s pooled endpoint (the hostname with
+<code>-pooler</code>). A pooler hands a server connection to a client for one transaction only, so nothing a session keeps may
+matter between two transactions. Ferra keeps nothing:</p>
+<ul>
+<li>no <code>SET</code> outside a transaction (what a write sets, it sets for its transaction: the isolation level of a model with
+a system grant, for one), no <code>LISTEN</code>, no SQL-level <code>PREPARE</code>;</li>
+<li>the advisory locks of a system grant are transaction-level (<code>pg_advisory_xact_lock</code>), released at commit or
+rollback, never session-level;</li>
+<li>a write, its replay after a <code>40001</code> or a <code>40P01</code> (the whole transaction runs again) and its <code>COMMIT</code> each use one
+transaction on one server connection.</li>
+</ul>
+<p>The statements Ferra prepares are protocol-level ones (sqlx’s), which a pooler can carry only if it tracks them:
+PgBouncer does with <code>max_prepared_statements</code> greater than zero (since 1.21.0; on by default at 200 since 1.24.0).
+sqlx also sends <code>extra_float_digits</code> at the start of every connection, and a PgBouncer that lists it in neither
+<code>ignore_startup_parameters</code> nor <code>track_extra_parameters</code> refuses the connection.
+Your own code is yours: a <code>SET</code>, a <code>LISTEN</code>, a session advisory lock or a <code>WITH HOLD</code> cursor of your own is
+wrong behind such a pooler, whatever Ferra does.</p>
+<p><strong>PgBouncer 1.26.1 or later.</strong> Earlier versions have CVE-2026-107350, a bypass of SCRAM authentication between
+users, fixed in 1.26.1. The repository’s <code>compose.yml</code> and its CI pin
+<code>edoburu/pgbouncer</code> at 1.26.1, by digest, with <code>AUTH_TYPE=scram-sha-256</code>; run no older one, and no looser
+authentication mode, in front of a database that holds data.</p>
+<p>The repository proves the above on every run of <code>pooler_acceptance</code> (<code>crates/ferra-http/tests/</code>): CRUD, a stale
+<code>If-Match</code> on <code>PUT</code>, <code>PATCH</code> and <code>DELETE</code>, a forced <code>40001</code> replayed to one commit and one <code>after_commit</code>, a
+second pooled connection that reads the server’s defaults after a write, and two concurrent system appends that end
+with one chain head each. It needs <code>POOLER_DATABASE_URL</code>
+(<code>podman compose up -d postgres pgbouncer</code>, then <code>postgres://ferra:ferra@127.0.0.1:6432/ferra_test</code>) and fails under
+<code>CI</code> without it. <code>#[sqlx::test]</code> drops its database without <code>FORCE</code>, and PgBouncer keeps an idle server connection to
+it for <code>server_idle_timeout</code> after the client left (10 s in the repository’s test pooler, 600 s by default): the
+test ends those sessions itself, and a run that fails before that leaves its database undroppable (55006) until
+they expire.</p>
+<hr>
 <h2 id="blameable-models-and-the-repository"><a class="header" href="#blameable-models-and-the-repository">Blameable models and the repository</a></h2>
 <p>The public <code>FerraRepository</code> write methods (<code>insert</code>, <code>update</code>, <code>soft_delete</code>, <code>restore</code> and their <code>_in_tx</code> forms) take no subject, so on a <code>#[behavior(blameable)]</code> model they return an error and write nothing: the author comes from the caller’s identity, which only the generated routes and <code>Resource&lt;M&gt;</code> hold (0.13.0).</p>
 <hr>
@@ -319,7 +350,7 @@ tx.commit().await?; // dropped without commit: rolled back
 <h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
 <p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>

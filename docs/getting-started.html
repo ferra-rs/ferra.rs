@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -206,14 +205,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
 serde   = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1", features = ["test-support"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0", features = ["test-support"] }
 </code></pre>
 <p><code>ferra</code> is the only Ferra crate you declare: <code>ferra-core</code>, <code>ferra-db</code>,
 <code>ferra-forge</code>, <code>ferra-http</code> and <code>ferra-openapi</code> are reached through it, and the
@@ -307,7 +306,10 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
         ClaimCheck::expect("my-api"),
     )?;
 
+    // The key that signs the entity tags: at least 32 bytes, the same on every
+    // replica, and never the JWT secret.
     let app = Foundry::new(conn)
+        .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;Claims&gt;(jwt)
         .mount::&lt;film::Model&gt;()
         // Public in development: /docs needs no token (see `with_docs_protected` in ferra-openapi.md).
@@ -336,6 +338,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tr><td><code>GET    /films/{id}</code></td><td>One film and its self-link.</td></tr>
 <tr><td><code>POST   /films</code></td><td>Create: validates, answers <code>201 Created</code>. The server chooses <code>id</code>.</td></tr>
 <tr><td><code>PUT    /films/{id}</code></td><td>Update the row named by the path.</td></tr>
+<tr><td><code>PATCH  /films/{id}</code></td><td>Change the fields the body names (JSON merge patch); the others stay.</td></tr>
 <tr><td><code>DELETE /films/{id}</code></td><td>Delete.</td></tr>
 <tr><td><code>GET    /docs/openapi.json</code></td><td>The generated OpenAPI 3.2 document.</td></tr>
 <tr><td><code>GET    /docs</code></td><td>The Scalar page rendered from it.</td></tr>
@@ -388,8 +391,9 @@ Podman or Docker:</p>
   -p 5432:5432 \
   postgres:17
 
-export DATABASE_URL=postgres://ferra:ferra@localhost:5432/my_api
+export DATABASE_URL=postgres://ferra:ferra@127.0.0.1:5432/my_api
 export JWT_SECRET=a-development-secret-of-at-least-32-bytes
+export ETAG_KEY=another-development-key-of-at-least-32-bytes
 </code></pre>
 <p>Start the server (the first build is the long part of the five minutes):</p>
 <!-- cold-start: serve -->

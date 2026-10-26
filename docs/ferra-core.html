@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -243,20 +242,107 @@ fn label(ty: FieldType) -&gt; &amp;'static str {
 <p>See the recognised field types table in <a href="./ferra-forge.html"><code>ferra-forge.md</code></a> for
 the end-user surface.</p>
 <h3 id="fieldmeta"><a class="header" href="#fieldmeta"><code>FieldMeta</code></a></h3>
-<p>The description of one field. Its public fields are individually named flags,
-so every one is grep-able and readable in IDE hover: <code>name</code>, <code>wire_name</code> (the
+<p>The description of one field. Its public members are <code>name</code>, <code>wire_name</code> (the
 JSON name, which differs from <code>name</code> under <code>#[ferra(rename_all = ...)]</code>), <code>ty</code>,
-<code>required</code>, <code>readable</code>, <code>writable</code>, <code>skip_api</code>, <code>is_id</code>, <code>read_only</code>,
-<code>write_only</code>, <code>computed</code>, <code>filterable</code>, <code>sortable</code>, <code>cursor_key</code> and
-<code>validation_rules</code>. There is no <code>groups</code> member since 0.14.0: <code>groups</code> had no
+<code>required</code>, <code>mode</code>, <code>filterable</code>, <code>sortable</code>, <code>cursor_key</code> and
+<code>validation_rules</code>. The six flags <code>readable</code>, <code>writable</code>, <code>skip_api</code>, <code>read_only</code>,
+<code>write_only</code> and <code>computed</code>, and <code>is_id</code>, were removed in 0.15.0: <code>mode</code> replaces
+them, see <a href="migrating-to-0.15.html">Migrating to 0.15</a>. There is no <code>groups</code> member since 0.14.0: <code>groups</code> had no
 effect and is a compile error (see
 <a href="./ferra-forge-diagnostics.html#frg-137--groups-has-no-effect">FRG-137</a>).</p>
+<p>A field carries <code>mode</code>, one <code>FieldMode</code> that says how it meets the API, and four
+<code>const fn</code> methods read it: <code>is_id()</code>, <code>readable()</code>,
+<code>writable()</code> and <code>is_read_only()</code> (the <code>OpenAPI</code> <code>readOnly</code>). <code>FieldMode</code> is
+<code>#[non_exhaustive]</code>; its variants answer as follows.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>mode</code></th><th><code>is_id()</code></th><th><code>readable()</code></th><th><code>writable()</code></th><th><code>is_read_only()</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>Key { read_only }</code></td><td>true</td><td>true</td><td>false</td><td><code>read_only</code></td></tr>
+<tr><td><code>ReadWrite</code></td><td>false</td><td>true</td><td>true</td><td>false</td></tr>
+<tr><td><code>ReadOnly</code></td><td>false</td><td>true</td><td>false</td><td>true</td></tr>
+<tr><td><code>WriteOnly</code></td><td>false</td><td>false</td><td>true</td><td>false</td></tr>
+<tr><td><code>Computed</code></td><td>false</td><td>true</td><td>false</td><td>true</td></tr>
+<tr><td><code>Hidden</code> (<code>skip</code>)</td><td>false</td><td>false</td><td>false</td><td>false</td></tr>
+</tbody>
+</table>
+</div>
+<p>A field has one mode: <code>skip</code> together with <code>read_only</code> is <code>Hidden</code>.</p>
+<p><code>writable()</code> answers the mode, not the write set. The owner field
+(<code>#[field(owner)]</code>) is <code>ReadWrite</code> (or <code>WriteOnly</code>), yet no generated body
+accepts it: the server sets it. A projection narrows the set further; read
+<code>ProjectionMeta::write_fields</code> for what a route accepts.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::meta::{FieldMeta, FieldMode};
+
+fn describe(field: &amp;FieldMeta) -&gt; &amp;'static str {
+    match field.mode {
+        FieldMode::Key { .. } =&gt; "key",
+        FieldMode::Computed =&gt; "computed",
+        FieldMode::Hidden =&gt; "hidden",
+        _ if field.readable() &amp;&amp; field.writable() =&gt; "read and write",
+        _ if field.readable() =&gt; "read only",
+        _ =&gt; "write only",
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>validation_rules</code> is a <code>&amp;'static [ValidationRule]</code>, the <code>#[field(...)]</code> rules of the field in
+declaration order (since 0.15.0; it was a slice of encoded strings, see
+<a href="migrating-to-0.15.html">Migrating to 0.15</a>). <code>ValidationRule</code> is <code>#[non_exhaustive]</code>:
+<code>MinLength(u64)</code>, <code>MaxLength(u64)</code>, <code>Min(Bound)</code>, <code>Max(Bound)</code>, <code>Pattern(&amp;'static str)</code>, <code>Email</code>, <code>Url</code>
+and <code>Required</code>, with <code>Bound</code> either <code>Int(i64)</code> or <code>Float(f64)</code>. The request validator and the
+<code>validation_rules</code> slice come from one parse of the attribute, and <code>ValidationRule::schema_keyword()</code>
+gives the JSON Schema keyword the <code>OpenAPI</code> document carries for a rule, as <code>Some((keyword, KeywordValue))</code>:
+<code>minLength</code>, <code>maxLength</code>, <code>minimum</code>, <code>maximum</code>, <code>pattern</code>, <code>format</code> (<code>"email"</code> or <code>"uri"</code>). <code>Required</code>
+answers <code>None</code>: it is an entry of the schema’s <code>required</code> list, not a property keyword. An integral
+float bound is an integer keyword (<code>min = 0</code> on an <code>f64</code> field gives <code>minimum: 0</code>).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::meta::{FieldMeta, KeywordValue, ValidationRule};
+
+fn min_length(field: &amp;FieldMeta) -&gt; Option&lt;u64&gt; {
+    field.validation_rules.iter().find_map(|rule| match rule {
+        ValidationRule::MinLength(n) =&gt; Some(*n),
+        _ =&gt; None,
+    })
+}
+
+fn documented_keywords(field: &amp;FieldMeta) -&gt; Vec&lt;(&amp;'static str, KeywordValue)&gt; {
+    field
+        .validation_rules
+        .iter()
+        .filter_map(ValidationRule::schema_keyword)
+        .collect()
+}
+<span class="boring">}</span></code></pre>
 <h3 id="modelmeta"><a class="header" href="#modelmeta"><code>ModelMeta</code></a></h3>
 <p>The description of one resource: <code>resource_name</code> (the URL segment, <code>"films"</code>),
-<code>table_name</code>, <code>primary_key_fields</code>, <code>fields</code>, <code>projections</code>, <code>operations</code>,
-<code>behaviors</code>, <code>pagination_mode</code>, <code>cursor_key_field_name</code>, <code>cursor_key_field_type</code>,
+<code>table_name</code>, <code>primary_key_fields</code>, <code>fields</code>, <code>projections</code>,
+<code>behaviors</code>, <code>actions</code>, <code>pagination_mode</code>,
 <code>owner_field</code>, <code>auth_posture</code>, <code>authorize_rules</code> and <code>client_pk</code>. It also answers
 <code>field_by_wire_name</code>, <code>wire_name_of</code> and <code>renames_fields</code>.</p>
+<p><code>pagination_mode</code> is a <code>PaginationMode</code>: <code>Page</code>, <code>Cursor { key, ty }</code> or <code>Both { key, ty }</code>
+(<code>#[non_exhaustive]</code>). The cursor modes carry the <code>#[field(cursor_key)]</code> field’s Rust name and its
+<code>FieldType</code>; <code>pagination_mode.cursor_key()</code> answers <code>Some((key, ty))</code> for them and <code>None</code> for <code>Page</code>.
+A <code>page</code>-mode model has no cursor key in its description, even when a field carries
+<code>#[field(cursor_key)]</code>.</p>
+<p><code>actions</code> lists the actions the model declares with <code>#[ferra(action(...))]</code>, in
+declaration order, and is empty for a model that declares none. Each <code>ActionMeta</code>
+has its <code>name</code>, its <code>target</code> (<code>ActionTarget::Row</code> or <code>ActionTarget::Collection</code>),
+<code>has_body</code> and <code>rule</code>, the <code>authorize</code> rule the action declared. That rule is the
+action’s own: the model’s <code>#[authorize]</code> block and its posture neither supply nor
+replace it, and a model without a block keeps its posture rules for its other
+operations. The routes, the links and the <code>OpenAPI</code> operations of the actions are in
+<a href="actions.html">Declared actions</a>.</p>
+<p>A <code>ModelMeta</code> built by hand, through the <code>#[doc(hidden)]</code> constructors, is outside the
+checks of the derive, which are the only checks of these combinations. Two examples of
+what a hand-built description can hold and the derive never emits: a <code>FieldMode::Computed</code>
+field marked <code>filterable</code>, and a <code>PaginationMode::Cursor { key, .. }</code> whose <code>key</code> names a
+hidden or write-only column. Trust a description only when <code>#[derive(FerraModel)]</code>
+produced it.</p>
 <p><code>primary_key_fields</code> carries the primary-key column names in <strong>declaration
 order</strong>. A single-key model holds a one-element slice and the route shape is
 <code>/{resource}/{&lt;pk&gt;}</code>; a composite-key model holds several and the route becomes
@@ -264,15 +350,16 @@ order</strong>. A single-key model holds a one-element slice and the route shape
 <p>Reading a description is what <code>FerraModel::meta()</code> is for:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use ferra::model::FerraModel;
+</span>use ferra::meta::FieldMode;
+use ferra::model::FerraModel;
 
 fn describe&lt;M: FerraModel&gt;() {
     let meta = M::meta();
     println!("{} is served at /{}", meta.table_name, meta.resource_name);
     for field in meta.fields {
-        let kind = if field.is_id {
+        let kind = if field.is_id() {
             "key"
-        } else if field.computed {
+        } else if matches!(field.mode, FieldMode::Computed) {
             "computed"
         } else {
             "column"
@@ -557,6 +644,7 @@ UTC) and <code>Sunset: &lt;HTTP-date&gt;</code> (RFC 8594: the last second of <c
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .api_version("v1")?
     .mount::&lt;Film&gt;()
     .deprecated(date!(2026-07-01), date!(2027-01-05))?
@@ -592,9 +680,9 @@ contract preserves the framework’s “single source of truth” rule.</p>
 <h3 id="requestcontext"><a class="header" href="#requestcontext"><code>RequestContext</code></a></h3>
 <p><code>RequestContext</code> (canonical path: <code>ferra::request_context::RequestContext</code>)
 is the request-scoped handle the framework hands to application code: the
-<code>ctx</code> parameter of <code>FerraComputed::compute_async</code> and
-<code>FerraComputed::compute_async_batch</code> (empty there in 0.13), and the context of the
-authorities and hooks that read it. It answers who the caller is and what the request carried:</p>
+<code>ctx</code> parameter of <code>FerraComputed::compute_field</code> and
+<code>FerraComputed::compute_field_batch</code> (the request’s own since 0.15, for the rows and fields
+served to the caller), and the context of the authorities and hooks that read it. It answers who the caller is and what the request carried:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -610,10 +698,12 @@ authorities and hooks that read it. It answers who the caller is and what the re
 </tbody>
 </table>
 </div>
-<p>A model with neither an authority nor <code>owner(from)</code> gets <code>RequestContext::empty()</code>: every
-accessor answers <code>None</code> or <code>false</code>.</p>
+<p>A model with none of an authority, hooks, <code>owner(from)</code>, a computed field or a declared action gets
+<code>RequestContext::empty()</code>: every accessor answers <code>None</code> or <code>false</code>. A model with a computed field gets the
+request’s own context in its hooks, which run only for the rows and fields served to the caller
+(<a href="./computed-fields.html#the-context"><code>computed-fields.md</code></a>).</p>
 <p>A hook receives the context of the model it is declared on, and <code>tx.resource::&lt;N&gt;()</code> hands that same
-context to the authority of <code>N</code> (not a context built for <code>N</code>).</p>
+context to the authority of <code>N</code> and to the computed-field hooks of <code>N</code> (not a context built for <code>N</code>).</p>
 <ul>
 <li><strong>Credentials never reach it.</strong> <code>Authorization</code>, <code>Proxy-Authorization</code>,
 <code>Cookie</code> and the <code>Foundry</code>’s API key header are dropped when the context is
@@ -628,7 +718,7 @@ returns what the client sent, as is: do not authorize on <code>X-Forwarded-*</co
 (<a href="./migrating-to-0.13.html#requestcontext-is-filled-and-is-no-longer-copy">migration note</a>).</li>
 </ul>
 <p>For the consumer-facing usage of the surrounding pipeline, see
-<a href="./ferra-forge.html#computed-fields"><code>ferra-forge.md</code> § Computed fields</a>.</p>
+<a href="./computed-fields.html"><code>computed-fields.md</code></a>.</p>
 <h3 id="json-documents"><a class="header" href="#json-documents">JSON documents</a></h3>
 <p><code>serde_json::Value</code>, bare <code>Value</code>, Sea-ORM’s prelude alias <code>Json</code>, and their
 <code>Option</code> forms are JSON fields. A typed <code>Serialize + Deserialize</code> struct

@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -192,7 +191,7 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 </code></pre>
 </li>
 <li>
@@ -203,18 +202,21 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 <p><strong>The contract is what the <code>ferra</code> crate exports</strong>, and nothing else:</p>
 <ul>
 <li>the <code>FerraModel</code> derive and its attributes (<code>#[ferra(...)]</code>, <code>#[field(...)]</code>,
-<code>#[authorize(...)]</code>, <code>#[behavior(...)]</code>), with the <code>FRG-</code> code of each refusal;</li>
+<code>#[authorize(...)]</code>, <code>#[behavior(...)]</code>), with the <code>FRG-</code> code of each refusal, and
+<code>#[ferra(action(...))]</code> with <code>ActionBody</code>, the derive and trait that type an action’s body;</li>
 <li><code>Foundry</code>, <code>FoundryBuilder</code> and their options;</li>
 <li><code>JwtConfig</code> and its types; the <code>FerraIdentity</code> trait; <code>testing::bearer</code>;</li>
 <li><code>Id</code>, <code>DateTime</code>, <code>Date</code>, <code>Time</code>;</li>
 <li>the error types, and the <code>problem+json</code> documents they render — status,
 <code>type</code> URI, <code>title</code>;</li>
 <li><code>ferra::hooks</code>: <code>FerraHooks</code>, <code>Saving</code>, <code>Saved</code>, <code>Committed</code>, <code>HookTx</code> (with <code>HookTx::system</code>), <code>TxResource</code>,
-<code>SystemAccess</code>, and <code>HookError</code>, what an application’s hook returns to refuse a write;</li>
+<code>SystemAccess</code>, and <code>HookError</code>, what an application’s hook or action handler returns to refuse a write;</li>
 <li>for a route of your own: <code>Resource</code>, <code>ResourceHandle</code>, <code>CollectionQuery</code>,
 <code>CursorQuery</code>, <code>Page</code>, <code>CursorPage</code>, <code>FerraPath</code>,
 <code>FerraJson</code>, <code>FerraAuthLayer</code>, the two middlewares, <code>CurrentUser</code>;</li>
-<li>the description of a model, to read: <code>meta</code>, <code>model</code>;</li>
+<li>the description of a model, to read: <code>meta</code>, <code>model</code>. <code>Operation</code> is a <code>#[non_exhaustive]</code> enum with the variant
+<code>Action(name)</code> since 0.14.0, so an authority matches it explicitly (see below); <code>ModelMeta::actions</code> lists a
+model’s actions, and <code>OperationMeta</code> and <code>ModelMeta::operations</code> are removed (only the derive used them);</li>
 <li>the Cargo features <code>observability</code> and <code>test-support</code>;</li>
 <li>the HTTP behavior of the generated routes: paths, methods, statuses, the
 shape of bodies and of the OpenAPI document.</li>
@@ -227,11 +229,10 @@ other files of <code>api/</code>.</p>
 <code>ferra-forge</code>, <code>ferra-http</code>, <code>ferra-openapi</code>): depend on <code>ferra</code>;</li>
 <li>everything <code>#[doc(hidden)]</code> — the <code>__private</code> modules, the constructors of the
 <code>meta</code> types, <code>ferra::ferra_core</code>, <code>ferra::ferra_http</code>, <code>FerraDraft</code>, <code>NoHooks</code>,
-<code>Hooked</code>, <code>ApplyDraft</code>, <code>FerraHooksDeclared</code>, <code>FerraSystemOnly</code>, <code>FerraNotBlameable</code>, <code>FerraSystemGrant</code> and <code>HookRunner</code>, the write transaction <code>WriteTx</code> of
-<code>ferra-db</code> and its entry points (<code>begin</code>, <code>commit</code>, <code>lock_row</code>, <code>insert_row</code>,
-<code>update_row</code>, <code>delete_row</code>, <code>soft_delete_row</code>, <code>restore_row</code>,
-<code>lock_parent_shared</code>), and the retry switch <code>FoundryBuilder::retry_switch</code> of the
-<code>test-support</code> feature, which only Ferra’s own tests set. It exists for the derive’s generated code and for
+<code>Hooked</code>, <code>ComputedFields</code>, <code>NoActions</code>, <code>Actioned</code>, <code>FerraActions</code>, <code>ApplyDraft</code>, <code>FerraHooksDeclared</code>, <code>FerraSystemOnly</code>, <code>FerraNotBlameable</code>, <code>FerraSystemGrant</code>, <code>HookRunner</code> and <code>ActionRunner</code>, the write transaction <code>WriteTx</code> of
+<code>ferra-db</code> and its entry points (<code>begin</code>, <code>commit</code>, <code>lock_row</code>, <code>lock_rows</code>, <code>insert_row</code>,
+<code>update_row</code>, <code>delete_row</code>, <code>soft_delete_row</code>, <code>restore_row</code>, <code>row_at</code>,
+<code>lock_parent_shared</code>). It exists for the derive’s generated code and for
 Ferra’s own crates, and changes without notice;</li>
 <li>the code the derive generates: read it with <code>cargo expand</code>, do not call it;</li>
 <li>the text of a log event, of a <code>detail</code> member, of a compiler diagnostic
@@ -263,7 +264,8 @@ the model’s rules. See <a href="migrating-to-0.10.html"><code>migrating-to-0.1
 was wrongly served is refused. Refusing more is never held back for a minor.</li>
 <li><strong>Becoming more permissive is not a break.</strong> A 400 that becomes a 200 (a
 filter on a date field, a descending cursor walk), a new optional attribute,
-a new variant of a <code>#[non_exhaustive]</code> enum, a new method on <code>Resource</code>, a new field on a <code>meta</code> type, a new member in a response object: all are additions (a client ignores members it does not know).</li>
+a new variant of a <code>#[non_exhaustive]</code> enum (<code>Operation::Action</code>: an authority whose <code>can</code> ends in <code>_ =&gt; true</code> allows
+it, so end the match with <code>_ =&gt; false</code> and name <code>Action(_)</code>, see <a href="migrating-to-0.14.html"><code>migrating-to-0.14.md</code></a>), a new method on <code>Resource</code>, a new field on a <code>meta</code> type, a new member in a response object: all are additions (a client ignores members it does not know).</li>
 </ul>
 <p><strong>A removed attribute keeps a migration diagnostic for at least one minor
 version</strong>: the compiler says what to write instead (as FRG-105, FRG-106 and
@@ -347,7 +349,7 @@ passed, the claim rests on that first trial.</li>
 </ul>
 <h2 id="what-is-planned-and-will-not-break-you"><a class="header" href="#what-is-planned-and-will-not-break-you">What is planned, and will not break you</a></h2>
 <p>Each of these is an addition under the rules above: an external authenticator
-next to <code>.with_auth</code> (RS256/JWKS, sessions); <code>PATCH</code>; relations; a response envelope for custom
+next to <code>.with_auth</code> (RS256/JWKS, sessions); relations; a response envelope for custom
 routes.</p>
 <h2 id="how-the-contract-is-kept"><a class="header" href="#how-the-contract-is-kept">How the contract is kept</a></h2>
 <p>Four gates block CI (<code>CONTRIBUTING.md</code> has the commands):</p>
@@ -376,7 +378,7 @@ build on the stable toolchain too.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="migrating-to-0.14.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="migrating-to-0.15.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -390,7 +392,7 @@ build on the stable toolchain too.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="migrating-to-0.14.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="migrating-to-0.15.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -268,7 +267,7 @@ pub struct Model {
 <ul>
 <li>A <code>behaviors</code> slice containing <code>BehaviorKind::soft_delete("deleted_at")</code>; <code>ModelMeta::soft_delete_column()</code> reads the name.</li>
 <li>An automatically injected <code>deleted_at: Option&lt;ferra::DateTime&gt;</code> field at the end of the user’s field list, flagged <code>skip</code>, so no read projection and no read schema lists it and no write projection takes it. It is a column the database keeps: the model has no such field, so no response carries it, for any caller.</li>
-<li>An auto-emitted <code>OperationMeta::new("restore", "POST", "restore")</code> on <code>operations</code>.</li>
+<li>No entry for <code>restore</code>: Ferra serves <code>POST /{resource}/{id}/restore</code> from its one list of served operations (CRUD, then <code>restore</code> when the model soft-deletes and is not <code>system_only</code>), the same list the links and the OpenAPI document read. <code>ModelMeta</code> has no <code>operations</code> field since 0.14.0.</li>
 </ul>
 <h3 id="the-migration"><a class="header" href="#the-migration">The migration</a></h3>
 <p>The column shape is hand-written into your <code>sea-orm-migration</code> migration file at 0.7.0 (no migration scaffolder ships with Ferra; the column shape below is what <code>M::meta().behaviors</code> declares):</p>
@@ -281,6 +280,7 @@ pub struct Model {
 <li><code>DELETE /films/{id}</code> on an already-soft-deleted row → <strong>404 Not Found</strong> (the framework’s <code>SELECT</code> predicate filters the row out before the handler reaches it).</li>
 <li><code>GET /films/{id}</code> on a soft-deleted row → <strong>404 Not Found</strong>.</li>
 <li><code>PUT /films/{id}</code> on a soft-deleted row → <strong>404 Not Found</strong>; nothing is written. Revive the row with <code>restore</code> first.</li>
+<li><code>PATCH /films/{id}</code> on a soft-deleted row → <strong>404 Not Found</strong>, byte for byte the answer for an absent row, also under <code>If-Match</code> and <code>If-None-Match</code>.</li>
 <li><code>GET /films</code> → soft-deleted rows are absent from the collection.</li>
 <li><code>deleted_at</code> does not appear in any response — not on a live row, not on the row <code>restore</code> returns — nor in any read schema of the OpenAPI document.</li>
 </ul>
@@ -317,12 +317,15 @@ no is the same 404 (see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>
 <code>_links.restore.href</code> that answered 404; a client that read it must call
 <code>POST /{resource}/{id}/restore</code> itself, on a row it knows was deleted.</p>
 <h3 id="other-named-operations"><a class="header" href="#other-named-operations">Other named operations</a></h3>
-<p><code>restore</code> is the only named operation. <code>#[operation(path = "...", method = "...")]</code>
-is a compile error since 0.9.0 (<strong>FRG-335</strong>): it produced a HAL link and an OpenAPI
-entry, but no route and no authorization rule. For an action route of your own —
-<code>POST /films/{id}/publish</code>, say — write the handler and add it to the router
-<code>Foundry::build()</code> returns; see <a href="custom-handlers.html"><code>custom-handlers.md</code></a>. Such a
-route is outside Ferra’s authorization policy: protect it yourself.</p>
+<p><code>restore</code> is the only operation Ferra names itself. A business verb on a row —
+<code>POST /films/{id}/publish</code>, say — is a declared action: <code>#[ferra(action(name = "publish", ..))]</code>
+serves it with its own rule, your handler, the write of a <code>PUT</code>, and its <code>_links</code> and OpenAPI
+operation; see <a href="actions.html"><code>actions.md</code></a>.</p>
+<p><code>#[operation(path = "...", method = "...")]</code> is a compile error since 0.9.0 (<strong>FRG-335</strong>): it
+produced a HAL link and an OpenAPI entry, but no route and no authorization rule. Declare an
+action instead. A route that is not a row’s verb is a handler you write and add to the router
+<code>Foundry::build()</code> returns; see <a href="custom-handlers.html"><code>custom-handlers.md</code></a>. Such a route is
+outside Ferra’s authorization policy: protect it yourself.</p>
 <pre><code class="language-text">error: FRG-335: `#[operation(...)]` declares a route Ferra does not mount
          help: remove the attribute and add the route yourself with `.route(...)` or `.merge(...)` on the value `Foundry::build()` returns — see docs/user-guide/custom-handlers.md
 </code></pre>
@@ -575,14 +578,14 @@ arm. Each variant says which operation it is.</p>
 <tr><th>Enum</th><th>Variants</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Saving&lt;'_, Self&gt;</code></td><td><code>Create { values }</code>, <code>Update { before, values }</code> (a <code>PUT</code> or a patch), <code>Restore { before, values }</code>; <code>before</code> is the locked row, <code>values</code> the pending values (<a href="#the-pending-values-modeldraft">below</a>). <code>w.values()</code> reaches <code>values</code> in all three, <code>w.before()</code> is <code>None</code> for a create.</td></tr>
+<tr><td><code>Saving&lt;'_, Self&gt;</code></td><td><code>Create { values }</code>, <code>Update { before, values }</code> (a <code>PUT</code>, a patch or <a href="#hooks-of-a-declared-action">an action</a>), <code>Restore { before, values }</code>; <code>before</code> is the locked row, <code>values</code> the pending values (<a href="#the-pending-values-modeldraft">below</a>). <code>w.values()</code> reaches <code>values</code> in all three, <code>w.before()</code> is <code>None</code> for a create.</td></tr>
 <tr><td><code>Saved&lt;'_, Self&gt;</code></td><td><code>Create(&amp;row)</code>, <code>Update(&amp;row)</code>, <code>Restore(&amp;row)</code>: the row as written.</td></tr>
-<tr><td><code>Committed&lt;'_, Self&gt;</code></td><td><code>Created(&amp;row)</code>, <code>Updated(&amp;row)</code> (a <code>PUT</code> or a patch), <code>Restored(&amp;row)</code>: the row as written. <code>Deleted(&amp;row)</code>: the row that was locked, as it was before the delete.</td></tr>
+<tr><td><code>Committed&lt;'_, Self&gt;</code></td><td><code>Created(&amp;row)</code>, <code>Updated(&amp;row)</code> (a <code>PUT</code>, a patch or an action), <code>Restored(&amp;row)</code>: the row as written. <code>Deleted(&amp;row)</code>: the row that was locked, as it was before the delete.</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="order-and-rollback"><a class="header" href="#order-and-rollback">Order and rollback</a></h3>
-<p>A create, an update or a patch (<code>Resource::update</code>) runs in this order, in one transaction:</p>
+<p>A create, an update or a patch (<code>Resource::update</code>) runs in this order, in one transaction (an action’s handler runs between steps 1 and 2: <a href="#hooks-of-a-declared-action">Hooks of a declared action</a>):</p>
 <ol>
 <li>Ferra’s own checks: the rule, the field rules, the owner scope, the authority, the body and its validation, the
 lock of the row (an update) and the parent check (<code>owner(from)</code>). A request refused here runs <strong>no hook</strong>.</li>
@@ -618,6 +621,45 @@ refusal after the statement (the authority’s <code>403</code> on the row as wr
 violation) also rolls back: <code>before_save</code> ran, <code>after_save</code> does not, and nothing it wrote survives. An empty patch
 writes nothing and runs no hook. A write made directly through <code>FerraRepository</code> (<code>*_in_tx</code>, <code>insert_active</code>) bypasses
 the hooks: it is raw access, outside the contract.</p>
+<h3 id="a-hook-cannot-write-its-own-row"><a class="header" href="#a-hook-cannot-write-its-own-row">A hook cannot write its own row</a></h3>
+<p>An update (a <code>PUT</code>, a patch, <code>Resource::update</code>, and a declared action) writes only the row it locked: its <code>UPDATE</code>
+is conditioned on that row’s version and, on a soft-delete model, on its deletion column. A <code>before_save</code> hook that
+updated, soft-deleted or deleted that row through <code>tx.resource</code> has changed the version (or removed the row), so the
+write finds no row: the answer is the generic <code>500</code>, one <code>error!</code> names the model and the operation, and nothing is
+written, the hook’s write included. It is never the <code>404</code> of the repository. Since 0.14.0:</p>
+<blockquote>
+<p>a before_save hook that wrote its own row through tx.resource now fails with 500: set the value on the draft instead</p>
+</blockquote>
+<p>The draft is the hook’s way to change the row being written (<a href="#the-pending-values-modeldraft">the pending values</a>); a
+write to another model’s row through <code>tx.resource</code> is unaffected
+(<a href="../decision-record/0072-hooks-in-the-operation-transaction-and-after-commit.html">ADR-0072</a>, amended 2026-10-15).</p>
+<h3 id="hooks-can-run-more-than-once"><a class="header" href="#hooks-can-run-more-than-once">Hooks can run more than once</a></h3>
+<p>When the database aborts a write with <code>40001</code> or <code>40P01</code>, Ferra runs the write again from its start, up to three
+attempts (<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>). The four
+transactional hooks (<code>before_save</code>, <code>after_save</code>, <code>before_delete</code>, <code>after_delete</code>) run once per attempt, each on
+the state of the row that attempt locked. A <code>HookError</code> built from a <code>FerraError</code> that carries one of those codes
+(a <code>tx.resource</code> or <code>tx.system</code> call you propagated with <code>?</code>) starts a new attempt too; any other <code>HookError</code> ends
+the write with its own answer. After the third abort the answer is a <code>503</code> <code>retry_exhausted</code> and that write was
+not applied.</p>
+<p>So a transactional hook must be re-runnable:</p>
+<ul>
+<li><strong>No external I/O before the commit.</strong> A message, an HTTP call or a file written from <code>before_save</code>,
+<code>after_save</code>, <code>before_delete</code> or <code>after_delete</code> goes out once per attempt, and for a write that is then rolled
+back. Do the work on the database through <code>tx</code>, which the abort rolls back, and nothing else.</li>
+<li><strong>Effects go to <a href="#after-commit"><code>after_commit</code></a>.</strong> It runs once, for the attempt that committed, never for an
+aborted one.</li>
+<li><strong>Keep no state between attempts.</strong> A counter, a flag or a cache that a hook changes in the application is
+changed once per attempt.</li>
+</ul>
+<h3 id="hooks-of-a-declared-action"><a class="header" href="#hooks-of-a-declared-action">Hooks of a declared action</a></h3>
+<p>A declared action (<a href="actions.html"><code>actions.md</code></a>) writes as an update does: its handler returns the new state of the locked row, and the hooks of
+the model see that write as an update. <code>before_save</code> gets <code>Saving::Update</code>, <code>after_save</code> gets <code>Saved::Update</code> and
+<code>after_commit</code> gets <code>Committed::Updated</code>; <code>Committed</code> keeps its four variants above, an action
+is not a fifth. The handler is under the same rules as a hook: an <code>Err</code> rolls the write back, a panic is a <code>500</code> with
+the generic body (<code>panic = "abort"</code> defeats the catch, as for a hook), and the <code>error!</code> of a <code>failed</code> names the
+resource and the action and carries no value.</p>
+<p>A handler and its hooks may run again on a retried attempt (<a href="#hooks-can-run-more-than-once">Hooks can run more than once</a>):
+do no external I/O in the handler before the commit, and send effects from <a href="#after-commit"><code>after_commit</code></a>.</p>
 <h3 id="after-commit"><a class="header" href="#after-commit">After commit</a></h3>
 <p><code>after_commit</code> runs once per committed create, update, patch, delete and restore, after the commit and before the
 response, outside the transaction. It receives a <code>Committed</code> (which operation it was, and the row: see
@@ -626,18 +668,23 @@ a refused or rolled-back write. A write made by <code>tx.resource</code> inside 
 and a <code>match</code> on <code>Committed</code> are in the example above.</p>
 <ul>
 <li><strong>Effects go here.</strong> A message to a queue sent from <code>before_save</code> or <code>after_save</code> goes out for a write that is
-then rolled back. Ferra 0.13.0 does not retry a write; the retry of a serialization failure planned for 0.14.0
-will rerun the transactional hooks, so a message sent from them would go out once per attempt. <code>after_commit</code>
-runs once, whatever the attempts.</li>
+then rolled back. Since 0.14.0 a write aborted by a serialization failure or a deadlock is run again (see <a href="#hooks-can-run-more-than-once">Hooks
+can run more than once</a>), and the transactional hooks with it, so a message sent
+from them would go out once per attempt. <code>after_commit</code> runs once, whatever the attempts.</li>
 <li><strong>It can still be lost.</strong> The process may die between the commit and the enqueue: the row stands and the message
 is never sent. The transactional outbox planned for 1.1.0 closes that window. Until then the consumers must be
 idempotent, and <code>after_commit</code> should do an enqueue and nothing slower, since it holds the response.</li>
 <li><strong>The commit stands whatever it returns.</strong> <code>Err(failed)</code> is a <code>500</code>, <code>Err(unavailable(..))</code> a <code>503</code> with your
-detail, and a panic a <code>500</code>. <code>conflict</code> and <code>unprocessable</code> are a <code>500</code> too: a <code>409</code> or a <code>422</code> would claim that
+detail, and a panic a <code>500</code>. A <code>40001</code> or <code>40P01</code> in it is a <code>500</code> like any other error: <code>after_commit</code> is never run
+again, because the write stands. <code>conflict</code> and <code>unprocessable</code> are a <code>500</code> too: a <code>409</code> or a <code>422</code> would claim that
 nothing was written. Each is logged once through <code>tracing</code>, at the <code>error</code> level, target <code>ferra_http::hooks</code>, with
 the word “committed” in the message. On an <code>Err</code> the answer is the error, never the row (on <code>Ok(())</code> the answer is
 the write’s usual one: a create still answers <code>201</code>), and <code>can(Get)</code> and the list <code>filter</code> of the response
 links are not called.</li>
+<li><strong>A computed field is computed after it.</strong> The response of the write computes its <a href="computed-fields.html#when-the-hooks-run">computed
+fields</a> once <code>after_commit</code> has returned. If that fails the write is
+committed: the answer is a <code>500</code> and the row stands, and a replayed <code>POST</code> can create a duplicate (see
+<a href="computed-fields.html#idempotent-creates">Idempotent creates</a>).</li>
 <li><strong>A <code>5xx</code> after a <code>POST</code> invites a duplicate retry.</strong> On a non-idempotent write, log inside <code>after_commit</code> and
 return <code>Ok(())</code>; keep <code>Err</code> for the failures a client may safely hear about.</li>
 <li><strong>The request budget cuts it.</strong> With <a href="foundry.html#request-time-budget"><code>.request_budget(..)</code></a>, Ferra runs
@@ -987,19 +1034,23 @@ schema). The same in every binary, so a rolling deploy agrees: for <code>public.
 then reads the head the first left. <code>a</code> and <code>b</code> are the two-<code>integer</code> key space, shared with your own two-<code>integer</code>
 advisory locks: do not use <code>0x46455252</code> as the first key of your own.</p>
 <ul>
+<li><strong>A lock or a head read that fails is logged.</strong> A lost connection, or a <code>lock_timeout</code> of your own that expires
+while another transaction holds the lock (<code>55P03</code>), fails the call with the generic <code>500</code> and one <code>error!</code>
+(<code>tracing</code>, target <code>ferra_http::hooks</code>) that names the target and the SQLSTATE when the database gave one, never a value.</li>
 <li><strong>The key order is the commit order only with <code>CACHE 1</code>.</strong> The head is the highest primary key. The sequence of a
 <code>SERIAL</code> or an identity column has <code>CACHE 1</code> by default; with a larger cache the values are distinct but not
 ordered. Ferra assumes <code>CACHE 1</code> and does not check it.</li>
 <li><strong>One lock per target, held to the end.</strong> A transaction-level lock is released at commit or rollback. A slow hook
 holds every other appender; there is no lock timeout, the request budget is the bound. Two hooked models that lock
-two targets in opposite orders can deadlock: the database aborts one (<code>40P01</code>), which answers <code>500</code> in 0.13.0 (a
-bounded retry is planned for 0.14.0).</li>
+two targets in opposite orders can deadlock: the database aborts one (<code>40P01</code>) and the write is run again, up to
+three attempts, then answers <code>503</code> <code>retry_exhausted</code> (0.14.0).</li>
 <li><strong>A write of a model with a grant runs at <code>READ COMMITTED</code>.</strong> The head read after the lock must see the last
 commit, so Ferra sets the level at <code>BEGIN</code> whatever <code>default_transaction_isolation</code> says; the hooks of that model
-run at that level too. Other writes keep the server’s level: there a stale snapshot fails closed (<code>40001</code>, a <code>500</code>
-until the retry of 0.14.0).</li>
+run at that level too. Other writes keep the server’s level: there a stale snapshot fails closed (<code>40001</code>) and the write
+is run again (0.14.0).</li>
 <li><strong>Neon’s pooled endpoint.</strong> A transaction-level advisory lock works behind a pooler in transaction mode (only
-session-level locks do not). This is inferred from PgBouncer’s documentation, not stated by Neon’s.</li>
+session-level locks do not). PgBouncer’s documentation says so, and the repository’s <code>pooler_acceptance</code> binary proves it through a
+PgBouncer in transaction mode; Neon’s own documentation does not state it.</li>
 </ul>
 <h3 id="the-startup-log"><a class="header" href="#the-startup-log">The startup log</a></h3>
 <p><code>Foundry::build()</code> writes one <code>tracing</code> <code>info!</code> line per system grant of a mounted model, target <code>ferra::grants</code>
@@ -1072,7 +1123,7 @@ help: remove the attribute or supply at least one of: soft_delete, timestampable
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="pagination.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="actions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1086,7 +1137,7 @@ help: remove the attribute or supply at least one of: soft_delete, timestampable
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="pagination.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="actions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

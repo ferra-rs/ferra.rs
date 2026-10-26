@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,7 +195,7 @@ variants below), and the way out is the running router: you read the document at
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -209,13 +208,61 @@ serde   = { version = "1", features = ["derive"] }
 <li><strong><code>GET /docs</code></strong> — interactive Scalar UI rendering the spec.</li>
 <li><strong>Every answer is documented.</strong> Each operation lists the error statuses the server
 can return for it — 400; 401 when the model reads tokens; 403 when the rule needs an
-identity; 404 on item routes; 409 on writes; 413 and 422 on bodies; 429 on
-mutations (not under <code>no_rate_limit()</code>); 500 — each an <code>application/problem+json</code> body.
-A chain with <code>request_budget</code> adds a 503 to every operation, and a chain whose JWT
+identity; 404 on item routes; 409 on writes; 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
+<code>restore</code> and the actions; 413 and 422 on bodies (422 on every action too); 429 on
+mutations (not under <code>no_rate_limit()</code>); 503 on writes; 500 — each an <code>application/problem+json</code> body.
+Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) declares a 503, whatever the chain: the
+database may abort it on each of its attempts (<code>retry_exhausted</code>, 0.14.0, with <code>Retry-After: 1</code>). A chain
+with <code>request_budget</code> adds a 503 to every operation, and a chain whose JWT
 source is a key set (<code>JwtConfig::key_set</code>), or that accepts API keys (<code>with_api_keys</code>),
 adds it to the operations of the models that read tokens: all are the one named response <code>ServiceUnavailable</code> of
-<code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>timeout</code> or
-<code>identity_unavailable</code>), never an inline response.</li>
+<code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>retry_exhausted</code>, <code>timeout</code>,
+<code>identity_unavailable</code> or <code>service_unavailable</code>, the last being a hook’s or an action handler’s
+<code>unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
+sends <code>Retry-After: 1</code> and the other three send none, so the header is named in words, not declared
+in the component (it would then be declared for answers that do not send it). What the retry does:
+<a href="ferra-http.html#transient-conflicts-are-retried"><code>ferra-http.md</code> § Transient conflicts are retried</a>.</li>
+<li><strong>Entity tags and preconditions are declared (0.14.0).</strong> Every response that serves one
+row declares the <code>ETag</code> response header (a string): the <code>200</code> of a <code>GET</code> of an item and of
+<code>/me</code>, the <code>201</code> and <code>204</code> of a create, the <code>200</code> and <code>204</code> of <code>PUT</code>, <code>PATCH</code>, <code>restore</code> and a row action,
+and the <code>204</code> of the <code>DELETE</code> of a soft-delete model (the tag of the row as deleted). The
+header is sent when the caller may read the row, which its description says; a collection,
+the <code>DELETE</code> of a model without soft delete and every error declare none. <code>PUT</code>, <code>PATCH</code>,
+<code>DELETE</code>, <code>restore</code> and the actions (row and collection) take the optional header parameters <code>If-Match</code> and <code>If-None-Match</code>
+and declare the <code>412</code>: the one named response <code>PreconditionFailed</code> of <code>components/responses</code>
+(<code>$ref</code> to <code>ProblemDetails</code>, <code>type</code> <code>precondition_failed</code>), shared by all of them. A create
+and the reads take neither parameter. What the headers mean:
+<a href="ferra-http.html#preconditions-on-a-write"><code>ferra-http.md</code> § Preconditions on a write</a>.</li>
+<li><strong>A row action is one operation (0.14.0).</strong> Each row action of a model
+(<code>#[ferra(action(name = "mark_seen", ...))]</code>) is one <code>POST /{resource}/{id}/{name}</code> on the bare path,
+in the document as the router serves it: none under a projection prefix. Its <code>operationId</code> is the name in lowerCamel case and the model’s name, <code>mark_seen</code>
+on <code>Job</code> is <code>markSeenJob</code> (the <code>v1.</code> prefix of a versioned API is kept, and a promoted default
+projection adds its suffix as it does to every bare operation). It takes the key, <code>Prefer</code>,
+<code>If-Match</code> and <code>If-None-Match</code> as <code>PUT</code> does, and answers <code>200</code> with the model’s read schema and
+the <code>ETag</code> header, or <code>204</code>, with <code>400</code>, <code>401</code> (when the model reads tokens), <code>403</code>, <code>404</code>, <code>409</code> (a
+handler’s <code>conflict</code>), the one named <code>412</code>, <code>422</code> (a handler’s <code>unprocessable</code>, the validators of
+the state it returns, <code>owner(from)</code>), <code>429</code> (not under <code>no_rate_limit()</code>), <code>500</code> and the one
+named <code>503</code>. An action that declares a <code>body</code> adds <code>413</code> and <code>415</code>, and its request body is a
+<code>$ref</code> to a component of its own, <code>{Name}{Model}Input</code> in PascalCase (<code>MarkSeenJobInput</code>): the
+fields of the body type, with their validation keywords, <code>additionalProperties: false</code> (a key
+outside the list is the <code>422</code> <code>unknown_field</code>). An action without a body documents none. Because the
+path ends with the action’s name as written, an action whose name holds an underscore
+(<code>mark_seen</code>) gives a path that a <code>paths-kebab-case</code> lint rule flags. Two names that give one
+<code>operationId</code> (<code>a_b</code> on <code>Job</code> and <code>a</code> on <code>BJob</code> are both <code>aBJob</code>, an action <code>get_ack</code> on <code>Job</code> and
+the <code>get</code> of a model <code>AckJob</code> are both <code>getAckJob</code>), or two body components with one name, are
+refused by <code>Foundry::build()</code> with <a href="ferra-forge-diagnostics.html#frg-153--an-openapi-name-produced-twice"><code>FRG-153</code></a>,
+which names the action, its path and its model.</li>
+<li><strong>A collection action is one operation (0.14.0).</strong> A collection action (<code>collection</code>) is one
+<code>POST /{resource}/{name}</code> on the bare path, with the <code>operationId</code> of a row action
+(<code>ack_all</code> on <code>Job</code> is <code>ackAllJob</code>). It has no key in its path and takes <code>If-Match</code> and <code>If-None-Match</code>
+(<code>If-Match: *</code> passes, a tag is a <code>412</code>; <code>If-None-Match: *</code> is a <code>412</code>, tags pass). Its request body is the
+envelope, a component of its own, <code>{Name}{Model}Request</code> (<code>AckAllJobRequest</code>): an object with <code>additionalProperties: false</code> and <code>ids</code>, required, an array of
+<code>minItems: 1</code>, <code>maxItems: 100</code>, <code>uniqueItems: true</code> whose items have the schema of the key; and <code>body</code>, a
+<code>$ref</code> to the typed body’s component (<code>{Name}{Model}Input</code>), present and required only when the action
+declares one. It answers <code>204</code> with no body and no <code>ETag</code> (a batch serves no row), and <code>400</code>, <code>401</code> (when the
+model reads tokens), <code>403</code>, <code>404</code>, <code>409</code>, the one named <code>412</code>, <code>413</code>, <code>415</code>, <code>422</code>, <code>429</code> (not under
+<code>no_rate_limit()</code>), <code>500</code> and the one named <code>503</code>: the three body errors always, since the envelope is a
+body. The 100 is the one the server enforces.</li>
 <li><strong>API keys are a security scheme.</strong> On a chain that accepts API keys, the document
 declares <code>components/securitySchemes/apiKey</code> (<code>type: apiKey</code>, <code>in: header</code>, <code>name</code> the
 configured header) and lists it as an alternative to <code>bearer</code> in the <code>security</code> of every
@@ -273,9 +320,13 @@ request with a <code>401</code>: see <a href="#enabling-the-docs-surface">Enabli
 contains:</p>
 <ul>
 <li>Five paths (<code>GET /{resource}</code>, <code>GET /{resource}/{id}</code>,
-<code>POST /{resource}</code>, <code>PUT /{resource}/{id}</code>, <code>DELETE /{resource}/{id}</code>).</li>
-<li>Four projection schemas (<code>{Model}</code>, <code>Create{Model}Input</code>,
-<code>Update{Model}Input</code>, <code>{Model}Collection</code>).</li>
+<code>POST /{resource}</code>, <code>PUT /{resource}/{id}</code>, <code>DELETE /{resource}/{id}</code>) and,
+on the item path, <code>PATCH /{resource}/{id}</code>: a body of type
+<code>application/merge-patch+json</code> alone, the 415 of any other type.</li>
+<li>Five projection schemas (<code>{Model}</code>, <code>Create{Model}Input</code>,
+<code>Update{Model}Input</code>, <code>Patch{Model}Input</code>, <code>{Model}Collection</code>), and one
+<code>{Name}{Model}Input</code> per action that declares a <code>body</code>, and one <code>{Name}{Model}Request</code>
+per collection action.</li>
 <li>A shared <code>ProblemDetails</code> schema referenced by every error
 response.</li>
 <li>Every operation carries an <code>operationId</code> and a <code>tags</code> array
@@ -334,6 +385,8 @@ fn same(a: &amp;[u8], b: &amp;[u8]) -&gt; bool {
 }
 let docs_token = std::env::var("DOCS_TOKEN").unwrap_or_default();
 let app = Foundry::new(conn)
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
     .mount::&lt;Film&gt;()
     .with_docs_protected(move |req: &amp;axum::extract::Request| {
         let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
@@ -366,6 +419,8 @@ outside reaches the port:</p>
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
 </span>let app = Foundry::new(conn)
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
     .mount::&lt;Film&gt;()
     .with_docs()
     .build();
@@ -418,6 +473,8 @@ them; the Scalar page uses the same title:</p>
 </span><span class="boring">}
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) {
 </span>let app = Foundry::new(conn)
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
     .with_auth::&lt;MyClaims&gt;(jwt)
     .mount::&lt;article::Model&gt;()
     .with_docs()
@@ -435,7 +492,7 @@ stay public; <code>with_docs_protected</code> gates them.</p>
 <code>example</code> keyword is deprecated since OpenAPI 3.1), every request body, parameter and
 header an <code>example</code>, and error responses are shared <code>components.responses</code>
 (<code>BadRequest</code>, <code>Unauthorized</code>, <code>Forbidden</code>, <code>NotFound</code>, <code>Conflict</code>,
-<code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>).</p>
+<code>PreconditionFailed</code>, <code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>).</p>
 <p>The document is built once, at <code>Foundry::build()</code>. If Ferra cannot finish it — a
 Ferra bug — <code>build()</code> panics with an explicit message rather than serve a document that silently lost part of its content.</p>
 <h3 id="response-headers-of-the-docs-page"><a class="header" href="#response-headers-of-the-docs-page">Response headers of the docs page</a></h3>
@@ -486,16 +543,17 @@ curious reader; this guide stands alone.</p>
 <h2 id="naming-conventions"><a class="header" href="#naming-conventions">Naming conventions</a></h2>
 <h3 id="schema-names"><a class="header" href="#schema-names">Schema names</a></h3>
 <p>For a model named <code>Film</code> with no named projections declared, the spec
-carries four entries in <code>components/schemas</code>:</p>
+carries five entries in <code>components/schemas</code>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Projection</th><th>OpenAPI schema name</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td>Read</td><td><code>Film</code></td><td>Response shape for <code>GET</code> and the body of <code>POST</code> / <code>PUT</code> responses.</td></tr>
+<tr><td>Read</td><td><code>Film</code></td><td>Response shape for <code>GET</code> and the body of <code>POST</code> / <code>PUT</code> / <code>PATCH</code> responses.</td></tr>
 <tr><td>Create</td><td><code>CreateFilmInput</code></td><td>Request body of <code>POST /films</code>.</td></tr>
 <tr><td>Update</td><td><code>UpdateFilmInput</code></td><td>Request body of <code>PUT /films/{id}</code>.</td></tr>
+<tr><td>Patch</td><td><code>PatchFilmInput</code></td><td>Request body of <code>PATCH /films/{id}</code>, of type <code>application/merge-patch+json</code>: the fields of the update body, none required, the optional ones nullable (<code>null</code> clears them). Neither the key nor the owner is in it.</td></tr>
 <tr><td>Collection</td><td><code>FilmCollection</code></td><td>Response shape for <code>GET /films</code> (<code>{ items: [Film], page, per_page, total }</code>).</td></tr>
 </tbody>
 </table>
@@ -504,7 +562,7 @@ carries four entries in <code>components/schemas</code>:</p>
 PascalCase singularisation.</p>
 <h4 id="per-projection-schemas"><a class="header" href="#per-projection-schemas">Per-projection schemas</a></h4>
 <p>A model that declares one or more <code>#[ferra(projection(...))]</code> blocks
-emits four additional schemas per named projection (read, create, update and
+emits five additional schemas per named projection (read, create, update, patch and
 collection), plus the HAL forms of its read and collection schemas. For
 <code>Film</code> with one named <code>admin</code> projection (<code>#[ferra(projection(name = "admin", read = […], write = […]))]</code>):</p>
 <div class="table-wrapper">
@@ -516,6 +574,7 @@ collection), plus the HAL forms of its read and collection schemas. For
 <tr><td>Read</td><td><code>FilmAdmin</code></td><td><code>GET /admin/films/{id}</code>, <code>GET /admin/films</code></td></tr>
 <tr><td>Create</td><td><code>CreateFilmAdminInput</code></td><td><code>POST /admin/films</code></td></tr>
 <tr><td>Update</td><td><code>UpdateFilmAdminInput</code></td><td><code>PUT /admin/films/{id}</code></td></tr>
+<tr><td>Patch</td><td><code>PatchFilmAdminInput</code></td><td><code>PATCH /admin/films/{id}</code></td></tr>
 <tr><td>Collection</td><td><code>FilmAdminCollection</code></td><td><code>GET /admin/films</code> (pagination envelope)</td></tr>
 </tbody>
 </table>
@@ -525,10 +584,11 @@ collection), plus the HAL forms of its read and collection schemas. For
 <li>Read schema: <code>{Model}{Projection-PascalCase}</code>.</li>
 <li>Create schema: <code>Create{Model}{Projection-PascalCase}Input</code>.</li>
 <li>Update schema: <code>Update{Model}{Projection-PascalCase}Input</code>.</li>
+<li>Patch schema: <code>Patch{Model}{Projection-PascalCase}Input</code>.</li>
 </ul>
 <p>For the default projection the <code>{Projection-PascalCase}</code> segment is
 the empty string, so the rule produces <code>Film</code>, <code>CreateFilmInput</code>,
-<code>UpdateFilmInput</code>.</p>
+<code>UpdateFilmInput</code>, <code>PatchFilmInput</code>.</p>
 <p><code>{Model}</code> is the singular of the resource name (<code>films</code> gives <code>Film</code>), never the
 Rust struct ident, which is <code>Model</code> in every Sea-ORM entity. The resource name is
 the one <code>#[ferra(resource = "...")]</code> gives, else the default of
@@ -538,8 +598,8 @@ route ends in the same <code>{Projection-PascalCase}</code> (<code>getFilmAdmin<
 <code>listFilmsAdmin</code>), so it is not the default’s. Two models that name a projection
 alike keep a schema each.</p>
 <p>A <a href="behaviors.html#the-target-ferrasystem_only"><code>system_only</code></a> model serves no write, so its document carries the Read
-and Collection schemas only (and their HAL forms), with no Create or Update schema, for the default projection and for
-each named one.</p>
+and Collection schemas only (and their HAL forms), with no Create, Update or Patch schema, for the default projection
+and for each named one.</p>
 <p>Each schema’s <code>properties</code> map carries exactly the field set the
 corresponding projection declares — no schema reuse via <code>$ref</code> from
 one projection to another. A reader scanning the document sees the
@@ -572,6 +632,7 @@ might otherwise see only the URL stability.</p>
 <tr><td><code>GET</code></td><td><code>/films/{id}</code></td><td><code>getFilm</code></td></tr>
 <tr><td><code>POST</code></td><td><code>/films</code></td><td><code>createFilm</code></td></tr>
 <tr><td><code>PUT</code></td><td><code>/films/{id}</code></td><td><code>updateFilm</code></td></tr>
+<tr><td><code>PATCH</code></td><td><code>/films/{id}</code></td><td><code>patchFilm</code></td></tr>
 <tr><td><code>DELETE</code></td><td><code>/films/{id}</code></td><td><code>deleteFilm</code></td></tr>
 </tbody>
 </table>
@@ -708,11 +769,12 @@ guarantees the field cannot leak via a read operation — its absence
 is enforced at compile time on the generated read-projection struct.</p>
 <h3 id="ferracomputed"><a class="header" href="#ferracomputed"><code>#[ferra(computed)]</code></a></h3>
 <p>The field is server-derived (e.g., a derived count, a denormalised
-projection of joined rows). It appears in every read schema with
-<code>readOnly: true</code>, and is structurally absent from every write input
-schema — the framework calls <code>FerraComputed::compute()</code> /
-<code>compute_async_batch()</code> on read and never accepts the field as inbound
-input.</p>
+projection of joined rows). It appears with <code>readOnly: true</code> in every read schema that lists it,
+and is structurally absent from every write input
+schema — the framework calls <code>FerraComputed::compute_field_batch()</code> once for
+each computed field, on a read and on a write response that serves a body, for the rows
+that serve the field to the caller, and never accepts the field as inbound input.
+The field has no column: it needs <code>#[sea_orm(ignore)]</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use ferra::FerraModel;
@@ -732,12 +794,12 @@ pub struct Model {
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span>impl ferra::compute::FerraComputed for Model {} // the default `compute` leaves the value as it is
+</span>impl ferra::compute::FerraComputed for Model {} // the default hooks leave the value as it is (`Default`)
 <span class="boring">}</span></code></pre>
 <p><code>review_count</code> appears in <code>Film</code> with <code>readOnly: true</code>; the create
 and update inputs omit the property entirely. See
-<a href="ferra-core.html#computed-fields"><code>ferra-core.md</code> § Computed fields</a>
-for the <code>FerraComputed</code> trait that drives the compute pipeline.</p>
+<a href="computed-fields.html"><code>computed-fields.md</code></a>
+for the <code>FerraComputed</code> trait, <code>ModelComputed</code>, when the hooks run and what a failure answers.</p>
 <hr>
 <h2 id="the-shared-problemdetails-schema"><a class="header" href="#the-shared-problemdetails-schema">The shared <code>ProblemDetails</code> schema</a></h2>
 <p>Every error response in the spec references the same schema:</p>

@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,9 +182,11 @@
                     <main>
                         <h1 id="migrating-from-013-to-014"><a class="header" href="#migrating-from-013-to-014">Migrating from 0.13 to 0.14</a></h1>
 <p>0.14.0 (Riveting) removes declarations that read as a restriction and restricted
-nothing. Each entry below is a change that can stop a 0.13 application from
-compiling; read the entries, then update the application’s git dependency to
-<code>v0.14.0</code>. <a href="../../CHANGELOG.html">CHANGELOG.md</a> lists every change.</p>
+nothing, and changes some behavior of the writes. Each entry below is a break. Most
+stop a 0.13 application from compiling; four change what it does with no compile error
+(the OpenAPI names, <code>Resource::update</code>, an authority that ends in <code>_ =&gt; true</code>, and a hook that writes its own row,
+the last entry). Read the entries, then
+update the application’s git dependency to <code>v0.14.0</code>. <a href="../../CHANGELOG.html">CHANGELOG.md</a> lists every change.</p>
 <h2 id="groups-is-a-compile-error-frg-137"><a class="header" href="#groups-is-a-compile-error-frg-137"><code>groups</code> is a compile error (FRG-137)</a></h2>
 <p><strong>Before.</strong> <code>#[ferra(groups = [...])]</code> on a field, and <code>groups = [...]</code> inside
 <code>projection(...)</code>, compiled. Ferra parsed the key and dropped it: the field was
@@ -489,7 +490,11 @@ pub struct Model {
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let _app = ferra::Foundry::new(conn).mount::&lt;Model&gt;().build();
+</span>let _app = ferra::Foundry::new(conn)
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
+    .mount::&lt;Model&gt;()
+    .build();
 <span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>After, with the projection renamed:</p>
@@ -512,15 +517,200 @@ pub struct Model {
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let _app = ferra::Foundry::new(conn).mount::&lt;Model&gt;().build();
+</span>let _app = ferra::Foundry::new(conn)
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
+    .mount::&lt;Model&gt;()
+    .build();
 <span class="boring">}
 </span><span class="boring">}</span></code></pre>
+<h2 id="ferraerrorinternal-and-ferradberrordb-carry-an-internalerror"><a class="header" href="#ferraerrorinternal-and-ferradberrordb-carry-an-internalerror"><code>FerraError::Internal</code> and <code>FerraDbError::Db</code> carry an <code>InternalError</code></a></h2>
+<p><strong>Before.</strong> <code>FerraError::Internal</code> held a <code>String</code>, and <code>FerraDbError::Db</code> held the
+<code>sea_orm::DbErr</code> itself, with a public <code>From&lt;sea_orm::DbErr&gt;</code>. A <code>500</code> caused by the
+database reached your code with its cause flattened into text.</p>
+<p><strong>After.</strong> Both variants hold an <code>InternalError</code> (<code>ferra::InternalError</code>): its <code>Display</code>
+is constant, the cause is in <code>source()</code>, and the SQLSTATE of a database cause is
+<code>InternalError::sqlstate()</code>. The response body of a <code>500</code> is the same literal as before.
+<code>FerraDbError</code> loses <code>From&lt;sea_orm::DbErr&gt;</code>: the repository converts the errors it
+meets, and no Sea-ORM type is in the signature any more.</p>
+<p><strong>Migration.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You wrote</th><th>Write instead</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FerraError::Internal(err.to_string())</code> to answer a <code>500</code></td><td><code>FerraError::Internal(InternalError::new(err))</code> (the error itself, or a text)</td></tr>
+<tr><td><code>FerraError::Internal(text) =&gt; ... text ...</code> to read the cause</td><td><code>FerraError::Internal(_)</code>, and read the cause with <code>source()</code></td></tr>
+<tr><td><code>FerraDbError::Db(db_err)</code> or <code>db_err.into()</code></td><td><code>FerraDbError::Db(InternalError::new(err))</code>, or leave the conversion to the repository</td></tr>
+<tr><td><code>err.source().and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;())</code> on a <code>FerraDbError</code></td><td>one link further: <code>err.source().and_then(|s| s.source()).and_then(|s| s.downcast_ref::&lt;sea_orm::DbErr&gt;())</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{FerraError, InternalError};
+
+fn answer(err: std::io::Error) -&gt; FerraError {
+    FerraError::Internal(InternalError::new(err))
+}
+<span class="boring">let _ = answer;
+</span><span class="boring">}</span></code></pre>
+<h2 id="internalerror-ferraerror-and-hookerror-are-no-longer-unwindsafe"><a class="header" href="#internalerror-ferraerror-and-hookerror-are-no-longer-unwindsafe"><code>InternalError</code>, <code>FerraError</code> and <code>HookError</code> are no longer <code>UnwindSafe</code></a></h2>
+<p><strong>Before.</strong> The three types were <code>UnwindSafe</code> and <code>RefUnwindSafe</code>.</p>
+<p><strong>After.</strong> <code>InternalError</code> holds a boxed <code>dyn Error</code>, which is neither, so <code>InternalError</code>,
+<code>FerraError</code> and <code>HookError</code> lose both auto traits.</p>
+<p><strong>Migration.</strong> Only code that catches a panic with one of them in the closure is affected: it
+no longer compiles, and <code>AssertUnwindSafe</code> around the closure fixes it.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::panic::{AssertUnwindSafe, catch_unwind};
+
+use ferra::{FerraError, InternalError};
+
+let err = FerraError::Internal(InternalError::new("boom"));
+let caught = catch_unwind(AssertUnwindSafe(|| err.to_string()));
+<span class="boring">let _ = caught;
+</span><span class="boring">}</span></code></pre>
+<h2 id="authorityerrorfailed-carries-a-boxed-error"><a class="header" href="#authorityerrorfailed-carries-a-boxed-error"><code>AuthorityError::Failed</code> carries a boxed error</a></h2>
+<p><strong>Before.</strong> <code>AuthorityError::Failed</code> held a <code>String</code>, and its <code>Display</code> repeated it.</p>
+<p><strong>After.</strong> It holds a <code>Box&lt;dyn Error + Send + Sync&gt;</code>: your own error stays the <code>source()</code> of
+the <code>AuthorityError</code>, and its <code>Display</code> is the constant <code>authority failed</code>. Ferra logs the
+source text verbatim, as the <code>cause</code> of the log line, and never sends it: keep secrets and
+personal data out of it. A boxed <code>dyn Error</code> is neither <code>UnwindSafe</code> nor <code>RefUnwindSafe</code>, so
+<code>AuthorityError</code> loses both (<code>AssertUnwindSafe</code> around a <code>catch_unwind</code> that captures one).</p>
+<p><strong>Migration.</strong> Add <code>.into()</code> to the text, or box your error.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You wrote</th><th>Write instead</th></tr>
+</thead>
+<tbody>
+<tr><td><code>AuthorityError::Failed(text)</code> or <code>AuthorityError::Failed("...".to_owned())</code></td><td><code>AuthorityError::Failed(text.into())</code></td></tr>
+<tr><td><code>AuthorityError::Failed(err.to_string())</code></td><td><code>AuthorityError::Failed(Box::new(err))</code> (keeps the error as the source)</td></tr>
+<tr><td><code>AuthorityError::Failed(reason) =&gt; ... reason ...</code> to read the text</td><td><code>AuthorityError::Failed(_)</code>, and read it with <code>source()</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::authority::AuthorityError;
+
+let from_text = AuthorityError::Failed("no such team".into());
+let from_error = AuthorityError::Failed(Box::new(std::io::Error::other("lookup failed")));
+<span class="boring">let _ = (from_text, from_error);
+</span><span class="boring">}</span></code></pre>
+<h2 id="openapierrorroundtrip-carries-the-serde_jsonerror"><a class="header" href="#openapierrorroundtrip-carries-the-serde_jsonerror"><code>OpenApiError::RoundTrip</code> carries the <code>serde_json::Error</code></a></h2>
+<p><strong>Before.</strong> <code>ferra_openapi::OpenApiError::RoundTrip { stage, detail }</code> held the text of the
+<code>serde_json</code> error in <code>detail: String</code>.</p>
+<p><strong>After.</strong> <code>detail</code> is the <code>serde_json::Error</code> itself, and <code>OpenApiError::source()</code> returns it.
+<code>Display</code> is unchanged. Only code that builds a <code>RoundTrip</code>, or reads <code>detail</code> as a <code>String</code>,
+is affected.</p>
+<p><strong>Migration.</strong> Read <code>detail.to_string()</code> where you read the text, and pass the error itself
+where you built one.</p>
+<h2 id="a-foundry-that-mounts-a-model-requires-an-entity-tag-key"><a class="header" href="#a-foundry-that-mounts-a-model-requires-an-entity-tag-key">A <code>Foundry</code> that mounts a model requires an entity-tag key</a></h2>
+<p><strong>Before.</strong> A chain that mounted a model built without any key, on every auth mode.</p>
+<p><strong>After.</strong> 0.14 signs an entity tag on every single-row response, and a <code>Foundry</code> that
+mounts a model requires the key that signs it before its first <code>.mount(...)</code>. Without it,
+<code>try_build()</code> returns <code>BuildError::EtagKeyMissing</code> and <code>build()</code> panics with the same text,
+so the application does not start. A chain with only <code>.route(..)</code> mounts no model and needs
+none. The key is one line you add to the chain:</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::Foundry;
+
+fn configure(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _chain = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?;
+    Ok(())
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Migration.</strong> Generate a secret with <code>openssl rand -base64 32</code>, give the same value to every
+replica (an environment variable or your secret store), and pass it to <code>.etag_key(...)</code>. It is
+at least 32 bytes (<code>EtagKeyError::TooShort</code> otherwise), and it is not your JWT secret:
+<code>try_build()</code> returns <code>BuildError::EtagKeyEqualsJwtSecret</code> for a key equal to one of the
+<code>JwtConfig</code> secrets, and <code>build()</code> panics with the same text. See
+<a href="foundry.html#entity-tag-key"><code>foundry.md</code></a>.</p>
+<h2 id="resourceupdate-and-txresourceupdate-merge-a-json-object-instead-of-replacing-it"><a class="header" href="#resourceupdate-and-txresourceupdate-merge-a-json-object-instead-of-replacing-it"><code>Resource::update</code> and <code>TxResource::update</code> merge a JSON object instead of replacing it</a></h2>
+<p>This change is silent, no compile error warns you: <code>Resource::update</code> and <code>TxResource::update</code> with a
+<code>{Model}Patch</code> now follow <code>PATCH /{resource}/{id}</code>, and a key your code used to drop by replacing the object
+stays stored. For a stored <code>{"a": 1, "b": 2}</code> in a JSON field:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>update</code> with</th><th>0.13 stored</th><th>0.14 stores</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{"a": 3}</code></td><td><code>{"a": 3}</code></td><td><code>{"a": 3, "b": 2}</code> (<code>b</code> stays)</td></tr>
+<tr><td><code>{"a": 3, "b": null}</code></td><td><code>{"a": 3, "b": null}</code></td><td><code>{"a": 3}</code> (<code>b</code> goes)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Before.</strong> A JSON object set on a JSON field replaced the stored document, and a <code>null</code> member was stored as it
+came. A <code>null</code> set on a field that cannot be null was a 400.</p>
+<p><strong>After.</strong> A JSON object set on a stored JSON object is merged into it (RFC 7396): a member is set, a <code>null</code>
+member removes its key if there is one, and an object member merges recursively. A value that is not an object
+(an array, a scalar) replaces the document, and an object set on a stored value that is not an object (an array,
+a scalar, JSON <code>null</code>) becomes the object without its <code>null</code> members. The bounds (<code>max_depth</code>, <code>max_bytes</code>) judge
+the merged document. A <code>null</code> set on a field that cannot be null (<code>Some(serde_json::Value::Null)</code> on a required
+JSON field) is a 422 <code>validation_failed</code> whose <code>errors[].code</code> is <code>required</code>; <code>Some(None)</code> on a nullable field
+still clears it. Only the values the patch sets are typed and judged: a stored value it leaves alone is neither typed, nor judged, nor named in an error.</p>
+<p><strong>Migration.</strong> Read each <code>update</code> whose patch sets a JSON field. To drop a key, send it as <code>null</code>. To write a
+whole new document, send a <code>PUT</code>, or write the column with your own <code>DatabaseConnection</code>: a patch can no longer
+shrink an object by sending a smaller one.</p>
+<h2 id="operationmeta-and-modelmetaoperations-are-removed"><a class="header" href="#operationmeta-and-modelmetaoperations-are-removed"><code>OperationMeta</code> and <code>ModelMeta::operations</code> are removed</a></h2>
+<p><strong>Before.</strong> <code>ferra::meta::OperationMeta</code> (also <code>ferra_core::OperationMeta</code>) and the field
+<code>ModelMeta::operations</code> listed a model’s named operations. The derive filled it with one
+<code>restore</code> entry for a soft-delete model, and the router, the links and the OpenAPI document
+each tested that entry.</p>
+<p><strong>After.</strong> Both are gone. Ferra reads one list of served operations (CRUD, then <code>restore</code> when the
+model soft-deletes and is not <code>system_only</code>, then the actions in declaration order) wherever it decides what a model serves. The
+<code>restore</code> route, its prefixes and its <code>operationId</code> do not change.</p>
+<p><strong>Migration.</strong> None for an application: only the derive built or read these items. Delete any code
+that listed <code>meta().operations</code>; <code>ModelMeta::actions</code> lists a model’s actions, and <code>restore</code> is served
+when the model soft-deletes and is not <code>system_only</code>.</p>
+<h2 id="an-authority-that-ends-in-_--true-allows-every-action"><a class="header" href="#an-authority-that-ends-in-_--true-allows-every-action">An authority that ends in <code>_ =&gt; true</code> allows every action</a></h2>
+<p>This change is silent for a <code>match</code>, no compile error warns you, and it matters only once a model declares an action.
+<code>Operation</code> has a new variant, <code>Operation::Action(name)</code>, and <code>FerraAuthority::can</code> receives it for each declared
+action. <code>Operation</code> is <code>#[non_exhaustive]</code>, so your <code>can</code> already carries a <code>_</code> arm; if that arm is <code>_ =&gt; true</code>,
+it now allows every action on the rows <code>filter</code> shows. The variant holds the name, so <code>Operation</code> is no longer a
+fieldless enum: an <code>as</code> cast of an <code>Operation</code> no longer compiles.</p>
+<p><strong>Before.</strong> <code>can</code> was called for <code>get</code>, <code>create</code>, <code>update</code>, <code>delete</code> and <code>restore</code>.</p>
+<p><strong>After.</strong> <code>can</code> is also called for <code>Operation::Action(name)</code>. An action has its own <code>authorize</code> rule and never
+falls back to <code>update</code>’s, but the authority still adds its answer to it.</p>
+<p><strong>Migration.</strong> In each <code>FerraAuthority::can</code>, name the operations you allow and end the match with <code>_ =&gt; false</code>;
+add an <code>Operation::Action("name")</code> arm for each action you allow. Replace an <code>as</code> cast of an <code>Operation</code> with a
+<code>match</code>. See
+<a href="ferra-auth.html#writing-can-and-filter"><code>ferra-auth.md</code></a>.</p>
+<h2 id="a-hand-written-model-carries-the-action-slot"><a class="header" href="#a-hand-written-model-carries-the-action-slot">A hand-written model carries the action slot</a></h2>
+<p><strong>Before.</strong> A hand-written <code>FerraModel</code> (no derive) that was mounted implemented the hidden
+<code>FerraDraft</code> with a <code>Draft</code> and a <code>Hooks</code> (see <a href="migrating-to-0.13.html">migrating to 0.13</a>).</p>
+<p><strong>After.</strong> <code>FerraDraft</code> also has <code>Actions</code>, the slot of the declared actions, and <code>Mountable</code>
+requires it to be an <code>ActionRunner</code> (hidden). The derive writes it for every model, so a derived
+model changes nothing.</p>
+<p><strong>Migration.</strong> Add <code>type Actions = NoActions;</code> to the <code>impl FerraDraft</code> of a hand-written, mounted
+model, with <code>NoActions</code> imported from <code>ferra::ferra_core::hooks</code>. Hand-writing a model is outside
+the contract, which is the derive (see <a href="stability.html"><code>stability.md</code></a>).</p>
+<h2 id="a-before_save-hook-that-writes-its-own-row-through-txresource-fails-with-500"><a class="header" href="#a-before_save-hook-that-writes-its-own-row-through-txresource-fails-with-500">A <code>before_save</code> hook that writes its own row through <code>tx.resource</code> fails with 500</a></h2>
+<p>This change is silent, no compile error warns you: it matters to a model with <code>#[ferra(hooks)]</code> whose
+<code>before_save</code> writes the row it is saving.</p>
+<p><strong>Before.</strong> A <code>before_save</code> that called <code>tx.resource::&lt;Self&gt;()</code> to update, soft-delete or delete the row being
+written (its own row) succeeded: the hook’s write and the request’s both landed, and a hook that deleted the row
+made the <code>PUT</code> answer <code>404</code>.</p>
+<p><strong>After.</strong> An update (<code>PUT</code>, <code>PATCH</code>, <code>Resource::update</code>, a declared action) is conditioned on the row it locked,
+by its version and its deletion column. When the hook (or an action’s handler) has updated, soft-deleted or
+deleted that row since, the write finds no row: the answer is <code>500</code> with the generic body, one <code>error!</code> names the
+model and the operation, nothing is written. A write through <code>tx.resource</code> to another model’s row, and a hook
+that sets a value on the draft, are unchanged.</p>
+<p><strong>Migration.</strong> Read each <code>before_save</code> that calls <code>tx.resource::&lt;Self&gt;()</code>. A value the hook computes for the row
+being written belongs on the draft (<code>w.values()</code>), which Ferra writes with the request’s own values; a change that
+must happen to a row other than the one being written stays a <code>tx.resource</code> call. See
+<a href="behaviors.html#a-hook-cannot-write-its-own-row">Hooks, a hook cannot write its own row</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="stability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="migrating-to-0.15.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -534,7 +724,7 @@ pub struct Model {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="stability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="migrating-to-0.15.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

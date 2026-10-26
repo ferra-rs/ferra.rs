@@ -12,8 +12,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="icon" href="favicon-6e4afefc.svg">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
         <link rel="stylesheet" href="css/general-e96d0476.css">
         <link rel="stylesheet" href="css/chrome-d279d366.css">
@@ -36,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09bbfd8.js";
+            window.path_to_searchindex_js = "searchindex-69313c8e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b3de983.js"></script>
+        <script src="toc-f6e1ccda.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,13 +189,13 @@ signatures are the snapshot <code>api/ferra-http.txt</code>. The response envelo
 (<code>ItemResponse</code>, <code>CollectionResponse</code>), the link builders and <code>PaginationParams</code> are
 not public in 0.9: a route of your own answers with a struct of its own
 (<a href="custom-handlers.html">Custom Handlers</a>).</p>
-<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-http</code>. A reader with only this page plus standard Rust knowledge produces a compiling <code>Foundry::new(conn).mount::&lt;Film&gt;().build()</code> call site on the first attempt — no ADR, no constitution, and no framework source is required.</p>
+<p>This page is the <strong>authoritative user-guide</strong> for <code>ferra-http</code>. A reader with only this page plus standard Rust knowledge produces a compiling <code>Foundry::new(conn).etag_key(key)?.mount::&lt;Film&gt;().build()</code> call site on the first attempt — no ADR, no constitution, and no framework source is required.</p>
 <hr>
 <h2 id="dependencies-and-urls"><a class="header" href="#dependencies-and-urls">Dependencies and URLs</a></h2>
 <p>The examples on this page assume the dependencies of <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.13.1" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -229,7 +228,7 @@ on the model. A model’s table is its own to create (a migration, or
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let conn = sea_orm::Database::connect(&amp;database_url).await?;
-let app = Foundry::new(conn).mount::&lt;Film&gt;().build();
+let app = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Film&gt;().build();
 let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
 <span class="boring">Ok(())
@@ -256,16 +255,31 @@ primary key may be single or composite. Serve with
 <tbody>
 <tr><td><code>get</code></td><td><code>GET</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>)</td><td>400 on path-extractor rejection · 404 on missing row · 500 on DB error</td></tr>
 <tr><td><code>list</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + the collection as JSON (HAL: with <code>_links</code>)</td><td>500 on DB error</td></tr>
-<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row</td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500</td></tr>
-<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 413 · 422 · 429 · 500</td></tr>
-<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 404 · 429 · 500</td></tr>
+<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row</td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>update</code></td><td><code>PATCH</code></td><td><code>/{resource}/{id}</code></td><td><code>Content-Type: application/merge-patch+json</code>: a JSON object of the write projection’s fields to change</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>), <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row</td><td>400 · 401/403 · 404 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 401/403 · 404 · 412 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td>a declared action</td><td><code>POST</code></td><td><code>/{resource}/{id}/{name}</code></td><td>nothing, or the JSON body the action declares</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the written row (0.14.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 422 · 429 · 500 · 503, and 413 · 415 when the action has a body</td></tr>
+<tr><td>a declared collection action</td><td><code>POST</code></td><td><code>/{resource}/{name}</code></td><td>the envelope <code>{"ids": [...], "body": ...}</code>, 1 to 100 ids; <code>body</code> only when the action declares one</td><td><code>204</code> (no body, no <code>ETag</code>)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503</td></tr>
 </tbody>
 </table>
 </div>
+<p>Every write above, <code>restore</code> and the actions included, runs in a transaction the
+framework owns, and answers <code>503</code> <code>retry_exhausted</code> (with <code>Retry-After: 1</code>) when the
+database aborts it on each of its three attempts; nothing is written. See
+<a href="#transient-conflicts-are-retried">Transient conflicts are retried</a>.</p>
 <p>The path names the row on update and delete; a key in the body is refused (422).
+<code>PATCH</code> is served on the bare path and under every projection prefix, with the
+<code>update</code> rule of that route as <code>PUT</code>; it takes <code>application/merge-patch+json</code>
+alone (any other <code>Content-Type</code>, <code>application/json</code> included, is a 415 naming that type).
 The rule is checked before the body is read. See
 <a href="projections-and-routing.html">Projections and routing</a> § Writes for what a write body
 may contain.</p>
+<p>A declared action (<code>#[ferra(action(..))]</code>) is one more route, on the bare path alone: its own rule, its own
+handler, the write of a <code>PUT</code>. A collection action (<code>collection</code>) is <code>POST /{resource}/{name}</code>: it runs the handler
+on up to 100 listed rows in one transaction, all or nothing, and answers <code>204</code>; on a model with a <code>String</code> key it
+shadows the row whose key is its name (<code>GET</code>, <code>PUT</code>, <code>PATCH</code> and <code>DELETE</code> of that path answer <code>405</code>). Its rows are in
+<a href="actions.html">Declared actions</a>.</p>
 <h3 id="public-reads-protected-writes"><a class="header" href="#public-reads-protected-writes">Public reads, protected writes</a></h3>
 <p>A model that must be readable without a token but writable only with one says so per operation, and the
 chain names the claims type. A field is sortable (<code>?sort=-price_cents</code>) or filterable
@@ -328,6 +342,7 @@ impl FerraIdentity for Claims {
     ClaimCheck::expect("products-api"),              // `aud` the token must carry
 )?;
 let app = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .with_auth::&lt;Claims&gt;(jwt)
     .mount::&lt;product::Model&gt;()
     .build();
@@ -357,7 +372,7 @@ let app = Foundry::new(conn)
 <tr><td><code>FerraError::Conflict(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code></td></tr>
 <tr><td><code>FerraError::ConflictWith(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code> (your hook’s <code>HookError::conflict</code>; the detail is yours, served as given; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
 <tr><td><code>FerraError::UnsupportedMediaType</code></td><td>415</td><td><code>https://ferra.rs/errors/unsupported_media_type</code></td><td><code>Unsupported Media Type</code></td></tr>
-<tr><td><code>FerraError::Internal(String)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code></td></tr>
+<tr><td><code>FerraError::Internal(InternalError)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code> (the cause stays in <code>source()</code>, never on the wire; see <code>ferra-error-handling.md</code> § Rust errors and their causes)</td></tr>
 <tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
 <tr><td><code>FerraError::IdentityUnavailable</code></td><td>503</td><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td><code>Identity Unavailable</code> (a key set out of reach with no fresh key cached; no <code>Retry-After</code>; see <code>ferra-auth.md</code> § Key set)</td></tr>
 <tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>; the detail is yours; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
@@ -385,7 +400,7 @@ let app = Foundry::new(conn)
   ]
 }
 </code></pre>
-<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the inner <code>sea_orm::DbErr</code> is dropped before reaching the HTTP body. The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
+<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the cause (a <code>sea_orm::DbErr</code>, a failed hook) is kept in the error’s <code>source()</code> chain for your logs and never reaches the HTTP body. The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
 <p>Worked body for a 429 from the rate-limit mapper:</p>
 <pre><code class="language-json">{
   "type":   "https://ferra.rs/errors/rate_limited",
@@ -458,6 +473,8 @@ mount:</p>
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
 </span>let app = Foundry::new(conn)
+    .etag_key("a-development-key-of-at-least-32-bytes")
+    .expect("a key of at least 32 bytes")
     .default_representation(Representation::Flat)
     .mount::&lt;Film&gt;()
     .build();
@@ -567,6 +584,7 @@ projection prefix as on the bare path. It is present only if <code>self</code> i
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .with_base_url("https://api.example.com")? // Result&lt;_, BaseUrlError&gt;
     .mount::&lt;Film&gt;()
     .build();
@@ -616,7 +634,7 @@ async fn one(films: Resource&lt;Film&gt;, Path(id): Path&lt;i32&gt;)
 }
 
 <span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let (foundry, films) = Foundry::new(conn).mount_and_handle::&lt;Film&gt;();
+</span>let (foundry, films) = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
 let app: Router = foundry
     .build()
     .merge(Router::new().route("/films/{id}/mine", get(one)).with_state(films));
@@ -648,18 +666,19 @@ let app: Router = foundry
 </ol>
 <h3 id="what-it-hands-back"><a class="header" href="#what-it-hands-back">What it hands back</a></h3>
 <p><code>get</code>, <code>list</code> and <code>create</code> return the model’s <em>read view</em>, <code>&lt;M as FerraViews&gt;::Read</code>: the <code>{Model}ReadProjection</code> struct <code>#[derive(FerraModel)]</code> generates (or the projection promoted with <code>default = true</code>). A <code>#[ferra(write_only)]</code> or <code>#[ferra(skip)]</code> field is not a member of that type, so a route that serializes it cannot leak it. <code>update</code> takes <code>&lt;M as FerraViews&gt;::Patch</code>, the generated <code>{Model}Patch</code>: one <code>Option&lt;T&gt;</code> per field of the write projection, <code>None</code> meaning “leave the column” (and <code>Option&lt;Option&lt;T&gt;&gt;</code> for a nullable column, <code>Some(None)</code> writing null). Only the set columns reach the <code>UPDATE</code>; a write-only column is writable and never read back.</p>
-<p><code>create</code> and <code>update</code> return the row they wrote with the field read rules applied, but without the <code>can(Get)</code> check of the model’s <code>#[ferra(authority)]</code> that the generated routes make before they send a body (a caller who may write a row but not read it gets no body from the route). A handler of yours must not echo that value to a caller who may not read the row: check with <code>get</code> first, or send nothing. The same holds for the rows <code>tx.resource::&lt;N&gt;()</code> returns inside a hook.</p>
+<p><code>create</code> and <code>update</code> return the row they wrote with the field read rules applied, but without the <code>can(Get)</code> check of the model’s <code>#[ferra(authority)]</code> that the generated routes make before they send a body (a caller who may write a row but not read it gets no body from the route). A handler of yours must not echo that value to a caller who may not read the row: check with <code>get</code> first, or send nothing. The same holds for the rows <code>tx.resource::&lt;N&gt;()</code> returns inside a hook. Their computed fields are computed only for a caller who may <code>Get</code> the row (see <a href="computed-fields.html#when-the-hooks-run">Computed fields</a>); for one who may not, the field stays at its default and the view is meaningless.</p>
 <p>Limits, by design:</p>
 <ul>
 <li>The access serves the bare route’s projections. Selecting a named projection comes with per-projection authorization, later.</li>
 <li><code>restore</code> is not offered.</li>
+<li>A write through <code>Resource&lt;M&gt;</code> evaluates no <code>If-Match</code> or <code>If-None-Match</code> in 0.14.0, and a route of your own cannot compute the entity tag of the row; see <a href="#preconditions-on-a-write">Preconditions on a write</a>.</li>
 <li>The read view carries the model’s Rust field names; <code>#[ferra(rename_all = "camelCase")]</code> is applied by the generated routes when they serialize, not by the struct. A route of your own answers with a struct of its own.</li>
 <li>A filter you put in a <code>CollectionQuery</code> or a <code>CursorQuery</code> is held to the route’s safelist: only <code>#[field(filterable)]</code> fields, by their Rust names, with a value of the field’s type. Under <code>IsOwner</code> the list holds the caller’s rows whatever filter you pass.</li>
 </ul>
 <p>A handler that extracts <code>Resource&lt;M&gt;</code> from a state that carries no handle for <code>M</code> does not compile; see <code>FRG-152</code> in <a href="ferra-forge-diagnostics.html">the diagnostics</a>.</p>
 <hr>
 <h2 id="custom-extractors"><a class="header" href="#custom-extractors">Custom extractors</a></h2>
-<p>See <a href="./custom-handlers.html"><code>custom-handlers.md</code></a> — the rationale for <code>FerraJson&lt;T&gt;</code> / <code>FerraPath&lt;T&gt;</code> (RFC 7807 error continuity), the <code>FromRequest</code> vs <code>FromRequestParts</code> ordering rule, the <code>Send + Sync + 'static</code> cheat-sheet, and a worked end-to-end <code>POST /films/{id}/publish</code> action route.</p>
+<p>See <a href="./custom-handlers.html"><code>custom-handlers.md</code></a> — the rationale for <code>FerraJson&lt;T&gt;</code> / <code>FerraPath&lt;T&gt;</code> (RFC 7807 error continuity), the <code>FromRequest</code> vs <code>FromRequestParts</code> ordering rule, the <code>Send + Sync + 'static</code> cheat-sheet, and a worked end-to-end <code>POST /films/{id}/publish</code> custom handler. A declared action is in <a href="actions.html">Declared actions</a>.</p>
 <hr>
 <h2 id="security-defaults"><a class="header" href="#security-defaults">Security defaults</a></h2>
 <p>Every route <code>Foundry</code> mounts carries a deny-by-default Tower layer stack:</p>
@@ -669,7 +688,7 @@ let app: Router = foundry
 <tr><th>Layer</th><th>Default</th><th>Override path</th></tr>
 </thead>
 <tbody>
-<tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin; with <code>JwtConfig::with_cookie</code>, the listed origins only, with credentials (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td><td><code>FerraLayer::cors(...)</code>, refused with the cookie</td></tr>
+<tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin; with <code>JwtConfig::with_cookie</code>, the listed origins only, with credentials, exposing <code>ETag</code> and <code>Location</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td><td><code>FerraLayer::cors(...)</code>, refused with the cookie</td></tr>
 <tr><td>413 body-limit mapper</td><td>Rewrites stock <code>text/plain</code> → <code>application/problem+json</code> with <code>type: .../payload_too_large</code></td><td>— (permanent)</td></tr>
 <tr><td><code>tower_http::limit::RequestBodyLimitLayer</code></td><td>1 MiB</td><td><code>FerraLayer::body_limit(...)</code></td></tr>
 <tr><td><code>tower_http::trace::TraceLayer</code></td><td>One <code>INFO</code> event per request: method, path (no query string), status, latency in ms, and for an accepted request the kind of credential (<code>credential</code> = <code>token</code>, <code>cookie</code> or <code>api_key</code>) and a key’s <code>api_key.prefix</code>. Never headers, bodies, a token or a key secret.</td><td><code>FerraLayer::trace_layer</code></td></tr>
@@ -724,6 +743,46 @@ layer cannot be combined with the cookie credential: remove <code>FerraLayer::co
 given to <code>JwtConfig::with_cookie</code> drive CORS”. Two policies would leave one silently
 ignored, and a custom layer with <code>allow_credentials(true)</code> answers every origin. A chain
 without the cookie keeps <code>FerraLayer::cors</code> as it was.</p>
+<p><strong>What the cookie CORS layer exposes (0.14.0).</strong> A browser script reads only the
+response headers a CORS answer exposes, so the layer lists <code>ETag</code> and <code>Location</code> in
+<code>Access-Control-Expose-Headers</code> for a listed origin: the app reads the tag of a row to
+send it back in <code>If-Match</code>, and the URL of a created row. It allows <code>If-Match</code> and
+<code>If-None-Match</code> among the request headers of a preflight, next to <code>Content-Type</code>,
+<code>Accept</code> and <code>Prefer</code>. A foreign origin gets no <code>Access-Control-Expose-Headers</code>, as it
+gets no <code>Access-Control-Allow-*</code> (<code>tower-http</code> adds the exposed headers to every answer
+whatever the origin; Ferra strips them from the answers it does not allow).</p>
+<p><strong>Your own <code>FerraLayer::cors(...)</code> (a chain without the cookie) does its own
+exposure</strong>: Ferra adds nothing to it. List the origins, the request headers a write may
+carry and the response headers the app reads, and never use <code>CorsLayer::permissive()</code>,
+which allows every origin and every header:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraLayer;
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
+use axum::http::{
+    Method,
+    header::{ACCEPT, CONTENT_TYPE, ETAG, IF_MATCH, IF_NONE_MATCH, LOCATION},
+};
+
+let cors = CorsLayer::new()
+    .allow_origin(AllowOrigin::list(["https://app.example.com".parse().unwrap()]))
+    .allow_methods(AllowMethods::list([
+        Method::GET,
+        Method::POST,
+        Method::PUT,
+        Method::PATCH,
+        Method::DELETE,
+    ]))
+    .allow_headers(AllowHeaders::list([
+        CONTENT_TYPE,
+        ACCEPT,
+        IF_MATCH,
+        IF_NONE_MATCH,
+    ]))
+    .expose_headers([ETAG, LOCATION]);
+let layer = FerraLayer::new().cors(cors).build();
+<span class="boring">let _ = layer;
+</span><span class="boring">}</span></code></pre>
 <h3 id="layer-ordering--how-layer-composes"><a class="header" href="#layer-ordering--how-layer-composes">Layer ordering — how <code>.layer()</code> composes</a></h3>
 <p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>Foundry::…build()</code> therefore wraps every Ferra-provided layer from the outside.</p>
 <p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>Foundry::…build()</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
@@ -768,7 +827,7 @@ without the cookie keeps <code>FerraLayer::cors</code> as it was.</p>
 </span><span class="boring">async fn observe(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">async fn shed_load(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let app = Foundry::new(conn).mount::&lt;Film&gt;().build()
+</span>let app = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;Film&gt;().build()
     .layer(from_fn(observe))      // outer: sees requests before the framework
     .layer(from_fn(shed_load));   // appended AFTER → now the TRUE outermost
 <span class="boring">let _ = app;
@@ -838,6 +897,174 @@ the operation or the identity.</p>
 handlers, which keep any <code>Cache-Control</code> they set, and a layer you add after
 <code>build()</code>. A <code>public</code> or <code>s-maxage</code> there lets a shared cache replay a caller’s
 answer to another (OWASP API8, security misconfiguration).</p>
+<h3 id="entity-tags-are-not-cache-validators-here"><a class="header" href="#entity-tags-are-not-cache-validators-here">Entity tags are not cache validators here</a></h3>
+<p>Every response that serves one row carries a strong <code>ETag</code> (see <a href="#entity-tags-and-preconditions">Entity tags and
+preconditions</a>), and a row response is still
+<code>no-store</code>: a <code>GET</code> with <code>If-None-Match</code> is <strong>not</strong> answered <code>304 Not Modified</code>,
+whatever the tag. The tag serves writes, not caches.</p>
+<hr>
+<h2 id="entity-tags-and-preconditions"><a class="header" href="#entity-tags-and-preconditions">Entity tags and preconditions</a></h2>
+<p>A caller that reads a row and later rewrites it needs a way to say “only if nobody
+changed it meanwhile”. The <code>ETag</code> response header is the read half of it: an opaque
+version of one row, issued by the server and given back by the client.</p>
+<h3 id="the-tag"><a class="header" href="#the-tag">The tag</a></h3>
+<pre><code class="language-http">GET /films/1 HTTP/1.1
+
+HTTP/1.1 200 OK
+ETag: "k3Qm0u8bW1xHn7c9sFqYtA2R5eJvZ_dLw4iUoPgXaBE"
+</code></pre>
+<ul>
+<li><strong>Opaque and strong.</strong> The value is a quoted base64url text, never <code>W/</code>. Compare
+it as a whole and send it back as it came; do not parse it, it has no structure a
+client may rely on and its length may change.</li>
+<li><strong>One tag per row.</strong> The same row gives the same tag on every projection URL
+(<code>/films/1</code>, <code>/summary/films/1</code>, a version prefix) and on <code>GET /me</code>; the tag
+changes when the stored row changes. The key of a composite-key row is part of
+it, so two rows never share a tag.</li>
+<li><strong>Where it is sent.</strong> On every response that serves one row: <code>GET</code> of an item
+(every projection, <code>/me</code>), <code>201 Created</code> (with <code>Location</code>), <code>PUT</code>, <code>PATCH</code>, <code>POST /{resource}/{id}/restore</code>, and the <code>204</code> of a write under <code>Prefer: return=minimal</code>. The <code>DELETE</code> of a soft-delete model answers its <code>204</code> with the
+tag of the row <strong>as deleted</strong>, so that a <code>restore</code> has a current tag to send.</li>
+<li><strong>Where it is not.</strong> On a collection or any row inside one, on the <code>DELETE</code> of a
+model without soft delete (the row is gone), and on any refusal (401, 403, 404,
+422, …).</li>
+<li><strong>It follows <code>Location</code>.</strong> A response that withholds the body and <code>Location</code>
+from a caller who may write a row but not <code>GET</code> it (a <code>201</code> with no body, the
+<code>204</code> of a write-only authority, the <code>DELETE</code> of a row the caller may not read)
+withholds the tag too: a tag is a statement about a row the caller may read.</li>
+<li><strong>Never cached, never a <code>304</code>.</strong> A <code>GET</code> carrying <code>If-None-Match</code> is not
+answered <code>304 Not Modified</code>: row responses are <code>no-store</code> (see
+<a href="#caching">Caching</a>) and the tag serves writes.</li>
+</ul>
+<h3 id="what-the-tag-reveals-and-does-not"><a class="header" href="#what-the-tag-reveals-and-does-not">What the tag reveals, and does not</a></h3>
+<p>The tag is keyed by the server’s <a href="foundry.html#entity-tag-key">entity-tag key</a>, which
+also covers rotation, restores and the other operational cases. Without the key nobody
+can compute a tag, test a guess about a field they may not read, nor tell that two rows
+were written in the same transaction.</p>
+<p><strong>The residual signal.</strong> Any stored change of the row changes its tag, hidden fields
+included. A caller who cannot read a field therefore learns that <em>something</em> changed
+when its tag moves, one bit per observation, never the value. This is accepted: it is
+the price of one tag per row whatever the projection.</p>
+<h3 id="preconditions-on-a-write"><a class="header" href="#preconditions-on-a-write">Preconditions on a write</a></h3>
+<p><code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>POST /{resource}/{id}/restore</code> and a declared row action
+(<code>POST /{resource}/{id}/{name}</code>, <a href="actions.html">Declared actions</a>) accept <code>If-Match</code> and
+<code>If-None-Match</code>. A client that read a row and sends its tag back says “only if nobody
+changed it meanwhile”:</p>
+<pre><code class="language-http">PUT /films/1 HTTP/1.1
+If-Match: "k3Qm0u8bW1xHn7c9sFqYtA2R5eJvZ_dLw4iUoPgXaBE"
+Content-Type: application/json
+
+{"title": "Aliens"}
+
+HTTP/1.1 412 Precondition Failed
+Content-Type: application/problem+json
+</code></pre>
+<ul>
+<li><strong><code>If-Match</code> is optional.</strong> A write without it goes through as it always did: there
+is no <code>428 Precondition Required</code>, and no setting that asks for one. A create
+(<code>POST /{resource}</code>) ignores both headers.</li>
+<li><strong>The tag must be current.</strong> <code>If-Match</code> passes when <code>*</code> is sent or when one of the
+listed tags is the row’s current tag. The comparison is strong: a <code>W/</code> tag never
+matches. Ferra only issues strong tags, but an intermediary can weaken them; send
+the tag as the server issued it.</li>
+<li><strong><code>If-None-Match</code> is the reverse.</strong> The write is refused when <code>*</code> is sent, or when a
+listed tag is the row’s current tag. Here the comparison is weak, as RFC 9110
+§13.1.2 defines it: the <code>W/</code> prefix is ignored and the opaque-tag decides, so
+<code>If-None-Match: W/"&lt;current&gt;"</code> is refused too. It is evaluated after <code>If-Match</code>.</li>
+<li><strong>Lists.</strong> Several header lines are one list (RFC 9110 §5.3), so a row’s tag may sit
+on any of them. A list holds at most 32 entries. A value that is no list of
+entity-tags (a missing quote, a bare word), an empty list, <code>*</code> beside a tag, or a
+list of 33 tags is a <code>412</code> for <strong>both</strong> headers: it is never ignored, and never read
+as “no match”, so a mangled <code>If-None-Match</code> cannot let a write through.</li>
+<li><strong><code>If-Unmodified-Since</code> is ignored.</strong> The tag is the only validator a write reads;
+a date has a one-second resolution and a row can change twice within it.</li>
+<li><strong>The decision is the locked row’s.</strong> It is taken inside the write’s transaction,
+after the row is locked, so two writers that hold the same tag cannot both win: the
+second one gets the <code>412</code>, its write is not applied, and the first writer’s change
+stays. A <code>412</code> is also decided before the early return of an empty patch: <code>{}</code> with
+a stale <code>If-Match</code>, or with <code>If-None-Match: *</code>, is a <code>412</code>, not a no-op <code>200</code>.</li>
+<li><strong>The order.</strong> A precondition never tells a caller anything about a row they may not
+see: the row is looked up first, and a row that is absent, soft-deleted or hidden
+from the caller is a <code>404</code> whatever the headers, <code>*</code> included. For a row the caller
+may write, the <code>412</code> comes after the <code>415</code> and before everything the body can
+provoke (<code>400</code>, <code>422 unknown_field</code>, the <code>403</code> of a field rule, the <code>422</code> on
+values): a stale <code>If-Match</code> with a forbidden field in the body is a <code>412</code>, with a
+wrong <code>Content-Type</code> a <code>415</code>. The full order is in <a href="#what-a-patch-is-refused-with">What a patch is refused
+with</a>.</li>
+<li><strong>The <code>412</code> says nothing.</strong> Its <code>detail</code> is one fixed text. It does not repeat the
+header, does not carry the current tag, and the response has no <code>ETag</code>. The client
+<code>GET</code>s the row again, redoes its change on what it reads, and writes with the new
+tag.</li>
+<li><strong><code>restore</code> compares against the row’s tag.</strong> The <code>DELETE</code> of a soft-delete model
+answers the tag of the row as deleted, and that is the tag <code>restore</code> expects: the
+tag from before the delete is stale and gets a <code>412</code>, and <code>If-Match: *</code> passes.</li>
+</ul>
+<pre><code class="language-http">DELETE /films/1 HTTP/1.1
+If-Match: "&lt;tag read before&gt;"
+
+HTTP/1.1 204 No Content
+ETag: "&lt;tag of the row as deleted&gt;"
+
+POST /films/1/restore HTTP/1.1
+If-Match: "&lt;tag of the row as deleted&gt;"
+</code></pre>
+<p><strong>Known limitation: a route of your own.</strong> A write route you write by hand on
+<a href="#resourcem--a-models-rows-from-a-route-of-your-own"><code>Resource&lt;M&gt;</code></a> evaluates no
+precondition in 0.14.0, and returns no tag. An <code>If-Match</code> sent to such a
+route is ignored and its write is unconditional; the response you build carries no
+<code>ETag</code>. If clients of that write need to avoid lost updates, route them through the
+generated <code>PUT</code> or <code>PATCH</code>. A typed precondition on <code>Resource&lt;M&gt;</code> can be added later
+without breaking the API.</p>
+<h3 id="put-and-rfc-9110-934-a-deliberate-deviation"><a class="header" href="#put-and-rfc-9110-934-a-deliberate-deviation"><code>PUT</code> and RFC 9110 §9.3.4: a deliberate deviation</a></h3>
+<p>RFC 9110 §9.3.4 forbids a validator on a successful <code>PUT</code> response unless the stored
+representation is byte-identical to the content the client sent, so that the client
+knows whether the copy it sent is the result. Ferra’s <code>PUT</code> never stores the content
+as received (an absent optional field is cleared, the stamps and the key are the
+server’s), so the letter of §9.3.4 forbids the tag, and Ferra sends it anyway: <strong>the
+tag of a successful <code>PUT</code> names the stored row, never the sent content.</strong> The <code>200</code>
+response carries that row, and it is the row to keep. A client must not cache its
+<code>PUT</code> body under that tag; a client that chose <code>Prefer: return=minimal</code> holds no
+representation of the stored row at all, and caches nothing under the tag. This is
+what OData 4.01 §11.4.3 requires and the Azure REST API Guidelines prescribe
+(ADR-0077 § Consequences).</p>
+<hr>
+<h2 id="transient-conflicts-are-retried"><a class="header" href="#transient-conflicts-are-retried">Transient conflicts are retried</a></h2>
+<p>Two writes that touch the same rows can make PostgreSQL abort one of them: SQLSTATE <code>40P01</code>
+(deadlock detected) at any isolation level, and <code>40001</code> (serialization failure) when the server’s
+default isolation is <code>REPEATABLE READ</code> or <code>SERIALIZABLE</code> (at <code>COMMIT</code> too under <code>SERIALIZABLE</code>). The
+request is valid, so since 0.14.0 Ferra runs the write again instead of
+answering a <code>500</code>. A write of a model with a system grant (ADR-0073) runs at <code>READ COMMITTED</code>; the
+others at the server’s level.</p>
+<ul>
+<li><strong>What is rerun.</strong> The whole operation, decided again on the new state of the database, hooks
+included (<a href="behaviors.html#hooks-can-run-more-than-once">Hooks can run more than once</a>).</li>
+<li><strong>Only two codes.</strong> <code>40001</code> and <code>40P01</code>, a failure at <code>COMMIT</code> included. Nothing else is: a
+failed precondition stays the <code>412</code> of the first attempt, a unique violation (<code>23505</code>) stays a
+<code>409</code>, and an error a hook chose stays what it chose.</li>
+<li><strong>Only an operation that owns its transaction.</strong> The generated routes and the writes of
+<code>Resource&lt;M&gt;</code>. A <code>tx.resource</code> call inside a hook borrows the transaction of the write: its abort
+goes up to the loop of the write, which reruns everything.</li>
+<li><strong>The constants.</strong> 3 attempts (one plus two retries). Before retry <em>k</em> the wait is uniform in
+<code>[0, min(100 ms, 10 ms × 2^(k−1))]</code>: at most 10 ms before the first retry and 20 ms
+before the second, so at most 30 ms are added. These are constants of the crate, not settings.</li>
+<li><strong>Exhaustion.</strong> A write aborted on all three attempts answers <code>503</code>
+<code>https://ferra.rs/errors/retry_exhausted</code> with <code>Retry-After: 1</code> (whole seconds). That write
+was not applied, so the client may retry it; the <code>detail</code> is one fixed text that speaks for that
+write and names no SQLSTATE, table or constraint. An aborted attempt logs one line with its number and its SQLSTATE, never a value.</li>
+<li><strong>The request budget.</strong> With <a href="foundry.html#request-time-budget"><code>.request_budget(..)</code></a> the deadline
+bounds every attempt as it bounds the first: no attempt starts once it has passed, no wait ends
+past it, and a <code>COMMIT</code> the database refused with <code>40001</code> or <code>40P01</code> committed nothing, so it is
+not a started commit. Each of these answers <code>503</code> <code>timeout</code>, without <code>Retry-After</code>, with nothing
+written. Without a budget only the three attempts bound the work.</li>
+<li><strong>A route of your own.</strong> Only the operation is rerun. In a handler that calls <code>Resource::update</code>,
+the code around the call (your extractors, what you did before it, what you do after it) runs
+once, however many attempts the write takes; two calls are two operations, each with its own
+attempts. Keep the effect of a handler after the call, or in <code>after_commit</code> (see <a href="behaviors.html#hooks-can-run-more-than-once">Hooks can run
+more than once</a>). A write that was given up after an
+earlier <code>Resource&lt;M&gt;</code> write of the same handler answers <code>retry_exhausted</code> while that earlier write
+stands: the <code>detail</code> speaks for the write that failed, not for the request; do not retry a
+non-idempotent request blindly (RFC 9110 § 9.2.2).</li>
+<li><strong>The cost.</strong> A request under conflict does up to three times its work.</li>
+</ul>
 <hr>
 <h2 id="write-bodies-reject-unknown-fields"><a class="header" href="#write-bodies-reject-unknown-fields">Write bodies reject unknown fields</a></h2>
 <p>Both write paths now refuse a request body carrying a field the model does not
@@ -873,8 +1100,105 @@ behavior columns: a body carrying any of them is a 422 too (see
 <code>additionalProperties: false</code> on every write-body schema, so generated clients and
 API-discovering agents see the same strictness the server enforces.</p>
 <hr>
+<h2 id="partial-updates-with-patch"><a class="header" href="#partial-updates-with-patch">Partial updates with PATCH</a></h2>
+<p><code>PUT</code> replaces a row; <code>PATCH</code> changes the fields it names and leaves the others as
+they are. The body is a JSON merge patch (<a href="https://www.rfc-editor.org/rfc/rfc7396">RFC 7396</a>):
+a JSON object, sent as <code>application/merge-patch+json</code>.</p>
+<pre><code class="language-http">PATCH /films/1 HTTP/1.1
+Content-Type: application/merge-patch+json
+
+{"title": "Aliens", "year": null}
+
+HTTP/1.1 200 OK
+ETag: "k3Qm0u8bW1xHn7c9sFqYtA2R5eJvZ_dLw4iUoPgXaBE"
+</code></pre>
+<p>See <a href="#the-routes-a-model-gets">The routes a model gets</a> for where <code>PATCH</code> is served.</p>
+<h3 id="what-a-patch-means"><a class="header" href="#what-a-patch-means">What a patch means</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>In the patch</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>a key with a value</td><td>the field is set to it, under the rules <code>PUT</code> applies to that value</td></tr>
+<tr><td>a key with <code>null</code></td><td>a nullable field is cleared; a field that cannot be null is the 422 <code>required</code></td></tr>
+<tr><td>a key that is absent</td><td>the field is untouched, whatever it is</td></tr>
+<tr><td><code>{}</code></td><td>nothing is written; the answer is the row (a stale precondition is a 412)</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>PUT</code> is a replacement and answers the same body differently: it writes every write
+field, so an optional field without a <code>read</code> or <code>write</code> rule that the body leaves out
+becomes <code>NULL</code>, a field with such a rule is kept, and a <code>#[field(required)]</code> field
+that is missing is the 422 <code>required</code>. A client that wants to change one field sends a
+<code>PATCH</code>; one that sends a <code>PUT</code> sends the whole row.</p>
+<ul>
+<li><strong>Only the fields the patch sets are judged.</strong> Each value gets what <code>PUT</code> gives it
+(its type, the <code>#[field(...)]</code> rules, the write rule of the field, the JSON bounds),
+so a <code>PATCH</code> never stores a value a <code>PUT</code> refuses. A field the patch does not set is
+neither typed, nor judged, nor named in an error: a row stored before a rule was
+tightened, or before a JSON bound was lowered, can still be patched elsewhere, and
+the stored value stays as it was, byte for byte.</li>
+<li><strong>A JSON field is merged.</strong> When the stored value and the patch value are both
+objects, the patch is merged into the stored one member by member, and a <code>null</code>
+member removes its key. Stored <code>{"a": 1, "b": 2}</code> patched with <code>{"a": 3}</code> is
+<code>{"a": 3, "b": 2}</code>; patched with <code>{"a": 3, "b": null}</code> it is <code>{"a": 3}</code>. Any other
+patch value (an array, a scalar, <code>null</code>) replaces the field or clears it, and an
+object patched onto a stored value that is not an object is merged into <code>{}</code>. The
+<code>max_bytes</code> and <code>max_depth</code> bounds apply to the merged document.</li>
+<li><strong>The key and the owner are not patchable.</strong> A patch that names the primary key, the
+owner column or any key outside the write set is a 422 <code>unknown_field</code>, nothing
+written, as for <code>PUT</code>; so is a key the caller may not read, so that the answer does
+not tell a field that exists from one that does not.</li>
+</ul>
+<h3 id="what-a-patch-is-refused-with"><a class="header" href="#what-a-patch-is-refused-with">What a patch is refused with</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Answer</th><th>When</th></tr>
+</thead>
+<tbody>
+<tr><td><code>415</code> <code>unsupported_media_type</code></td><td>the <code>Content-Type</code> is not <code>application/merge-patch+json</code>, <code>application/json</code> included; the <code>detail</code> names the type to send</td></tr>
+<tr><td><code>400</code> <code>validation</code>, code <code>invalid_json</code></td><td>the body is not a JSON object, a key is repeated in it at any depth (a JSON field included: <code>a key is repeated at line L column C</code>), or a value is of the wrong type for a field the caller may read</td></tr>
+<tr><td><code>404</code> <code>not_found</code></td><td>the row does not exist, is soft-deleted, or is one the caller may not see: the same answer, byte for byte. It comes before the <code>415</code>, <code>400</code> and <code>422</code> of the body when a rule, an authority, an <code>owner</code> field or a precondition header reads the row; see the order below</td></tr>
+<tr><td><code>403</code> <code>forbidden</code></td><td>a key the caller may read but not write (a <code>write</code> rule of the field)</td></tr>
+<tr><td><code>422</code> <code>validation_failed</code></td><td><code>unknown_field</code> (above); <code>required</code> for a <code>null</code> on a field that cannot be null; a <code>#[field(...)]</code> rule of a value the patch sets (<code>min_length</code>, <code>max</code>, <code>pattern</code>…); <code>json_too_large</code> or <code>json_too_deep</code> for the merged document; <code>reference_not_found</code> for a re-parenting to a parent the caller may not use</td></tr>
+</tbody>
+</table>
+</div>
+<p>Every <code>errors[]</code> entry names its field and its code
+(<a href="ferra-error-handling.html#validation-codes">Validation codes</a>). A refused <code>PATCH</code>
+writes nothing, computes no field and runs no hook.</p>
+<p>The refusals come in the order every row write follows (<code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
+<code>restore</code>): 401, 403 for a rule that reads no row, 404, 403 for the row-dependent part
+of the rule, 415, 412 (the <code>If-Match</code> and <code>If-None-Match</code> preconditions, see <a href="#entity-tags-and-preconditions">Entity
+tags and preconditions</a>), 413, 400 (the body is decoded once:
+a repeated key, a wrong type on a key the caller may read), 422 <code>unknown_field</code>, 403
+for a field write rule, then 422 on the values, and last the 400 of a required key the body omits. A caller who is not allowed to touch a
+row therefore learns nothing from the body it sent, and a key the caller may not read is
+never judged by the 400: it is an unknown key. An unknown key next to a wrong-typed value
+on a readable key is the 400. A <code>PATCH</code> types the keys it sets after the merge, on the
+locked row: where nothing reads the row before the body (no rule, authority, <code>owner</code> field
+or precondition header does), its unknown and unwritable keys are still judged first, before
+the <code>404</code>, so there an unknown key beside a wrong-typed value is the 422.</p>
+<p>That order holds whenever something reads the row before the body is judged: a rule of
+the model, a projection, an authority or an <code>owner</code> field, or an <code>If-Match</code> or
+<code>If-None-Match</code> header; for a model nothing reads the row of, see <a href="ferra-error-handling.html#update-vs-create-symmetry">Update-vs-create
+symmetry</a>.</p>
+<h3 id="prefer-and-the-etag"><a class="header" href="#prefer-and-the-etag"><code>Prefer</code> and the <code>ETag</code></a></h3>
+<p><code>PATCH</code> honours <code>Prefer</code> as <code>PUT</code> does (<a href="#content-negotiation--rfc-7240-prefer-header">below</a>):
+<code>return=minimal</code> answers <code>204 No Content</code> with no body and <code>Preference-Applied: return=minimal</code>; <code>return=representation</code>, or no <code>Prefer</code> at all, answers <code>200 OK</code> with
+the projected row. The <code>200</code> and the <code>204</code> of a <code>PATCH</code> carry the <code>ETag</code> of the stored
+row, which is not the tag the row had before the write (a caller who may not <code>GET</code> the
+row gets a <code>204</code> with no body and no tag, as for <code>PUT</code>).</p>
+<h3 id="from-rust"><a class="header" href="#from-rust">From Rust</a></h3>
+<p><code>Resource::update</code> with a <code>{Model}Patch</code> does what <code>PATCH</code> does, with the same merge
+and the same refusals; in the patch, <code>None</code> is an absent key and <code>Some(None)</code> is a
+<code>null</code>. See <a href="custom-handlers.html">Custom handlers</a> and <a href="ferra-forge.html"><code>ferra-forge.md</code></a>
+§ Generated items.</p>
+<hr>
 <h2 id="content-negotiation--rfc-7240-prefer-header"><a class="header" href="#content-negotiation--rfc-7240-prefer-header">Content negotiation — RFC 7240 <code>Prefer:</code> header</a></h2>
-<p>Every mutation endpoint (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>) recognises the <a href="https://www.rfc-editor.org/rfc/rfc7240">RFC 7240</a> <code>Prefer:</code> request header and branches the response shape accordingly. Consumers that do not send the header observe the default shape.</p>
+<p>Every mutation endpoint (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>) recognises the <a href="https://www.rfc-editor.org/rfc/rfc7240">RFC 7240</a> <code>Prefer:</code> request header and branches the response shape accordingly. Consumers that do not send the header observe the default shape.</p>
 <h3 id="recognised-tokens"><a class="header" href="#recognised-tokens">Recognised tokens</a></h3>
 <div class="table-wrapper">
 <table>
@@ -882,14 +1206,14 @@ API-discovering agents see the same strictness the server enforces.</p>
 <tr><th><code>Prefer:</code> value</th><th>Effect</th><th>Resulting status</th><th>Response body</th></tr>
 </thead>
 <tbody>
-<tr><td>(header absent)</td><td>default mutation shape</td><td><code>POST → 201 Created</code>, <code>PUT → 200 OK</code>, <code>DELETE → 204</code></td><td>full resource body on <code>POST</code>/<code>PUT</code>; empty on <code>DELETE</code></td></tr>
-<tr><td><code>return=minimal</code></td><td>omit the response body</td><td><code>POST → 204 No Content</code> (Location preserved, for a caller who may <code>GET</code> the new row; one who may not gets <code>201</code> with no body and no <code>Location</code>), <code>PUT → 204</code>, <code>DELETE → 204</code> unchanged</td><td>empty</td></tr>
-<tr><td><code>return=representation</code></td><td>explicit form of the default</td><td><code>POST → 201</code>, <code>PUT → 200</code>, <code>DELETE → 204</code> unchanged</td><td>full resource body</td></tr>
+<tr><td>(header absent)</td><td>default mutation shape</td><td><code>POST → 201 Created</code>, <code>PUT → 200 OK</code>, <code>PATCH → 200 OK</code>, <code>DELETE → 204</code></td><td>full resource body on <code>POST</code>/<code>PUT</code>/<code>PATCH</code>; empty on <code>DELETE</code></td></tr>
+<tr><td><code>return=minimal</code></td><td>omit the response body</td><td><code>POST → 204 No Content</code> (Location preserved, for a caller who may <code>GET</code> the new row; one who may not gets <code>201</code> with no body and no <code>Location</code>), <code>PUT → 204</code>, <code>PATCH → 204</code>, <code>DELETE → 204</code> unchanged</td><td>empty</td></tr>
+<tr><td><code>return=representation</code></td><td>explicit form of the default</td><td><code>POST → 201</code>, <code>PUT → 200</code>, <code>PATCH → 200</code>, <code>DELETE → 204</code> unchanged</td><td>full resource body</td></tr>
 <tr><td><code>respond-async</code></td><td><strong>parse-only</strong> — recognised so clients can probe the header without being broken, but has no effect on the response shape. Reserved for a future async-jobs cohort.</td><td>unchanged</td><td>unchanged</td></tr>
 </tbody>
 </table>
 </div>
-<p>A caller who may <code>PUT</code> or restore a row but not <code>GET</code> it gets <code>204 No Content</code> with no body whatever it asked, as a create gets its <code>201</code> with no body (0.13.0): the write is done, nothing of the row leaves. <code>Preference-Applied: return=minimal</code> is echoed only when <code>return=minimal</code> was asked, never <code>return=representation</code>. A hand-written route on <code>Resource::update</code> serves what it chooses.</p>
+<p>A caller who may <code>PUT</code>, <code>PATCH</code> or restore a row but not <code>GET</code> it gets <code>204 No Content</code> with no body whatever it asked, as a create gets its <code>201</code> with no body (0.13.0): the write is done, nothing of the row leaves. <code>Preference-Applied: return=minimal</code> is echoed only when <code>return=minimal</code> was asked, never <code>return=representation</code>. A hand-written route on <code>Resource::update</code> serves what it chooses.</p>
 <p>The parser is case-insensitive, whitespace-tolerant, and silently drops unrecognised tokens and <code>;</code>-delimited parameters per RFC 7240 §2 (“recipients SHOULD ignore preferences they do not understand”):</p>
 <pre><code class="language-http">Prefer: Return=Minimal, respond-async; wait=10
 </code></pre>
@@ -972,7 +1296,7 @@ pub use film::Model as Film;
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let database_url = std::env::var("DATABASE_URL")?;
     let conn = sea_orm::Database::connect(&amp;database_url).await?;
-    let app = Foundry::new(conn).mount::&lt;Film&gt;().build();
+    let app = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Film&gt;().build();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     axum::serve(listener, app.into_make_service_with_connect_info::&lt;std::net::SocketAddr&gt;()).await?;
     Ok(())
