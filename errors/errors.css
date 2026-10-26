@@ -101,6 +101,12 @@
   background: var(--ink);
   color: #fff;
   padding: 64px 0 56px;
+  position: relative;
+}
+.errpage-hero__mascot {
+  position: absolute; right: 48px; top: 50%;
+  width: 120px; height: auto;
+  transform: translateY(-50%);
 }
 .errpage-hero__breadcrumb {
   font: 500 12px/1 var(--mono);
@@ -172,6 +178,7 @@
 .doc-codeblock .tok-pun   { color: #9b8c7a; }
 
 @media (max-width: 640px) {
+  .errpage-hero__mascot { display: none; }
   .doc-hero { padding: 40px 0 36px; }
   .doc-hero__title { font-size: 36px; }
   .errpage-hero { padding: 40px 0 36px; }
