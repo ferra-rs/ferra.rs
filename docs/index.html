@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -414,14 +414,14 @@ ones, and answer with a body of their own:</p>
     Ok(Json(count))
 }
 
-<span class="boring">fn demo(conn: DatabaseConnection) {
+<span class="boring">fn demo(conn: DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app: Router = Foundry::new(conn.clone())
-    .etag_key("a-development-key-of-at-least-32-bytes")
-    .expect("a key of at least 32 bytes")
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;film::Model&gt;()
     .build()
     .merge(Router::new().route("/films/count", get(film_count)).with_state(conn));
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>A route of your own is not covered by Ferra’s authorization: protect it

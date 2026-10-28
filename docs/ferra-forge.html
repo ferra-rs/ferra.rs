@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -197,7 +197,7 @@ neither replaces the other; both read the struct.</p>
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -270,55 +270,11 @@ class 8 (<code>FRG-008</code>) of the Troubleshooting table.</li>
 </table>
 </div>
 <h2 id="relations"><a class="header" href="#relations">Relations</a></h2>
-<p>A model written with <code>#[sea_orm::model]</code> (Sea-ORM’s dense form) may declare its
-relations inline, as <code>HasMany&lt;..&gt;</code>, <code>HasOne&lt;..&gt;</code> or <code>BelongsTo&lt;..&gt;</code> fields. The
-macro expands the struct twice: <code>Model</code> keeps the scalar fields, a second struct
-<code>ModelEx</code> keeps all of them. <code>#[derive(FerraModel)]</code> runs on both. On <code>Model</code> it
-reads the columns as ever, so a relation field is never a column, a wire field or a
-projection field. On <code>ModelEx</code> it emits the relation metadata and nothing else.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
-</span><span class="boring">use sea_orm::entity::prelude::*;
-</span><span class="boring">use serde::{Deserialize, Serialize};
-</span>mod client {
-    use super::*;
-
-    #[sea_orm::model]
-    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
-    #[sea_orm(table_name = "clients")]
-    #[ferra(auth = "none")]
-    pub struct Model {
-        #[sea_orm(primary_key)]
-        pub id: i32,
-        pub name: String,
-        #[sea_orm(has_many)]
-        pub contexts: HasMany&lt;super::context::Entity&gt;,
-    }
-
-    impl ActiveModelBehavior for ActiveModel {}
-}
-
-mod context {
-    use super::*;
-
-    #[sea_orm::model]
-    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
-    #[sea_orm(table_name = "contexts")]
-    #[ferra(auth = "none")]
-    pub struct Model {
-        #[sea_orm(primary_key)]
-        pub id: i32,
-        pub client_id: i32,
-        #[sea_orm(belongs_to, from = "client_id", to = "id")]
-        pub client: BelongsTo&lt;super::client::Entity&gt;,
-    }
-
-    impl ActiveModelBehavior for ActiveModel {}
-}
-<span class="boring">fn main() {}</span></code></pre>
-<p>A relation field is only valid in this form. On a struct that is not an expansion of
-<code>#[sea_orm::model]</code>, such as a hand-written <code>Model</code> with an <code>enum Relation</code>, it is
-refused (<code>FRG-125</code>, see <a href="ferra-forge-diagnostics.html"><code>ferra-forge-diagnostics.md</code></a>).
-The split form stays valid for a model without relation fields.</p>
+<p>A model written with <code>#[sea_orm::model]</code> may declare its relations inline, as <code>HasMany&lt;..&gt;</code>, <code>HasOne&lt;..&gt;</code> or
+<code>BelongsTo&lt;..&gt;</code> fields. A relation field is never a column or a wire field, and never a projection field of its own,
+with one exception: a <code>BelongsTo</code> named in a projection’s <code>read</code> list is embedded
+(<a href="relations.html#embedding">Embedding</a>). The guide page <a href="relations.html#declaring-relations">Relations</a> shows the form,
+the three kinds and the back key a <code>HasMany</code> needs.</p>
 <h2 id="explicit-serde-derives-are-required"><a class="header" href="#explicit-serde-derives-are-required">Explicit serde derives are required</a></h2>
 <p><code>ferra-forge</code> does <strong>not</strong> add <code>#[derive(Serialize, Deserialize)]</code> for
 you. If you omit them, <code>rustc</code> fires E0277 with the span pinned to

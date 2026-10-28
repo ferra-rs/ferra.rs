@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,7 +195,7 @@ not public in 0.9: a route of your own answers with a struct of its own
 <p>The examples on this page assume the dependencies of <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -376,6 +376,7 @@ let app = Foundry::new(conn)
 <tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
 <tr><td><code>FerraError::IdentityUnavailable</code></td><td>503</td><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td><code>Identity Unavailable</code> (a key set out of reach with no fresh key cached; no <code>Retry-After</code>; see <code>ferra-auth.md</code> § Key set)</td></tr>
 <tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>; the detail is yours; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
+<tr><td><code>FerraError::RetryExhausted</code></td><td>503</td><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td><code>Retries Exhausted</code> (a <code>Resource&lt;M&gt;</code> write aborted on each of its three attempts; <code>Retry-After: 1</code>; answer it as a transient 503, never replay it in a loop; 0.16.0; see <code>ferra-error-handling.md</code> § <code>retry_exhausted</code>)</td></tr>
 <tr><td><em>(middleware)</em></td><td>413</td><td><code>https://ferra.rs/errors/payload_too_large</code></td><td><code>Payload Too Large</code> <sup class="footnote-reference" id="fr-middleware-1"><a href="#footnote-middleware">1</a></sup></td></tr>
 <tr><td><em>(middleware)</em></td><td>429</td><td><code>https://ferra.rs/errors/rate_limited</code></td><td><code>Too Many Requests</code> <sup class="footnote-reference" id="fr-middleware-2"><a href="#footnote-middleware">1</a></sup></td></tr>
 </tbody>
@@ -471,14 +472,14 @@ mount:</p>
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = Foundry::new(conn)
-    .etag_key("a-development-key-of-at-least-32-bytes")
-    .expect("a key of at least 32 bytes")
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .default_representation(Representation::Flat)
     .mount::&lt;Film&gt;()
     .build();
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>Before 0.11.0 the HAL body was served as <code>application/json</code>. A client that sends
@@ -562,6 +563,10 @@ make the API emit links to another origin.</p>
 projection prefix as on the bare path. It is present only if <code>self</code> is: a caller who may <code>create</code> but not
 <code>GET</code> the row gets <code>201 Created</code> with no body and no <code>Location</code>, with or without
 <code>Prefer: return=minimal</code>, so no id, stamp or author reaches a caller who may not read them (0.13.0).</p>
+<p>A row also links to each parent the caller may read, named after the relation, and leaves the foreign key and the
+link out for a parent the caller may not read: see <a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>.</p>
+<p>It links to each sub-collection too (<code>"reviews": {"href": "/films/42/reviews"}</code>, the bare <code>{item}/{relation}</code>), when the
+child is mounted and the caller may list it.</p>
 <p>To emit absolute links, configure the public origin once:</p>
 <pre class="playground"><code class="language-rust">use ferra::Foundry;
 <span class="boring">use ferra::FerraModel;
@@ -633,12 +638,13 @@ async fn one(films: Resource&lt;Film&gt;, Path(id): Path&lt;i32&gt;)
     Ok(Json(films.get(id).await?))
 }
 
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let (foundry, films) = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let (foundry, films) = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount_and_handle::&lt;Film&gt;();
 let app: Router = foundry
     .build()
     .merge(Router::new().route("/films/{id}/mine", get(one)).with_state(films));
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <div class="table-wrapper">
@@ -826,11 +832,12 @@ let layer = FerraLayer::new().cors(cors).build();
 </span><span class="boring">use axum::{extract::Request, middleware::{from_fn, Next}, response::Response};
 </span><span class="boring">async fn observe(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">async fn shed_load(request: Request, next: Next) -&gt; Response { next.run(request).await }
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let app = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;Film&gt;().build()
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let app = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Film&gt;().build()
     .layer(from_fn(observe))      // outer: sees requests before the framework
     .layer(from_fn(shed_load));   // appended AFTER → now the TRUE outermost
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>On incoming requests: <code>shed_load</code> runs first, then <code>observe</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
@@ -934,6 +941,12 @@ withholds the tag too: a tag is a statement about a row the caller may read.</li
 <li><strong>Never cached, never a <code>304</code>.</strong> A <code>GET</code> carrying <code>If-None-Match</code> is not
 answered <code>304 Not Modified</code>: row responses are <code>no-store</code> (see
 <a href="#caching">Caching</a>) and the tag serves writes.</li>
+<li><strong>It follows the row only.</strong> The tag is computed from the row’s table, key and
+version (<code>xmin</code>). A response that <a href="relations.html#embedding">embeds a parent</a>
+carries the child’s tag, so the parent can change while the tag stays the same.
+Ferra never answers <code>304</code>, so it serves nothing stale from it. A cache in front of
+Ferra that stores the response despite <code>no-store</code> and revalidates on the <code>ETag</code> can
+keep a stale embed: do not give such a cache a route whose projection embeds.</li>
 </ul>
 <h3 id="what-the-tag-reveals-and-does-not"><a class="header" href="#what-the-tag-reveals-and-does-not">What the tag reveals, and does not</a></h3>
 <p>The tag is keyed by the server’s <a href="foundry.html#entity-tag-key">entity-tag key</a>, which
@@ -1029,11 +1042,10 @@ what OData 4.01 §11.4.3 requires and the Azure REST API Guidelines prescribe
 <hr>
 <h2 id="transient-conflicts-are-retried"><a class="header" href="#transient-conflicts-are-retried">Transient conflicts are retried</a></h2>
 <p>Two writes that touch the same rows can make PostgreSQL abort one of them: SQLSTATE <code>40P01</code>
-(deadlock detected) at any isolation level, and <code>40001</code> (serialization failure) when the server’s
-default isolation is <code>REPEATABLE READ</code> or <code>SERIALIZABLE</code> (at <code>COMMIT</code> too under <code>SERIALIZABLE</code>). The
+(deadlock detected), and <code>40001</code> (serialization failure). The
 request is valid, so since 0.14.0 Ferra runs the write again instead of
-answering a <code>500</code>. A write of a model with a system grant (ADR-0073) runs at <code>READ COMMITTED</code>; the
-others at the server’s level.</p>
+answering a <code>500</code>. Every write Ferra opens runs at <code>READ COMMITTED</code> whatever the server’s default says (since
+0.16.0), so the isolation level itself no longer produces a <code>40001</code>.</p>
 <ul>
 <li><strong>What is rerun.</strong> The whole operation, decided again on the new state of the database, hooks
 included (<a href="behaviors.html#hooks-can-run-more-than-once">Hooks can run more than once</a>).</li>
@@ -1049,7 +1061,11 @@ before the second, so at most 30 ms are added. These are constants of the crate,
 <li><strong>Exhaustion.</strong> A write aborted on all three attempts answers <code>503</code>
 <code>https://ferra.rs/errors/retry_exhausted</code> with <code>Retry-After: 1</code> (whole seconds). That write
 was not applied, so the client may retry it; the <code>detail</code> is one fixed text that speaks for that
-write and names no SQLSTATE, table or constraint. An aborted attempt logs one line with its number and its SQLSTATE, never a value.</li>
+write and names no SQLSTATE, table or constraint. An aborted attempt logs one line with its number and its SQLSTATE, never a value.
+A <code>Resource&lt;M&gt;</code> write returns it as <code>Err(FerraError::RetryExhausted)</code> (0.16.0; before, an
+<code>Internal</code> over a private cause): return it to answer the <code>503</code>, and never replay the write in
+a loop of your own, since the three attempts already ran. A hook’s <code>tx.resource</code> write
+reaches the caller as the same variant, through the outer write.</li>
 <li><strong>The request budget.</strong> With <a href="foundry.html#request-time-budget"><code>.request_budget(..)</code></a> the deadline
 bounds every attempt as it bounds the first: no attempt starts once it has passed, no wait ends
 past it, and a <code>COMMIT</code> the database refused with <code>40001</code> or <code>40P01</code> committed nothing, so it is
@@ -1060,8 +1076,8 @@ the code around the call (your extractors, what you did before it, what you do a
 once, however many attempts the write takes; two calls are two operations, each with its own
 attempts. Keep the effect of a handler after the call, or in <code>after_commit</code> (see <a href="behaviors.html#hooks-can-run-more-than-once">Hooks can run
 more than once</a>). A write that was given up after an
-earlier <code>Resource&lt;M&gt;</code> write of the same handler answers <code>retry_exhausted</code> while that earlier write
-stands: the <code>detail</code> speaks for the write that failed, not for the request; do not retry a
+earlier <code>Resource&lt;M&gt;</code> write of the same handler is <code>Err(FerraError::RetryExhausted)</code>, answered
+<code>retry_exhausted</code> while that earlier write stands: the <code>detail</code> speaks for the write that failed, not for the request; do not retry a
 non-idempotent request blindly (RFC 9110 § 9.2.2).</li>
 <li><strong>The cost.</strong> A request under conflict does up to three times its work.</li>
 </ul>
@@ -1146,9 +1162,10 @@ member removes its key. Stored <code>{"a": 1, "b": 2}</code> patched with <code>
 patch value (an array, a scalar, <code>null</code>) replaces the field or clears it, and an
 object patched onto a stored value that is not an object is merged into <code>{}</code>. The
 <code>max_bytes</code> and <code>max_depth</code> bounds apply to the merged document.</li>
-<li><strong>The key and the owner are not patchable.</strong> A patch that names the primary key, the
-owner column or any key outside the write set is a 422 <code>unknown_field</code>, nothing
-written, as for <code>PUT</code>; so is a key the caller may not read, so that the answer does
+<li><strong>The key, the owner and the parent key are not patchable.</strong> A patch that names the
+primary key, the owner column, the foreign key of an <code>owner(from)</code> model (0.16.0:
+<a href="relations.html#moving-a-child">it is immutable</a>) or any key outside the write set is a
+422 <code>unknown_field</code>, nothing written, as for <code>PUT</code>; so is a key the caller may not read, so that the answer does
 not tell a field that exists from one that does not.</li>
 </ul>
 <h3 id="what-a-patch-is-refused-with"><a class="header" href="#what-a-patch-is-refused-with">What a patch is refused with</a></h3>
@@ -1162,7 +1179,7 @@ not tell a field that exists from one that does not.</li>
 <tr><td><code>400</code> <code>validation</code>, code <code>invalid_json</code></td><td>the body is not a JSON object, a key is repeated in it at any depth (a JSON field included: <code>a key is repeated at line L column C</code>), or a value is of the wrong type for a field the caller may read</td></tr>
 <tr><td><code>404</code> <code>not_found</code></td><td>the row does not exist, is soft-deleted, or is one the caller may not see: the same answer, byte for byte. It comes before the <code>415</code>, <code>400</code> and <code>422</code> of the body when a rule, an authority, an <code>owner</code> field or a precondition header reads the row; see the order below</td></tr>
 <tr><td><code>403</code> <code>forbidden</code></td><td>a key the caller may read but not write (a <code>write</code> rule of the field)</td></tr>
-<tr><td><code>422</code> <code>validation_failed</code></td><td><code>unknown_field</code> (above); <code>required</code> for a <code>null</code> on a field that cannot be null; a <code>#[field(...)]</code> rule of a value the patch sets (<code>min_length</code>, <code>max</code>, <code>pattern</code>…); <code>json_too_large</code> or <code>json_too_deep</code> for the merged document; <code>reference_not_found</code> for a re-parenting to a parent the caller may not use</td></tr>
+<tr><td><code>422</code> <code>validation_failed</code></td><td><code>unknown_field</code> (above); <code>required</code> for a <code>null</code> on a field that cannot be null; a <code>#[field(...)]</code> rule of a value the patch sets (<code>min_length</code>, <code>max</code>, <code>pattern</code>…); <code>json_too_large</code> or <code>json_too_deep</code> for the merged document</td></tr>
 </tbody>
 </table>
 </div>

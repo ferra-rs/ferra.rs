@@ -1,0 +1,418 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Migrating from 0.15 to 0.16 - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-6e4afefc.svg">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-fcc48201.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/migrating-to-0.16.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="migrating-from-015-to-016"><a class="header" href="#migrating-from-015-to-016">Migrating from 0.15 to 0.16</a></h1>
+<p>0.16.0 (Brazing) serves a model’s relations under each side’s own rules. Each entry below is a change you may
+notice. This page grows with the release: read the entries, then update the application’s git dependency to
+<code>v0.16.0</code>. <a href="../../CHANGELOG.html">CHANGELOG.md</a> lists every change.</p>
+<h2 id="new-routes-appear-a-parent-and-its-child"><a class="header" href="#new-routes-appear-a-parent-and-its-child">New routes appear: a parent and its child</a></h2>
+<p><strong>Before.</strong> A <code>HasMany</code> or a <code>HasOne</code> was a declaration Ferra did not serve. A child was reached on its own path only.</p>
+<p><strong>After.</strong> An application that mounts a parent and its child gets new routes; here is how to remove them. When both
+sides of a <code>HasMany</code> or <code>HasOne</code> are mounted on the same <code>Foundry</code>, it serves <code>GET</code> and <code>POST {parent}/{id}/{relation}</code> (<code>GET /films/{id}/reviews</code>, <code>POST /films/{id}/reviews</code>), with no change in your code. They
+allow nothing the child’s own path does not, plus the parent’s refusals (it must be readable, and updatable for a
+<code>POST</code>); they appear in the OpenAPI document, and they go through the child’s layers.
+<a href="relations.html#sub-collections">Sub-collections</a> states the rules.</p>
+<p><strong>Who is affected.</strong> An application that mounts a parent and its child, both derived in the dense form. The routes are
+extra: a client that does not call them sees no change. If you do not want them exposed, for example because a
+gateway lists the allowed paths or a test pins the set of routes, remove them.</p>
+<p><strong>Migration.</strong> There is nothing to do to keep them. To remove them, either write the parent in the split form (a
+model with no relation field has no sub-collection, and none of the other features of its relations), or do not mount
+the child. There is no per-relation opt-out yet.</p>
+<p>A relation named like a row action or <code>restore</code> of its own model would take the path of that route, so <code>build()</code> (and
+<code>try_build()</code>) refuses it with <code>BuildError::RelationNameCollision</code>, naming the model and both names. Rename the
+relation or the action.</p>
+<h2 id="every-write-opens-at-read-committed"><a class="header" href="#every-write-opens-at-read-committed">Every write opens at <code>READ COMMITTED</code></a></h2>
+<p><strong>Before.</strong> A write ran at the server’s <code>default_transaction_isolation</code>, except the write of a model with a system
+grant, which already opened at <code>READ COMMITTED</code>.</p>
+<p><strong>After.</strong> Every write Ferra opens (the generated routes, <code>Resource&lt;M&gt;</code>, and the transaction a hook borrows) runs at
+<code>READ COMMITTED</code>, whatever the server’s default says. The protocol that keeps a parent’s check valid against a
+concurrent child write needs it. PostgreSQL’s own default is <code>READ COMMITTED</code>, so an application on that default
+changes nothing.</p>
+<p><strong>Who is affected.</strong> An application whose connection defaults to <code>REPEATABLE READ</code> or <code>SERIALIZABLE</code> loses the
+detection of lost updates in its hooks: a hook that reads a row through <code>tx.resource</code> and writes it back computed
+from that read no longer gets <code>40001</code>. Under a <code>SERIALIZABLE</code> default, read-write anomalies across rows are likewise
+no longer detected. A write of the row’s own model is not affected, because <code>before_*</code> hooks receive the locked row.</p>
+<p><strong>Migration.</strong> Compute the new value in the target row’s own hook or action, where the row is locked. HTTP clients
+keep <code>If-Match</code>; <code>tx.resource</code> evaluates none. See <a href="ferra-db.html#transactions">Transactions</a>.</p>
+<h2 id="the-ownerfrom-foreign-key-is-immutable"><a class="header" href="#the-ownerfrom-foreign-key-is-immutable">The <code>owner(from)</code> foreign key is immutable</a></h2>
+<p><strong>Before.</strong> A <code>PUT</code> or a <code>PATCH</code> that named the foreign key of a model with <code>owner(from = ..)</code> moved the row under
+another parent of the same owner (a <code>200</code>), and an action could return the row with another key.</p>
+<p><strong>After.</strong> The key is set when the row is created and never changes. A <code>PUT</code> or a <code>PATCH</code> naming it is the <code>422</code>
+<code>unknown_field</code> that any key outside the write set gets, whatever value it names, with nothing written. A <code>PUT</code> that
+leaves it out keeps the row under its parent. A row action whose handler changes it is a <code>500</code> <code>internal</code>, and the
+same refusal applies to <code>Resource::update</code> and <code>tx.resource().update</code>. The OpenAPI document no longer lists the key
+in the <code>PUT</code> and <code>PATCH</code> request schemas of such a model; it stays in the <code>POST</code> one.</p>
+<p><strong>Who is affected.</strong> A client that sends the whole record back on a <code>PUT</code>, key included (the usual read-modify-write),
+now gets the <code>422</code>. A client generated from the OpenAPI document must be regenerated.</p>
+<p><strong>Migration.</strong> Stop sending the key on <code>PUT</code> and <code>PATCH</code>. To move a child, delete it and create it again; the new row
+has a new identity (see <a href="relations.html#moving-a-child">Relations</a>).</p>
+<h2 id="a-childs-hook-cannot-write-the-parent-it-holds"><a class="header" href="#a-childs-hook-cannot-write-the-parent-it-holds">A child’s hook cannot write the parent it holds</a></h2>
+<p><strong>Before.</strong> A hook of a model with <code>owner(from = ..)</code> could update or delete, through <code>tx.resource</code>, the parent its
+write holds <code>FOR SHARE</code>. The <code>UPDATE</code> asked for <code>FOR UPDATE</code> on a row the transaction only shared, and deadlocked
+against the parent’s other children in flight (<code>40P01</code>, retried, then the 503 <code>retry_exhausted</code>).</p>
+<p><strong>After.</strong> The call is refused before any statement: <code>FerraError::Internal</code>, the write answered <code>500</code> <code>internal</code>, one
+<code>error!</code> that names the child’s resource, the parent’s resource, the operation and the fix, and no key value. The
+refusal poisons the write, so a hook that swallows it still commits nothing. A read of the parent, a sibling create and
+a write of a row the write does not hold are unchanged, and so is a parent’s own action writing its children.</p>
+<p><strong>Who is affected.</strong> A hook that keeps a counter or a status on the parent (<code>tx.resource::&lt;Film&gt;().update(..)</code> from
+a review’s <code>after_save</code>, for instance).</p>
+<p><strong>Migration.</strong> Write the parent from its own action, or compute the value on read. See
+<a href="relations.html#hooks-and-the-parent">Relations</a>.</p>
+<h2 id="a-put-of-an-ownerfrom-model-reads-the-row-first"><a class="header" href="#a-put-of-an-ownerfrom-model-reads-the-row-first">A <code>PUT</code> of an <code>owner(from)</code> model reads the row first</a></h2>
+<p>A <code>PUT</code> of a model with <code>owner(from = ..)</code> now reads the row before it judges the body, so a bad body (a wrong type,
+an unknown key) on an absent row is the <code>404</code>, no longer the <code>400</code> or <code>422</code>. Nothing to migrate unless a client relied
+on the body’s refusal for a row that does not exist.</p>
+<h2 id="an-exhausted-retry-is-ferraerrorretryexhausted"><a class="header" href="#an-exhausted-retry-is-ferraerrorretryexhausted">An exhausted retry is <code>FerraError::RetryExhausted</code></a></h2>
+<p><strong>Before.</strong> A <code>Resource&lt;M&gt;</code> write that the database aborted on each of its three attempts returned a
+<code>FerraError::Internal</code> over a private cause, which answered <code>503</code> <code>retry_exhausted</code> wherever it was returned. The
+public enum had no variant for it.</p>
+<p><strong>After.</strong> It returns the unit variant <code>FerraError::RetryExhausted</code> (wire type <code>retry_exhausted</code>, <code>503</code>,
+<code>Retry-After: 1</code>; the status, title and detail do not change). A hook’s <code>tx.resource</code> write that gave up reaches
+the caller as the same variant, through the outer write. <code>FerraError</code> is <code>#[non_exhaustive]</code>, so a <code>match</code> with a
+wildcard arm still compiles.</p>
+<p><strong>Who is affected.</strong> A route of your own that matches <code>FerraError::Internal(_)</code> to tell an exhausted retry from a
+500: it no longer sees it, and the request falls to your other arms.</p>
+<p><strong>Migration.</strong> Add an arm for <code>FerraError::RetryExhausted</code> and answer it as a transient <code>503</code>. Never replay the
+write in a loop of your own: the three attempts already ran. See
+<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>.</p>
+<h2 id="a-sea_ormignore-field-needs-ferracomputed"><a class="header" href="#a-sea_ormignore-field-needs-ferracomputed">A <code>#[sea_orm(ignore)]</code> field needs <code>#[ferra(computed)]</code></a></h2>
+<p><strong>Before.</strong> A field with <code>#[sea_orm(ignore)]</code> and no <code>#[ferra(computed)]</code> compiled. It has no column, so Sea-ORM
+built it with <code>Default</code> on every read, and Ferra served that value as the row’s.</p>
+<p><strong>After.</strong> The derive refuses it: <code>FRG-364</code>, spanned on the <code>ignore</code>
+(<a href="ferra-forge-diagnostics.html#frg-364--an-ignored-field-without-computed">the code</a>).</p>
+<p><strong>Who is affected.</strong> A model that keeps an in-memory field in its <code>Model</code> struct without computing it.</p>
+<p><strong>Migration.</strong> Add <code>#[ferra(computed)]</code> and the <code>impl FerraComputed for Model</code> that fills the field (an empty impl
+serves its <code>Default</code>, as before, but says so). Or move the field out of the model, into a type of your own or a
+<code>Resource&lt;M&gt;</code> route.</p>
+<h2 id="a-composite-foreign-key-is-refused"><a class="header" href="#a-composite-foreign-key-is-refused">A composite foreign key is refused</a></h2>
+<p><strong>Before.</strong> A relation with <code>from = "(studio_id, studio_region)"</code> compiled. The foreign-key gate reads one column, so
+it saw none: the key was served, and a write naming an unreadable parent was accepted.</p>
+<p><strong>After.</strong> The derive refuses it: <code>FRG-365</code>, spanned on the string
+(<a href="ferra-forge-diagnostics.html#frg-365--a-composite-foreign-key">the code</a>).</p>
+<p><strong>Who is affected.</strong> A model with a relation keyed by several columns.</p>
+<p><strong>Migration.</strong> Give the relation one foreign-key column, or keep the composite key out of the model’s relations.</p>
+<h2 id="the-relations-are-typed-and-the-back-key-is-checked-at-build"><a class="header" href="#the-relations-are-typed-and-the-back-key-is-checked-at-build">The relations are typed, and the back key is checked at <code>build()</code></a></h2>
+<p><strong>Before.</strong> <code>Foundry</code> did not read the relation fields of a model. A <code>HasMany</code> whose target had no <code>BelongsTo</code> back,
+or two, built without complaint.</p>
+<p><strong>After.</strong> The derive emits one typed marker per relation, <code>Mountable</code> carries a hidden bound that reads them, and
+<code>build()</code> (and <code>try_build()</code>) refuses a <code>HasMany</code> or <code>HasOne</code> whose target is mounted on the same <code>Foundry</code> and has
+none, or more than one, <code>BelongsTo</code> back to the model: <code>BuildError::RelationBackKey</code>, naming both models, the
+relations and the fix. A pair with a single side mounted is not checked.</p>
+<p><strong>Who is affected.</strong> An application that mounts both sides of a <code>HasMany</code> or <code>HasOne</code> whose target has two
+<code>BelongsTo</code> back (two keys to the same parent), or none. A model written by hand against <code>Mountable</code>, without the
+derive.</p>
+<p><strong>Migration.</strong> Derived models: none, unless <code>build()</code> refuses a pair. Then keep exactly one <code>BelongsTo</code> back, or mount
+only one of the two models. A hand-written model also implements the hidden, derive-only <code>FerraRelations</code> for its
+entity (<code>type Relations = ();</code> when it declares no relation); it is outside the contract and may change. See
+<a href="relations.html#declaring-relations">Declaring relations</a>.</p>
+<h2 id="projections-that-embed-each-other-are-refused-at-build"><a class="header" href="#projections-that-embed-each-other-are-refused-at-build">Projections that embed each other are refused at <code>build()</code></a></h2>
+<p><strong>Before.</strong> A projection could not embed a relation.</p>
+<p><strong>After.</strong> A <code>read</code> list may name a <code>BelongsTo</code> (<a href="relations.html#embedding">Embedding</a>), and <code>build()</code> (and
+<code>try_build()</code>) refuses a loop of embeds: <code>BuildError::EmbedCycle</code>, with the path as resource names (the table name unless
+<code>resource =</code> says otherwise), from the first node the walk meets again
+(<code>Embedding cycle: `films.summary → studios.summary → films.summary`; remove one embed from a `read` list.</code>).</p>
+<p><strong>Who is affected.</strong> An application that adds embeds to the projections of two mounted models that point at each other.</p>
+<p><strong>Migration.</strong> Remove one embed from a <code>read</code> list; the relation stays a link.</p>
+<h2 id="the-foreign-key-of-a-belongsto-follows-the-readability-of-its-parent"><a class="header" href="#the-foreign-key-of-a-belongsto-follows-the-readability-of-its-parent">The foreign key of a <code>BelongsTo</code> follows the readability of its parent</a></h2>
+<p><strong>Before.</strong> A row served its foreign key (<code>film_id</code>) to everyone who could read the row, whatever they could read of the
+parent. <code>FerraViews::Read</code> held it as a plain value.</p>
+<p><strong>After.</strong> A caller who may not read the parent gets no key and no <code>film</code> link in <code>_links</code>: the member is absent, never
+<code>null</code> (a key that is <code>NULL</code> stays <code>null</code>, with no link). It holds on every response that serializes the row: item, list,
+<code>/me</code>, the write responses, each projection prefix, <code>Resource&lt;M&gt;</code> and a hook’s <code>tx.resource</code>. “May read the parent” is
+the <code>get</code> of <code>GET {parent item}</code>: its rule, its authority, its owner condition and soft delete. Ferra decides it with one
+extra <code>SELECT ... WHERE key IN (...)</code> per <code>BelongsTo</code> per page. A parent that is not mounted on the <code>Foundry</code> is read
+by nobody, so its key and link are absent for everyone. In <code>FerraViews::Read</code> the key is an <code>Option</code> (<code>Option&lt;Option&lt;T&gt;&gt;</code>
+for a nullable key). A <code>PUT</code> does not need to carry a key the caller may not read: the stored value is kept. The OpenAPI
+read schema no longer lists the key in <code>required</code>, and says it is absent when the caller may not read it.</p>
+<p><strong>Who is affected.</strong> A client that reads the foreign key of a model whose parent some callers cannot read. A hand-written
+route that reads <code>read.film_id</code> from <code>Resource::get</code>, <code>Resource::list</code> or <code>tx.resource()</code>. A client generated from the
+OpenAPI document (the key is optional now).</p>
+<p><strong>Migration.</strong> Treat the key as optional on the client. In a route of yours, <code>if let Some(id) = read.film_id</code>, or
+<code>read.film_id.flatten()</code> for a nullable key. An app that counted the statements of a read sees one more per
+<code>BelongsTo</code>. See <a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>.</p>
+<h2 id="a-write-naming-a-foreign-key-reads-its-target"><a class="header" href="#a-write-naming-a-foreign-key-reads-its-target">A write naming a foreign key reads its target</a></h2>
+<p><strong>Before.</strong> A create, <code>PUT</code> or <code>PATCH</code> that set the key of a plain <code>BelongsTo</code> (no <code>owner(from)</code>) wrote it whatever the
+caller could read of the target: a row the caller could not read was accepted (201 or 200), and a row that does not
+exist was a 500 <code>internal</code> (SQLSTATE <code>23503</code>).</p>
+<p><strong>After.</strong> The target is read under the caller’s read scope in the write’s transaction, without a lock. A target that is
+absent, soft-deleted, unreadable by the caller or not mounted on the <code>Foundry</code> is the 422 <code>reference_not_found</code> on the
+key, byte for byte the same in each case, and nothing is written. It holds through <code>Resource&lt;M&gt;</code> and a hook’s
+<code>tx.resource</code>. <code>null</code> and a write that does not name the key read nothing.</p>
+<p><strong>Who is affected.</strong> A client that wrote a key to a row it cannot read (it now gets the 422), or that handled the 500 of
+an absent one. A model whose <code>BelongsTo</code> target is not mounted on the same <code>Foundry</code>: its key can only be <code>null</code> through
+the API now, unless a <code>before_save</code> hook sets it from another value of the body. An app that counted the statements of a write sees one more per key named.</p>
+<p><strong>Migration.</strong> Handle the 422 <code>reference_not_found</code> as “that reference does not exist for you”. Mount the target model if
+callers must be able to point at it. See <a href="relations.html#writing-a-foreign-key">Writing a foreign key</a>.</p>
+<h2 id="a-create-of-an-ownerfrom-model-needs-its-parent-mounted"><a class="header" href="#a-create-of-an-ownerfrom-model-needs-its-parent-mounted">A create of an <code>owner(from)</code> model needs its parent mounted</a></h2>
+<p><strong>Before.</strong> Since 0.13.0 a create of a model with <code>owner(from = ..)</code> accepted a key whose parent the caller cannot
+<code>GET</code>: a parent that the <code>get</code> rule refuses (<code>GET {parent}</code> answers 403), a parent that the default projection’s rule
+refuses (404), or a parent that is not mounted on the <code>Foundry</code>. The caller wrote a row (201) under a parent it cannot
+read.</p>
+<p><strong>After.</strong> The key is judged as <code>GET {parent}</code> judges the parent, for the caller. A parent that is refused by the <code>get</code>
+rule or by the default projection’s rule, or that is not mounted (an unmounted parent is read by nobody, whatever the
+value), is the one 422 <code>reference_not_found</code> on the key, the bytes of an absent parent, with nothing written. It holds
+for the route, <code>Resource::create</code> and a hook’s <code>tx.resource</code>. See
+<a href="relations.html#writing-a-foreign-key">Writing a foreign key</a>.</p>
+<p><strong>Who is affected.</strong> An application whose <code>owner(from)</code> child is created by a caller that cannot <code>GET</code> the parent (a
+role that may create reviews but whose <code>get</code> on films is refused, say), or whose parent model is not mounted on the same
+<code>Foundry</code> as the child.</p>
+<p><strong>Migration.</strong> Mount the parent model, and give each caller that creates children a <code>get</code> on it (and a default
+projection that admits them). Handle the 422 <code>reference_not_found</code> as “that parent does not exist for you”.</p>
+<h2 id="a-hand-written-ferramodel-derives-its-column-table"><a class="header" href="#a-hand-written-ferramodel-derives-its-column-table">A hand-written <code>FerraModel</code> derives its column table</a></h2>
+<p><strong>Before.</strong> Ferra parsed a field’s name into its Sea-ORM column, which failed for a field such as <code>film_1</code>.</p>
+<p><strong>After.</strong> The derive emits the table from each field to its column, and no code parses a name. A <code>FerraModel</code> written
+by hand gets <code>None</code> from the hidden <code>column_of_field</code>: every request that needs a column (a write of a field, a sort, a
+filter) is a 500 or a refusal.</p>
+<p><strong>Who is affected.</strong> A model that implements <code>FerraModel</code> by hand. A derived model: nobody.</p>
+<p><strong>Migration.</strong> Derive <code>FerraModel</code>.</p>
+<h2 id="a-delete-a-foreign-key-refuses-is-a-409"><a class="header" href="#a-delete-a-foreign-key-refuses-is-a-409">A delete a foreign key refuses is a 409</a></h2>
+<p><strong>Before.</strong> A <code>DELETE</code> that a foreign-key constraint refused (a film that still has reviews under <code>ON DELETE RESTRICT</code>) was a 500 <code>internal</code>, and so was a write the database refused for a foreign key after Ferra’s read (the
+target removed in between).</p>
+<p><strong>After.</strong> The delete is the 409 <code>conflict</code> with its fixed <code>detail</code>: nothing is deleted, the statement is run once, and
+the OpenAPI document declares the 409 on the <code>DELETE</code> of every model that a <code>BelongsTo</code> targets. The write is the 422
+<code>reference_not_found</code> on the key the constraint names, the bytes of an absent target. The log holds the constraint’s
+name, never a key value. <code>ferra_db::FerraDbError</code> gains the variant <code>ForeignKey { constraint }</code> (it is
+<code>#[non_exhaustive]</code>: a <code>match</code> on it already has a wildcard arm).</p>
+<p><strong>Who is affected.</strong> A client or a monitor that treated that 500 as a server fault. A generated client that now sees a
+409 on a <code>DELETE</code>. An application that matches <code>FerraDbError</code> exhaustively with a wildcard that assumed a database
+failure.</p>
+<p><strong>Migration.</strong> Handle the 409 on a <code>DELETE</code> as “this row is still referenced”. See
+<a href="relations.html#deleting-a-parent">Deleting a parent</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="stability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="migrating-to-0.15.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="stability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="migrating-to-0.15.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

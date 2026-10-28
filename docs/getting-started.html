@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,14 +205,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
 serde   = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0", features = ["test-support"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["test-support"] }
 </code></pre>
 <p><code>ferra</code> is the only Ferra crate you declare: <code>ferra-core</code>, <code>ferra-db</code>,
 <code>ferra-forge</code>, <code>ferra-http</code> and <code>ferra-openapi</code> are reached through it, and the

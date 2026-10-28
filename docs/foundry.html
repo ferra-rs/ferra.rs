@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -250,7 +250,7 @@ returned router land outside the framework’s Tower stack.</p>
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -534,7 +534,7 @@ is configured the same way.</p>
 <p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
 When the <code>observability</code> feature is enabled:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["observability"] }
 </code></pre>
 <p>the framework also advances a <code>metrics::counter!</code> named
 <code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,

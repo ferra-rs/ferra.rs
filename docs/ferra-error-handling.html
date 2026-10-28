@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -203,7 +203,7 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/not_found</code></td><td style="text-align: right"><code>404 Not Found</code></td><td>Resource Not Found</td><td><code>FerraError::NotFound</code> (<code>&lt;resource&gt;/&lt;id&gt; not found</code>); <code>FerraError::CollectionNotFound</code> (0.13.0: a collection the caller may not use, <code>&lt;resource&gt; not found</code>, no id)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Validation Error</td><td><code>FerraError::Validation</code> (extractor failures: malformed JSON body, unparseable path parameter)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation_failed</code></td><td style="text-align: right"><code>422 Unprocessable Content</code></td><td>Validation Failed</td><td><code>FerraError::Unprocessable</code> (well-formed body whose values violate <code>#[field(...)]</code> rules — see § Validation failures (422))</td></tr>
-<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>); <code>FerraError::ConflictWith</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
+<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>; a unique constraint, or a <code>DELETE</code> a foreign key refuses, 0.16.0); <code>FerraError::ConflictWith</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
 <tr><td><code>https://ferra.rs/errors/internal</code></td><td style="text-align: right"><code>500 Internal Server Error</code></td><td>Internal Server Error</td><td><code>FerraError::Internal</code></td></tr>
 <tr><td><code>https://ferra.rs/errors/payload_too_large</code></td><td style="text-align: right"><code>413 Payload Too Large</code></td><td>Payload Too Large</td><td>request-body-limit middleware</td></tr>
 <tr><td><code>https://ferra.rs/errors/rate_limited</code></td><td style="text-align: right"><code>429 Too Many Requests</code></td><td>Too Many Requests</td><td>rate-limit middleware</td></tr>
@@ -216,16 +216,16 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Identity Unavailable</td><td><code>FerraError::IdentityUnavailable</code> (0.12.0: a credential could not be verified because the identity source is out of reach: the key set of the identity provider could not be fetched with no fresh key cached, or the API key store failed; no <code>Retry-After</code>)</td></tr>
 <tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (0.13.0: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach; unlike <code>timeout</code>, it can follow a commit; no <code>Retry-After</code>)</td></tr>
 <tr><td><code>https://ferra.rs/errors/precondition_failed</code></td><td style="text-align: right"><code>412 Precondition Failed</code></td><td>Precondition Failed</td><td>the generated <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> and <code>restore</code> routes (0.14.0: an <code>If-Match</code> or <code>If-None-Match</code> that does not hold on the row, or is no list of entity tags; the row is unchanged, the <code>detail</code> is one fixed text that echoes nothing and names no tag, and the response carries no <code>ETag</code>; a row the caller may not see is a <code>404</code> first, a wrong <code>Content-Type</code> a <code>415</code>; see <a href="ferra-http.html#preconditions-on-a-write"><code>ferra-http.md</code> § Preconditions on a write</a>)</td></tr>
-<tr><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Retries Exhausted</td><td>the generated write routes and <code>Resource&lt;M&gt;</code> writes (0.14.0: the database aborted the write’s transaction with <code>40001</code> or <code>40P01</code> on each of its three attempts; the write given up was not applied, so the client may retry it (an earlier write of a route of your own stands); carries <code>Retry-After: 1</code>, a <code>detail</code> that is one fixed text naming no SQLSTATE, table or constraint, and no <code>FerraError</code> variant; while a request budget is set, a deadline that leaves no room for the next attempt is the <code>timeout</code> above instead)</td></tr>
+<tr><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Retries Exhausted</td><td>the generated write routes and <code>Resource&lt;M&gt;</code> writes (0.14.0: the database aborted the write’s transaction with <code>40001</code> or <code>40P01</code> on each of its three attempts; the write given up was not applied, so the client may retry it (an earlier write of a route of your own stands); carries <code>Retry-After: 1</code>, a <code>detail</code> that is one fixed text naming no SQLSTATE, table or constraint, and <code>FerraError::RetryExhausted</code> for a <code>Resource&lt;M&gt;</code> write (0.16.0); while a request budget is set, a deadline that leaves no room for the next attempt is the <code>timeout</code> above instead)</td></tr>
 </tbody>
 </table>
 </div>
 <p>Three of the seventeen URIs (<code>payload_too_large</code>, <code>rate_limited</code>,
 <code>unauthorized</code>) are emitted by middleware layers, not through
 <code>FerraError</code>; a fourth, <code>precondition_failed</code>, is answered by the generated
-write routes and has no <code>FerraError</code> variant, and nor has a fifth,
-<code>retry_exhausted</code> (a <code>FerraError::Internal</code> over a private cause, which
-answers 503 wherever it is returned). The framework’s full URI surface is the union of the
+write routes and has no <code>FerraError</code> variant. <code>retry_exhausted</code> has one since
+0.16.0, <code>FerraError::RetryExhausted</code>: it is a 503 wherever it is returned
+(before 0.16.0 it was a <code>FerraError::Internal</code> over a private cause). The framework’s full URI surface is the union of the
 two paths; both are governed by the same <code>ERROR_TYPES</code> slice.
 (<code>unauthorized</code> is emitted from both — the docs-protection middleware
 and, since 0.8.0, <code>FerraError::Unauthorized</code> on the per-operation
@@ -296,9 +296,12 @@ would answer a caller who sends a hidden required key with a <code>400</code> wh
 and reveal that the field exists.</p>
 <h3 id="conflict--409"><a class="header" href="#conflict--409"><code>conflict</code> — <code>409</code></a></h3>
 <p>Returned when a write would violate a unique constraint (duplicate slug, primary-key
-collision, etc.). The <code>detail</code> is fixed: the database’s message — which names the
+collision, etc.), or when a <code>DELETE</code> is refused by a foreign key (0.16.0: a parent that
+still has children under <code>ON DELETE RESTRICT</code>; nothing is deleted and the statement is not
+retried). The <code>detail</code> is fixed: the database’s message — which names the
 constraint and the table — goes to the server log (<code>INFO</code>, target
-<code>ferra_http::conflict</code>), never to the client.</p>
+<code>ferra_http::conflict</code>), never to the client; a foreign-key violation logs the constraint’s
+name only, never the key value.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/conflict",
   "title": "Conflict",
@@ -407,12 +410,16 @@ the SQLSTATE goes to a <code>warn</code> trace, one line per aborted attempt. A 
 one write per request, so nothing of the request was written. In a route of your own, an
 earlier write of the same handler through <code>Resource&lt;M&gt;</code> stands: do not retry a
 non-idempotent request blindly (RFC 9110 § 9.2.2). The generated write routes and
-<code>Resource&lt;M&gt;</code> writes answer it; there is no <code>FerraError</code>
-variant for it. With a <a href="foundry.html#request-time-budget">request budget</a>, a deadline
+<code>Resource&lt;M&gt;</code> writes answer it. A <code>Resource&lt;M&gt;</code> write that was given up returns
+<code>Err(FerraError::RetryExhausted)</code> (a unit variant, 0.16.0): return it from your route to
+answer the 503, and never replay the write in a loop of your own, because the loop already
+ran and a replay under contention adds to it. A hook’s <code>tx.resource</code> write reaches the
+caller as the same variant, through the outer write; an <code>Internal(_)</code> arm no longer sees
+it. With a <a href="foundry.html#request-time-budget">request budget</a>, a deadline
 that leaves no room for the next attempt is the <a href="#timeout--503"><code>timeout</code></a> instead, with
 no <code>Retry-After</code>. The attempts, the wait between them and what is rerun:
 <a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>. New in
-0.14.0.</p>
+0.14.0; the <code>FerraError</code> variant is new in 0.16.0.</p>
 <pre><code class="language-http">HTTP/1.1 503 Service Unavailable
 Content-Type: application/problem+json
 Retry-After: 1
@@ -486,6 +493,13 @@ of every write: the row’s <code>404</code>, <code>415</code>, <code>412</code>
 the caller may read and not write, the <code>422</code> of the bounds and of the <code>#[field(...)]</code>
 rules, and last the <code>400</code> of a required key the body does not send. A body with an unknown key and a wrong-typed value on a key the caller may read is
 therefore the 400, not this 422.</p>
+<p>A foreign key that points at no row the caller may read is the 422 with the code <code>reference_not_found</code> on the key
+(0.16.0, see <a href="relations.html#writing-a-foreign-key">Writing a foreign key</a>), whether Ferra’s own read of the target
+refused it or the database’s constraint did after that read (SQLSTATE <code>23503</code>): the body is the same, and neither the
+body nor the log holds the key value.</p>
+<p>A <code>23503</code> on a model with no declared <code>BelongsTo</code> is the <code>409</code> <code>conflict</code>: a constraint Ferra does not know of is a
+conflict of state, not a reference of the body. The create’s OpenAPI documents its <code>409</code> only as the generic conflict (a
+unique constraint); it does not name the foreign key, because a constraint invisible to the derive is not documented.</p>
 <hr>
 <h2 id="validation-failures-422"><a class="header" href="#validation-failures-422">Validation failures (422)</a></h2>
 <p>A 422 response fires when the request body is <em>well-formed</em> — it
@@ -785,7 +799,7 @@ error. The URI is the wire contract; the message text is not.</p>
         Some("https://ferra.rs/errors/not_found") =&gt; "404: the resource is not there",
         Some("https://ferra.rs/errors/validation") =&gt; "400: extractor failure",
         Some("https://ferra.rs/errors/validation_failed") =&gt; "422: a #[field(...)] rule was violated",
-        Some("https://ferra.rs/errors/conflict") =&gt; "409: a unique constraint",
+        Some("https://ferra.rs/errors/conflict") =&gt; "409: a unique constraint, or a parent that still has children",
         Some("https://ferra.rs/errors/payload_too_large") =&gt; "413: split the request",
         Some("https://ferra.rs/errors/rate_limited") =&gt; "429: check Retry-After",
         Some("https://ferra.rs/errors/unauthorized") =&gt; "401: send a valid token",

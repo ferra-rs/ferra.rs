@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,7 +202,7 @@ Transactions are the same: begin one on your own connection with <code>conn.begi
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -309,6 +309,224 @@ tx.commit().await?; // dropped without commit: rolled back
 <span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
+<p><strong>Every write Ferra opens runs at <code>READ COMMITTED</code></strong>, whatever the server’s <code>default_transaction_isolation</code> says
+(0.16.0). PostgreSQL’s own default changes nothing. An application whose connection defaults to <code>REPEATABLE READ</code> or
+<code>SERIALIZABLE</code> loses one detection: a hook that reads a second row through <code>tx.resource().get</code> (no lock), then writes
+it through <code>tx.resource().update</code> with a value computed from that read, no longer gets a <code>40001</code> that the retry of
+<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a> would have replayed. The update locks
+the row <code>FOR UPDATE</code>, merges the patch over the fresh row, and the stale value wins. Under a <code>SERIALIZABLE</code> default,
+read-write anomalies across rows are likewise no longer detected. A write of the row’s own model is unaffected, because
+<code>before_*</code> hooks receive the locked row. <strong>Remedy:</strong> compute the new value in the target row’s own hook or action,
+where the row is locked. <code>tx.resource</code> evaluates no <code>If-Match</code>; HTTP clients keep <code>If-Match</code>. See
+<a href="migrating-to-0.16.html">Migrating from 0.15 to 0.16</a>.</p>
+<p><strong>A child’s write locks its parent <code>FOR SHARE</code> before its own row</strong> (0.16.0; see
+<a href="relations.html#the-aggregate-protocol">Relations</a>). On a hot parent, a stream of children writes can
+keep the parent’s share lock held: PostgreSQL lets new <code>FOR SHARE</code> lockers pass a waiting
+<code>FOR UPDATE</code>, so a write of the parent itself may wait longer. That is latency, not a deadlock,
+and the request budget’s 503 <code>timeout</code> caps it (<a href="#what-ferra-executes">What Ferra executes</a> states the wait).</p>
+<p><strong>A transient error that a hook swallows is not replayed.</strong> A hook that catches the error of a <code>tx.resource</code> call (a
+<code>40001</code>, a <code>40P01</code>) and goes on gives the write a <code>500</code> <code>internal</code>, with nothing committed: the retry of
+<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a> only replays an error the hook
+lets out.</p>
+<hr>
+<h2 id="what-ferra-executes"><a class="header" href="#what-ferra-executes">What Ferra executes</a></h2>
+<p>(0.16.0.) For each operation of the generated routes, the statements Ferra sends, the locks it holds and the level it
+runs at. The numbers below are pinned by <code>statement_shapes</code> (<code>crates/ferra-http/tests/statement_shapes.rs</code>), which counts
+statements and probes the locks from a second connection, and never reads SQL text; a change of one is a change of the
+other. They hold for the models of that test, a studio (a root, no relation), its films and their reviews (a child
+through <code>owner(from)</code>, with a soft delete and one <code>BelongsTo</code>). Read the tables as shapes: a model with another number of
+relations runs another number of readable-set statements, one per <code>BelongsTo</code>
+(<a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>).</p>
+<ul>
+<li><strong>Counted:</strong> every statement the request sends. <code>BEGIN</code>, the <code>SET TRANSACTION ISOLATION LEVEL READ COMMITTED</code> that
+follows it and <code>COMMIT</code> are not.</li>
+<li><strong>Isolation:</strong> every write runs in one transaction at <code>READ COMMITTED</code>, whatever the server’s
+<code>default_transaction_isolation</code> says (the test sets it to <code>REPEATABLE READ</code>). A read opens no transaction of
+Ferra’s: each of its statements runs alone, so a list’s count and its page are not one snapshot.</li>
+<li><strong>The readable set</strong> is one <code>key IN (...)</code> read per <code>BelongsTo</code>, whatever the number of rows: it decides the foreign
+key and the links of the response (<a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>). It takes no lock.</li>
+<li><strong>The target read</strong> is the read of the row a <code>BelongsTo</code> key names, which a write that sets the key runs under the
+caller’s rules, without a lock (<a href="relations.html#writing-a-foreign-key">Writing a foreign key</a>).</li>
+</ul>
+<p><strong><code>GET</code> an item: 2 statements, no lock, no transaction.</strong> The same 2 with an <a href="relations.html#embedding">embed</a>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock</th><th>With an embed</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the row, under the caller’s rules</td><td>none</td><td>the same</td></tr>
+<tr><td>2</td><td>the readable set of the parent</td><td>none</td><td>the same statement: its rows are the embedded ones</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>GET</code> a list, offset mode: 3 statements for a page of 1, 10 or 50 rows, no lock, no transaction.</strong> The same 3, for 1, 10 or 50 rows, with an embed.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock</th><th>With an embed</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the count</td><td>none</td><td>the same</td></tr>
+<tr><td>2</td><td>the page</td><td>none</td><td>the same</td></tr>
+<tr><td>3</td><td>the readable set of the parent, for all the rows of the page</td><td>none</td><td>the same statement: its rows are the embedded ones</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>GET</code> a list, cursor mode: 2 statements for a page of 1, 10 or 50 rows, no lock, no transaction.</strong> The same 2, for 1, 10 or 50 rows, with an embed.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock</th><th>With an embed</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the page</td><td>none</td><td>the same</td></tr>
+<tr><td>2</td><td>the readable set of the parent, for all the rows of the page</td><td>none</td><td>the same statement: its rows are the embedded ones</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>POST</code> a child: 4 statements.</strong> No read of its own row first.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the parent, under the create check</td><td>the parent <code>FOR SHARE</code></td></tr>
+<tr><td>2</td><td>the target read of the foreign key</td><td>none</td></tr>
+<tr><td>3</td><td><code>INSERT</code></td><td>the new row, until the commit</td></tr>
+<tr><td>4</td><td>the readable set of the parent</td><td>none</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>POST</code> a root: 1 statement.</strong> The <code>INSERT</code>; a model with no relation has no parent to lock and no readable set.</p>
+<p><strong><code>PUT</code> a child: 7 statements.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the row, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the readable set of the row’s parent, as stored: it tells which foreign keys the caller may not read, so the body need not carry them (a <code>PUT</code> cannot carry an <code>owner(from)</code> key)</td><td>none</td></tr>
+<tr><td>3</td><td>the row, under the caller’s rules: a row the caller cannot see answers its 404 here, before any lock</td><td>none</td></tr>
+<tr><td>4</td><td>the parent</td><td><code>FOR SHARE</code></td></tr>
+<tr><td>5</td><td>the row</td><td><code>FOR UPDATE</code></td></tr>
+<tr><td>6</td><td><code>UPDATE</code></td><td>the row</td></tr>
+<tr><td>7</td><td>the readable set of the parent</td><td>none</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>PATCH</code> a child: 6 statements.</strong> The <code>PUT</code> without its second statement (the readable set before the lock): a
+<code>PATCH</code> keeps the stored value of every key its body leaves out, so it need not know beforehand which keys are hidden.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the row, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the row, under the caller’s rules (the 404 before any lock)</td><td>none</td></tr>
+<tr><td>3</td><td>the parent</td><td><code>FOR SHARE</code></td></tr>
+<tr><td>4</td><td>the row</td><td><code>FOR UPDATE</code></td></tr>
+<tr><td>5</td><td><code>UPDATE</code></td><td>the row</td></tr>
+<tr><td>6</td><td>the readable set of the parent</td><td>none</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>PATCH</code> a root: 3 statements.</strong> No parent: the read under the caller’s rules takes the row lock itself.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the row, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the row, under the caller’s rules</td><td><code>FOR UPDATE</code></td></tr>
+<tr><td>3</td><td><code>UPDATE</code></td><td>the row</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>DELETE</code> a child with a soft delete: 5 statements.</strong> The <code>UPDATE</code> sets <code>deleted_at</code>; no body comes back, so no
+readable set.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the row, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the row, under the caller’s rules (the 404 before any lock)</td><td>none</td></tr>
+<tr><td>3</td><td>the parent</td><td><code>FOR SHARE</code></td></tr>
+<tr><td>4</td><td>the row</td><td><code>FOR UPDATE</code></td></tr>
+<tr><td>5</td><td><code>UPDATE</code> of <code>deleted_at</code></td><td>the row</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong><code>POST .../restore</code> a child: 6 statements.</strong> As the delete, on a row that is deleted, and the restored row comes back.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the deleted row, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the deleted row, under the caller’s rules (the 404 before any lock)</td><td>none</td></tr>
+<tr><td>3</td><td>the parent (a soft-deleted parent is locked too)</td><td><code>FOR SHARE</code></td></tr>
+<tr><td>4</td><td>the deleted row</td><td><code>FOR UPDATE</code></td></tr>
+<tr><td>5</td><td><code>UPDATE</code> of <code>deleted_at</code></td><td>the row</td></tr>
+<tr><td>6</td><td>the readable set of the parent</td><td>none</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>A row action on a child: 6 statements of Ferra’s, plus the handler’s.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the row, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the row, under the caller’s rules (the 404 before any lock)</td><td>none</td></tr>
+<tr><td>3</td><td>the parent</td><td><code>FOR SHARE</code></td></tr>
+<tr><td>4</td><td>the row</td><td><code>FOR UPDATE</code></td></tr>
+<tr><td></td><td>the handler, with the row locked: each <code>tx.resource</code> call it makes runs the statements of the operation it is</td><td>what that operation holds</td></tr>
+<tr><td>5</td><td><code>UPDATE</code> of the row the handler returned</td><td>the row</td></tr>
+<tr><td>6</td><td>the readable set of the parent</td><td>none</td></tr>
+</tbody>
+</table>
+</div>
+<p>The test’s <code>publish</code> of a film with two live reviews lists them (3 statements) and writes each (a child <code>PATCH</code>
+without the <code>PUT</code>’s second statement: 6 each), so it runs 6 + 3 + 2 × 6 = 21. A hook of your own that calls <code>tx.resource</code> adds its
+own statements the same way.</p>
+<p><strong>A collection action over a child’s rows: 3 statements, then one <code>UPDATE</code> per row.</strong> 4 for one row, 5 for two. The
+three come first, whatever the number of rows.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Statement</th><th>Lock held after it</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>the rows, by key</td><td>none</td></tr>
+<tr><td>2</td><td>the distinct parents, in one statement, in key order</td><td><code>FOR SHARE</code> on each</td></tr>
+<tr><td>3</td><td>the rows, in one statement, in key order</td><td><code>FOR UPDATE</code> on each</td></tr>
+<tr><td>4…</td><td><code>UPDATE</code>, one per row, in key order</td><td>the row</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Under contention</strong> a statement that asks for a lock a transaction holds incompatibly waits for it, and the request
+waits with it, at that statement and nowhere else. A write waits at the parent’s <code>FOR SHARE</code> while the parent is held
+<code>FOR UPDATE</code> (by its own write, action or hook), then at its row’s <code>FOR UPDATE</code> while another write holds the row; a
+parent’s write waits for the shares of the child writes in flight. PostgreSQL lets new <code>FOR SHARE</code> lockers pass a
+waiting <code>FOR UPDATE</code>, so a stream of child writes can keep a parent’s own write waiting longer. That is latency: it ends
+when the holder commits or rolls back, or at the 503 <code>timeout</code> of the
+<a href="foundry.html#request-time-budget">request budget</a> when the application set one. A read takes no lock and waits for none. A
+collection action locks its parents, then its rows, each in key order, so two overlapping batches end without a
+deadlock between them. <strong>Ferra does not promise the absence of deadlocks:</strong> a deadlock the protocol cannot order away
+(two hooks that write each other’s siblings, a trigger of yours that writes the parent) is aborted by PostgreSQL with
+<code>40P01</code>, replayed up to the bounded retries and answered 503 <code>retry_exhausted</code> when it keeps coming
+(<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>). The locks and the order are stated in
+<a href="relations.html#the-aggregate-protocol">Relations</a>.</p>
 <hr>
 <h2 id="behind-a-transaction-pooler"><a class="header" href="#behind-a-transaction-pooler">Behind a transaction pooler</a></h2>
 <p>Ferra’s writes run behind a pooler in transaction mode: PgBouncer, or Neon’s pooled endpoint (the hostname with
@@ -316,7 +534,7 @@ tx.commit().await?; // dropped without commit: rolled back
 matter between two transactions. Ferra keeps nothing:</p>
 <ul>
 <li>no <code>SET</code> outside a transaction (what a write sets, it sets for its transaction: the isolation level of a model with
-a system grant, for one), no <code>LISTEN</code>, no SQL-level <code>PREPARE</code>;</li>
+a write’s <code>READ COMMITTED</code> level, for one), no <code>LISTEN</code>, no SQL-level <code>PREPARE</code>;</li>
 <li>the advisory locks of a system grant are transaction-level (<code>pg_advisory_xact_lock</code>), released at commit or
 rollback, never session-level;</li>
 <li>a write, its replay after a <code>40001</code> or a <code>40P01</code> (the whole transaction runs again) and its <code>COMMIT</code> each use one
@@ -350,7 +568,7 @@ they expire.</p>
 <h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
 <p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>
@@ -444,8 +662,9 @@ pub struct Model {
 <code>BelongsTo&lt;...&gt;</code> as field types, so a dense-form model with a relation field had to
 be written in the split form. It no longer is: <code>#[sea_orm::model]</code> keeps the relation
 fields off <code>Model</code> (they live on a second struct, <code>ModelEx</code>), Ferra reads <code>Model</code>,
-and a relation field is never a column, a wire field or a projection field. The
-practical rule:</p>
+and a relation field is never a column or a wire field, and never a projection field
+of its own, with one exception: a <code>BelongsTo</code> named in a projection’s <code>read</code> list is
+embedded (<a href="relations.html#embedding">Embedding</a>). The practical rule:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -458,22 +677,19 @@ practical rule:</p>
 </table>
 </div>
 <h3 id="which-shipped-example-uses-which-and-why"><a class="header" href="#which-shipped-example-uses-which-and-why">Which shipped example uses which, and why</a></h3>
+<p>Every shipped example uses the <strong>dense form</strong>
+(<a href="../decision-record/0050-dense-seaorm-entity-form-in-shipped-examples.html">ADR-0050</a>):</p>
 <ul>
-<li><strong><code>examples/hello-ferra</code></strong> — its one model, <code>Film</code>, has no relations. It uses
-the <strong>dense form</strong>.</li>
-<li><strong><code>examples/movie-stars</code></strong> — its five models (<code>Film</code>, <code>Actor</code>, <code>Director</code>,
-<code>Studio</code>, <code>Genre</code>) have no relations: each declares an empty
-<code>enum Relation {}</code>. It keeps the <strong>split form</strong> by the author’s decision
-(<a href="../decision-record/0050-dense-seaorm-entity-form-in-shipped-examples.html">ADR-0050</a>),
-not because Ferra requires it. The earlier reason, that the split form scales
-to the relations the example would grow, no longer holds
-(<a href="../decision-record/0059-relations-declaration-and-parent-chain-ownership.html">ADR-0059</a>):
-a split-form model gets no relation feature, so a model that gains relations
-moves to the dense form. If you have a model with no relations, the dense form
-is still the one to prefer.</li>
+<li><strong><code>examples/hello-ferra</code></strong> — its one model, <code>Film</code>, has no relations.</li>
+<li><strong><code>examples/movie-stars</code></strong> — its six models (<code>Studio</code>, <code>Film</code>, <code>Review</code>,
+<code>Actor</code>, <code>Director</code>, <code>Genre</code>) are in the dense form; <code>Studio</code>, <code>Film</code> and
+<code>Review</code> declare their relations (<code>HasMany</code>, <code>BelongsTo</code>) on it.</li>
+<li><strong><code>examples/lambda-neon</code></strong> — its one model, <code>Film</code>, has no relations.</li>
 </ul>
-<p>The two shipped examples therefore show both forms; the guide states which one
-each uses, and <code>hello-ferra</code> is the reference for a new model.</p>
+<p>The split form is not shown by an example: it stays valid, and the section above
+documents it, for a model without relations. A model that gains relations moves to
+the dense form (<a href="../decision-record/0059-relations-declaration-and-parent-chain-ownership.html">ADR-0059</a>),
+and a new model is written in it: copy any shipped example.</p>
 <hr>
 <h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
 <h3 id="errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><a class="header" href="#errore0277-the-trait-bound-m-sea_ormmodeltrait-is-not-satisfied"><code>error[E0277]: the trait bound &lt;M&gt;: sea_orm::ModelTrait is not satisfied</code></a></h3>

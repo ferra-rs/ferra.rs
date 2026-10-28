@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,6 +207,16 @@
 </table>
 </div>
 <p>A model that declares zero named projections observes byte-identical 0.5.x / 0.6.0 routing — the bare resource path is unchanged. This is the <strong>SC-007 baseline</strong>: introducing a named projection on a model is strictly additive to its URL surface, never a silent breaking change.</p>
+<hr>
+<h2 id="field-idents-must-resolve"><a class="header" href="#field-idents-must-resolve">Field idents must resolve</a></h2>
+<p>Each ident of a projection’s <code>read = [...]</code> list is a field of the struct (<code>FRG-301</code> otherwise,
+<a href="ferra-forge-diagnostics.html#frg-301--projection-references-an-unknown-field"><code>ferra-forge-diagnostics.md</code></a>), or, on a
+model written with <code>#[sea_orm::model]</code>, the name of one of its <code>BelongsTo</code> relations (0.16.0, FR-040). A relation name
+is not a field of the projection: it adds the parent’s row to the response, under the relation’s name, in the parent’s
+projection of the same name, when the caller may read both. <code>read = [id, body, film]</code> on a review embeds its film.
+The parent’s own rules decide (a parent the caller may not read gives neither embed nor link), and its projection
+needs its own <code>path_prefix</code> when the two projections share a name. The whole contract, with a compiled example, is <a href="relations.html#embedding">Embedding</a>. A <code>HasMany</code> or <code>HasOne</code>
+is never embedded: it is the link to its sub-collection.</p>
 <hr>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -531,14 +541,15 @@ on a projection route as on the bare path: see <a href="ferra-auth.html"><code>f
 <p>A named projection’s auto-derived prefix that matches another mounted model’s <code>resource_name</code> is rejected at <code>Foundry::build()</code>. For example, <em>model A</em> with projection <code>name = "admin"</code> (auto-deriving <code>/admin/</code>) cannot be mounted on the same Foundry as <em>model B</em> with <code>resource_name = "admin"</code> (mounting at <code>/admin</code>).</p>
 <p>Resolution: rename the projection to a shape descriptor that does not match any mounted resource name, or set an explicit <code>path_prefix</code> to disambiguate.</p>
 <hr>
-<h2 id="nested-resources-root-only-url-surface"><a class="header" href="#nested-resources-root-only-url-surface">Nested resources (root-only URL surface)</a></h2>
-<p>In 0.9 a Ferra application mounts every model on a flat URL surface — there is no nested-resource mounting API. ADR-0030 §Nested resources reserves the routing semantics for a future release:</p>
+<h2 id="nested-resources-the-sub-collection"><a class="header" href="#nested-resources-the-sub-collection">Nested resources (the sub-collection)</a></h2>
+<p>When a parent and its child are both mounted on the same <code>Foundry</code> (a <code>HasMany</code> or <code>HasOne</code> field and the two <code>.mount</code>; ADR-0084 decision 1, ADR-0030 as amended), only the <strong>sub-collection</strong> is served: <code>GET</code> and <code>POST {parent item}/{relation}</code>, for example <code>/films/{id}/reviews</code>. See <a href="relations.html#sub-collections">Sub-collections</a> for the rules it follows.</p>
 <ul>
-<li>The URL prefix derives <strong>exclusively from the root resource’s active projection</strong> and propagates uniformly to every nested segment.</li>
-<li>A nested model MAY declare a projection with the same name as the root’s; its read/write shapes are served for that segment. If it does not declare a matching projection, the <strong>default</strong> read/write shape of the nested model is served (additive fallback).</li>
-<li>A nested (non-root) model MUST NOT declare its own <code>path_prefix</code>. Doing so produces compile-time <strong>FRG-315</strong> when the nested-mounting API ships.</li>
+<li>It is served at the <strong>bare path</strong>, in the <strong>child’s default representation</strong> (its promoted projection, if it has one). A named projection’s prefix does not get it: <code>/detail/films/{id}/reviews</code> is not served.</li>
+<li><strong>The item stays canonical at its own path</strong>, <code>/reviews/{rid}</code>. There is no nested item path (<code>/films/{id}/reviews/{rid}</code>), and <code>Location</code> and <code>self</code> name <code>/reviews/{rid}</code>.</li>
+<li><strong>The projection prefix does not propagate across models.</strong> <code>/detail/films/{id}</code> is the <code>detail</code> projection of <code>Film</code> only; a child’s projection is reached at its own prefixed path (<code>/summary/reviews</code>).</li>
+<li><strong>A model’s own <code>path_prefix</code> is its own.</strong> FRG-315 stays unbuilt: no nested path takes a prefix, so there is nothing to reject.</li>
 </ul>
-<p>No URL of the form <code>/detail/films/{id}/summary/reviews/{rid}</code> is supported — a request reaches with <em>one</em> variant choice that applies coherently to the entire response graph. A developer who needs different per-segment shapes declares distinct root-level projections.</p>
+<p>A developer who needs a different shape of the children declares a projection on the child and reads it at the child’s own prefixed path (<code>/summary/reviews</code>), narrowed by a <code>#[field(filterable)]</code> foreign key.</p>
 <hr>
 <h2 id="versioning-composition"><a class="header" href="#versioning-composition">Versioning composition</a></h2>
 <p>Ferra takes no position on API versioning — that is an application-level concern. The framework provides two complementary mechanisms that compose with the projection surface:</p>
@@ -564,7 +575,7 @@ on a projection route as on the bare path: see <a href="ferra-auth.html"><code>f
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-</span>let key = "a-development-key-of-at-least-32-bytes"; // from `ETAG_KEY` in a real service
+</span>let key = std::env::var("ETAG_KEY")?;
 let app = ferra::Foundry::new(conn).etag_key(key)?.api_version("v1")?.mount::&lt;Film&gt;().build();
 <span class="boring">let _ = app;
 </span><span class="boring">Ok(())

@@ -1,0 +1,626 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Relations - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-6e4afefc.svg">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-fcc48201.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/relations.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="relations"><a class="header" href="#relations">Relations</a></h1>
+<p>A model with <code>owner(from = ..)</code> is the child of another model: its rows live under a parent’s owner. This page
+states what Ferra guarantees when a parent and its children are written at the same time. It grows with the release.</p>
+<h2 id="declaring-relations"><a class="header" href="#declaring-relations">Declaring relations</a></h2>
+<p>A model written with <code>#[sea_orm::model]</code> (Sea-ORM’s dense form) may declare its relations inline, as <code>HasMany&lt;..&gt;</code>,
+<code>HasOne&lt;..&gt;</code> or <code>BelongsTo&lt;..&gt;</code> fields. The macro expands the struct twice: <code>Model</code> keeps the scalar fields,
+a second struct <code>ModelEx</code> keeps all of them. <code>#[derive(FerraModel)]</code> runs on both. On <code>Model</code> it reads the columns as
+ever, so a relation field is never a column or a wire field, and never a projection field of its own, with one
+exception: a <code>BelongsTo</code> named in a projection’s <code>read</code> list is embedded (<a href="#embedding">Embedding</a>). On <code>ModelEx</code> it emits one typed
+marker per relation (name, kind, foreign key, both models), which <code>Foundry</code> reads at <code>.mount</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod client {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "clients")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub name: String,
+        #[sea_orm(has_many)]
+        pub contexts: HasMany&lt;super::context::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod context {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "contexts")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub client_id: i32,
+        #[sea_orm(belongs_to, from = "client_id", to = "id")]
+        pub client: BelongsTo&lt;super::client::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p>A relation field is only valid in this form. On a struct that is not an expansion of <code>#[sea_orm::model]</code>, such as a
+hand-written <code>Model</code> with an <code>enum Relation</code>, it is refused (<code>FRG-125</code>, see
+<a href="ferra-forge-diagnostics.html"><code>ferra-forge-diagnostics.md</code></a>). The split form stays valid for a model without
+relation fields.</p>
+<p><strong>The three kinds.</strong> The kind comes from the attribute, not from the field’s type:</p>
+<ul>
+<li><code>BelongsTo</code>: the field carries <code>#[sea_orm(belongs_to, from = "..", to = "..")]</code>. Its foreign key is the column
+<code>from</code> names. A nullable key is written <code>HasOne&lt;..&gt;</code> in Sea-ORM 2.0, and is still a <code>BelongsTo</code> here.</li>
+<li><code>HasMany</code>: the rows of another model that point back at this one.</li>
+<li><code>HasOne</code>: the same, for at most one row.</li>
+</ul>
+<p><strong>The back key.</strong> The foreign key of a <code>HasMany</code> or a <code>HasOne</code> is the one <code>BelongsTo</code> its target has back to this
+model. Ferra does not guess it. When both models are mounted on the same <code>Foundry</code>, <code>build()</code> (and <code>try_build()</code>)
+refuses a target with none, or with two or more, naming both models and the relations:</p>
+<pre><code class="language-text">`films.reviews` is a `HasMany` to `reviews`, but `reviews` has two `BelongsTo` back to `films` (film, other_film); keep exactly one, or do not mount both
+</code></pre>
+<p>Keep one <code>BelongsTo</code>, or mount only one of the two models: a pair with a single side mounted is not checked.</p>
+<p><strong>The target must be a Ferra model.</strong> A relation whose target does not derive <code>FerraModel</code> fails to compile at
+<code>.mount</code>, with FRG-136: “<code>&lt;Target&gt;</code> is not a Ferra model that <code>Foundry</code> can serve, yet a relation points at it”.</p>
+<h2 id="sub-collections"><a class="header" href="#sub-collections">Sub-collections</a></h2>
+<p>A <code>HasMany</code> or <code>HasOne</code> whose target is mounted on the same <code>Foundry</code> serves its rows under the parent
+(0.16.0). With <code>films</code> having <code>reviews: HasMany&lt;review::Entity&gt;</code> and both models mounted:</p>
+<pre><code class="language-text">GET  /films/{id}/reviews
+POST /films/{id}/reviews
+</code></pre>
+<p>There is nothing to switch on and no method to call: the two <code>.mount</code> and the relation field are the declaration, as
+for <code>restore</code> and the row actions. The routes appear in the OpenAPI document (<code>listFilmReviews</code>, <code>createFilmReview</code>:
+<code>list</code> or <code>create</code>, the parent’s name, the relation’s name) and are listed, with the parent’s path parameters, next to
+the routes of the child. A pair with a single side mounted serves nothing. A parent with a composite key has no
+sub-collection: a foreign key is one column.</p>
+<p><strong>A sub-collection is the child’s own path with one more term.</strong> <code>POST /films/1/reviews</code> allows nothing that
+<code>POST /reviews</code> with <code>film_id = 1</code> does not, and <code>GET /films/1/reviews</code> lists what <code>GET /reviews?filter[film_id]=1</code>
+lists:</p>
+<ul>
+<li>It runs the child’s own list and create, with the child’s own rules, projections, field rules, hooks, soft-delete
+state, pagination mode, count and cursors. The parent’s term is added to the child’s authority, so a client’s
+<code>filter[film_id]=2</code> cannot widen it: it narrows to nothing.</li>
+<li>It goes through the child’s layers: its <code>mount_with_layer</code>, rate limit, body limit, CORS, JWT and cookie guard. Its
+rate-limit bucket is its own, as that of each route family of a model is. The JWT layer follows the stricter of the
+two policies, because the parent is judged on this route: a public child under a parent that needs an identity still
+reads the caller’s token. So do the child’s own routes, because they judge the parent too (the key, the parent link,
+a <code>POST</code> naming the parent): under <code>.with_auth()</code>, a model reads a credential (the <code>Authorization</code> header, the
+cookie, an API key) when a model one of its relations targets needs an identity, so a valid token is seen and a
+broken one is a 401. Such a model read no token before, and a request that carries the cookie may now meet the CSRF
+guard. A request with no token still reaches the child’s <code>Anyone</code> rules, with the key and the link hidden.</li>
+<li>The representation is the child’s default one. A named projection’s prefix does not get sub-collections
+(<code>/summary/films/1/reviews</code> is not served).</li>
+<li>The parent’s key comes from the URL and wins over the body’s <code>film_id</code>. The created review is canonical at
+<code>/reviews/{id}</code> (<code>Location</code>, <code>self</code>); the links of a page of the sub-collection (<code>next</code>, <code>prev</code>) stay on the
+sub-collection.</li>
+</ul>
+<p><strong>What the parent adds.</strong> Only refusals, in this order:</p>
+<ol>
+<li>The parent, judged exactly as <code>GET /films/{id}</code> judges it for this caller. A parent that is absent, soft-deleted or
+unreadable answers the 404 of an absent parent, byte for byte, and so does a key that is no key of the parent
+(<code>/films/not-a-key/reviews</code>: the 400 of <code>GET /films/not-a-key</code> would tell a caller that the key’s format is wrong,
+where no row would tell it anything).</li>
+<li>For <code>POST</code>, the parent’s <code>update</code> right: a parent the caller can read and may not update answers 403, before the
+child’s body is looked at.</li>
+<li>The child’s own refusals, in their own order. A parent the caller can read with a child <code>list</code> rule that refuses the
+caller answers the child’s 403 on <code>GET</code>. For an <code>owner(from)</code> child the create judges the parent again under its
+<code>FOR SHARE</code> lock; a parent that lost the right in between is that path’s 422 <code>reference_not_found</code>, which only a
+race can reach.</li>
+</ol>
+<p>For a plain <code>BelongsTo</code> child (no <code>owner(from)</code>) Ferra takes no lock on the parent: its <code>update</code> right is read without
+one, like any plain <code>BelongsTo</code> (<a href="#the-aggregate-protocol">The aggregate protocol</a>). The database still has a say: a
+Ferra write of film 1 holds it <code>FOR UPDATE</code>, and the <code>INSERT</code> of a <code>POST /films/1/tags</code> takes <code>FOR KEY SHARE</code> on film 1
+through the foreign-key constraint, so it waits for that write to commit. A hold that does not conflict with
+<code>FOR KEY SHARE</code> (<code>FOR NO KEY UPDATE</code>, the mode of an <code>UPDATE</code> that leaves the key alone) does not make it wait.</p>
+<p><strong>A soft-deleted parent.</strong> Its children stay served on their own path (ADR-0059 limitation); a <code>POST /reviews</code> naming it
+is the 422 <code>reference_not_found</code>; a <code>POST</code> under it (<code>/films/{id}/reviews</code>) is the absent parent’s 404.</p>
+<p><strong>A relation that shares its name with a route.</strong> A <code>HasMany</code> or <code>HasOne</code> named like a row action, or <code>restore</code>, of
+its own model would take the path of that route: <code>build()</code> refuses it, naming the model and both names
+(<code>BuildError::RelationNameCollision</code>). Rename the relation or the action.</p>
+<p><strong>To serve none of them</strong>, write the parent in the split form (it declares no relation) or do not mount the child.
+There is no per-relation opt-out yet.</p>
+<h2 id="the-aggregate-protocol"><a class="header" href="#the-aggregate-protocol">The aggregate protocol</a></h2>
+<p>A parent’s check (a film is published only when it has a live review, a studio’s rows are counted) is valid only if
+no child can be written behind its back. Ferra enforces that with locks, on by default, with nothing to switch on.</p>
+<ul>
+<li><strong>FR-001.</strong> Every write of a child (<code>PUT</code>, <code>PATCH</code>, delete, restore and row action, through the generated routes,
+<code>Resource&lt;M&gt;</code> and <code>tx.resource</code> alike) takes <code>FOR SHARE</code> on its direct parent, then locks its own row <code>FOR UPDATE</code>,
+whether or not the foreign key changes. The parent lock judges no rule and no authority, and it locks a
+soft-deleted parent too. A row the caller cannot see answers its 404 before any lock, so it never locks its parent.
+Creating a child keeps its parent check (<code>FOR SHARE</code>, judged under the parent’s <code>update</code> rule).</li>
+<li><strong>FR-002.</strong> Every write or action of a parent holds the parent’s row <code>FOR UPDATE</code>. A child write waits for it, and
+it waits for the child writes in flight. The children a parent writes from its hook or action are locked
+<code>FOR UPDATE</code> when they are written.</li>
+<li><strong>FR-004.</strong> Every write opens at <code>READ COMMITTED</code> (see <a href="ferra-db.html#transactions">Transactions</a>).</li>
+<li><strong>FR-005.</strong> The lock order is total: the parent, then the row. Along a chain each level’s write is its own
+transaction, so the root is locked first.</li>
+<li><strong>FR-006.</strong> A plain <code>BelongsTo</code> (no <code>owner(from)</code>) locks nothing.</li>
+<li><strong>FR-007.</strong> Residual deadlocks go to the bounded retries of
+<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>, and end at the 503
+<code>retry_exhausted</code>. <strong>Ferra does not promise the absence of deadlocks</strong>: two child writes whose hooks write each
+other’s siblings can still cross.</li>
+</ul>
+<p>A foreign key that changes between the read of the row and its lock (only a raw statement can do that) makes the
+attempt transient: it is rolled back and retried, and ends at the 503 <code>retry_exhausted</code> if the key keeps moving.</p>
+<p><strong>An empty collection under <code>publish</code>.</strong> A parent whose action reads “no review yet” holds the parent <code>FOR UPDATE</code>;
+a concurrent <code>POST /reviews</code> for that film waits for the parent’s lock, so the review cannot appear between the
+check and the commit.</p>
+<p><strong>A three-level chain.</strong> For studio, film and review, a review write locks its film only, and a film write locks its
+studio only. The ancestors are locked root first because each level’s write is its own transaction.</p>
+<p><strong>A collection action over several parents.</strong> A model with <code>owner(from = ..)</code> reads the keys of its rows without a lock,
+then locks the distinct parents <code>FOR SHARE</code> in one statement in key order, then the rows <code>FOR UPDATE</code> in key order, and
+checks that each row still has the key it was read with. A row the caller cannot see is the batch’s 404 before any
+parent is locked; a parent that no longer exists is that 404 too.</p>
+<p><strong>A plain <code>BelongsTo</code> locks nothing.</strong> Reading the target is enough: a <code>PATCH</code> of a tag whose film is held
+<code>FOR UPDATE</code> does not wait.</p>
+<p><strong>A raw <code>INSERT</code>, <code>UPDATE</code> or <code>DELETE</code> is outside the protocol.</strong> A raw <code>INSERT</code> into the child table waits on the
+parent’s <code>FOR UPDATE</code> when the table carries the foreign-key constraint (its check takes <code>FOR KEY SHARE</code>). A raw
+<code>UPDATE</code> or <code>DELETE</code> of an existing child does not wait: only the writes Ferra makes take the parent lock.</p>
+<p><strong>The protocol needs the database foreign-key constraint.</strong> It locks the parent row the key names; without a
+<code>FOREIGN KEY</code> on the child table nothing stops a parent from being deleted under its children. A child whose parent
+row is gone answers 404 to every write (<code>PUT</code>, <code>PATCH</code>, delete, restore and row action): there is no row to lock.</p>
+<h2 id="hooks-and-the-parent"><a class="header" href="#hooks-and-the-parent">Hooks and the parent</a></h2>
+<p>A child’s hook runs with its parent held <code>FOR SHARE</code>. Its <code>tx.resource</code> may read the parent, create a sibling and write
+a row of another parent, but an update or a delete of the held parent is refused: <code>500</code> <code>internal</code>, one <code>error!</code> with
+both resource names and no key, and the write commits nothing even when the hook swallows the error
+(<a href="behaviors.html#a-childs-hook-cannot-write-the-parent-it-holds">details</a>). Write the parent from its own action, which
+holds it <code>FOR UPDATE</code>.</p>
+<p>Across aggregates, write from the root’s action: a child’s hook that writes a grandparent can cross another write’s
+locks, and ends at the 503 <code>retry_exhausted</code> rather than waiting forever.</p>
+<p><strong>A database trigger that writes the parent on a child’s insert</strong> deadlocks the same way, and Ferra cannot see it: keep
+a counter on the parent in the parent’s action, or compute it on read.</p>
+<h2 id="moving-a-child"><a class="header" href="#moving-a-child">Moving a child</a></h2>
+<p>The foreign key of a model with <code>owner(from = ..)</code> is set when the row is created and never changes (0.16.0, FR-010):</p>
+<ul>
+<li>A <code>PUT</code> or a <code>PATCH</code> that names it is the 422 <code>unknown_field</code> of any key outside the write set, whatever value it
+names and whatever the caller may read, with nothing written. The key is not in the <code>PUT</code> and <code>PATCH</code> request
+schemas of the OpenAPI document, and it stays in the <code>POST</code> one.</li>
+<li>A <code>PUT</code> that leaves it out keeps the row under its parent: the stored value fills in before the body is decoded.</li>
+<li>A row action or a hook that changes it is a bug of yours: the action answers <code>500</code> <code>internal</code>, and a hook’s
+<code>tx.resource().update</code> naming it is refused with the same 422, and the hook that returns it rolls the whole write back; a hook that swallows it commits nothing either.</li>
+</ul>
+<p>To move a child, delete it and create it again.</p>
+<p><strong>A delete then a create is not a move.</strong> The new row has a new identity: references to the old one (links, other
+tables, a client’s cached <code>id</code>), its history and its <code>created_at</code> do not follow it. A move protocol is post-1.0.</p>
+<h2 id="links-and-foreign-keys"><a class="header" href="#links-and-foreign-keys">Links and foreign keys</a></h2>
+<p>A row never reveals a parent its caller cannot read. For each <code>BelongsTo</code>, the foreign key and the link to the parent
+follow the parent’s readability (0.16.0, FR-030):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parent</th><th>Non-nullable key</th><th>Nullable key</th></tr>
+</thead>
+<tbody>
+<tr><td>readable</td><td>the value, and a link</td><td>the value, and a link</td></tr>
+<tr><td>none (<code>NULL</code>)</td><td></td><td><code>null</code>, no link</td></tr>
+<tr><td>unreadable</td><td>absent, no link</td><td>absent, no link</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-json">"_links": {
+  "self": {"href": "/reviews/5"},
+  "collection": {"href": "/reviews"},
+  "film": {"href": "/films/1"}
+}
+</code></pre>
+<ul>
+<li><strong>The link</strong> is named after the relation and is the parent’s bare item path (no projection prefix), under the same
+origin and version prefix as <code>self</code>. HAL only. It is present if and only if the caller may <code>GET</code> that parent, so
+following it never answers a refusal.</li>
+<li><strong>The link to a sub-collection</strong> is named after the <code>HasMany</code> or <code>HasOne</code> relation and is the bare <code>{item}/{relation}</code>
+(<code>"reviews": {"href": "/films/1/reviews"}</code>), under the same origin and version prefix as <code>self</code> and whatever
+projection prefix served the row. It is present if and only if the sub-collection is served (the child is mounted on
+the same <code>Foundry</code>) and the caller may list the child, by the child’s own <code>list</code> rule and projection rule, so
+following it never answers a refusal. A <code>HasOne</code> is linked as a sub-collection too, never to the item. HAL only.</li>
+<li><strong>Readable</strong> is exactly what <code>GET {parent item}</code> judges: the <code>get</code> rule, the authority’s <code>filter</code> and <code>can</code>, the owner
+condition and soft delete. One statement per <code>BelongsTo</code> per page decides it for all the rows (<code>key IN (...)</code>), whatever
+the page size. It fails closed: an authority that fails or panics hides every key and link of the page and is logged,
+and a parent that is not mounted on the <code>Foundry</code> is hidden for everyone, with no statement.</li>
+<li><strong>Every response</strong> that serializes the row follows it: item, list, cursor page, <code>/me</code>, the write responses, each
+projection prefix, <code>Resource&lt;M&gt;</code> and a hook’s <code>tx.resource</code>. In <code>FerraViews::Read</code> the key is an <code>Option</code>.</li>
+<li><strong>Never <code>required</code>.</strong> The OpenAPI read schema leaves the key out of <code>required</code> and says it is absent when the caller
+may not read it; the <code>Hal</code> schema lists the parent and sub-collection links as optional.</li>
+<li><strong>A <code>PUT</code></strong> does not need the key when the caller cannot read the parent: the stored value is kept.</li>
+<li><strong>Accepted residual:</strong> on a nullable key, “absent” against “<code>null</code>” tells a caller that the row has a parent it cannot
+read (one bit). A non-nullable key has none.</li>
+</ul>
+<h2 id="embedding"><a class="header" href="#embedding">Embedding</a></h2>
+<p>A projection’s <code>read</code> list may name a <code>BelongsTo</code> relation (0.16.0, FR-040). The response then carries the parent’s
+row, under the relation’s name, next to the link to it. The row is served in the parent’s projection of the same name:
+the <code>summary</code> of a review embeds the <code>summary</code> of its film.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "none")]
+    // The target's `summary` carries its own `path_prefix`: see below.
+    #[ferra(projection(name = "summary", path_prefix = "/film-summary", read = [id, title]))]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub title: String,
+        #[sea_orm(has_many)]
+        pub reviews: HasMany&lt;super::review::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod review {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "reviews")]
+    #[ferra(auth = "none")]
+    #[ferra(projection(name = "summary", read = [id, body, film]))]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub film_id: i32,
+        pub body: String,
+        #[sea_orm(belongs_to, from = "film_id", to = "id")]
+        pub film: BelongsTo&lt;super::film::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><code>GET /summary/reviews/5</code> answers (HAL; the plain JSON representation has the same members, without <code>_links</code>):</p>
+<pre><code class="language-json">{
+  "id": 5,
+  "body": "Worth the trip.",
+  "film": {"id": 1, "title": "Heat"},
+  "_links": {
+    "self": {"href": "/summary/reviews/5"},
+    "collection": {"href": "/summary/reviews"},
+    "film": {"href": "/films/1"}
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Exactly what the parent’s projection answers.</strong> The embedded row is what <code>GET /film-summary/films/1</code> answers that
+caller, member for member: the projection’s own rule, the field <code>read</code> rules of each row (a field the caller may not
+read is no member, whatever the other embedded rows show), the computed fields (the hook runs once per computed
+field for the rows of the page), and the wire names. It is judged per row, so a page may hold an embedded row with
+a field and another without.</li>
+<li><strong>Not readable, nothing.</strong> A parent the caller may not read, or that is soft-deleted, gives no embed, no link and no
+key, as in <a href="#links-and-foreign-keys">Links and foreign keys</a>. A parent the caller may read but whose projection of that
+name refuses them (its <code>authorize</code> rule), or a parent with no projection of that name, gives the link alone: the
+<code>GET</code> of that projection is a 404 for them, and the embed does not say more. No embed without the link: a parent
+whose bare route refuses the caller (a promoted projection with a stricter rule, say) is not embedded, even when the
+projection of that name would answer them.</li>
+<li><strong>One statement.</strong> The statement that decides the link (<code>key IN (...)</code>, one per <code>BelongsTo</code> per page) returns the
+parent rows, and the embed serializes those: the number of statements does not depend on the number of rows, nor on
+the embed. The <code>total</code>, the page numbers and the cursor of a page are those of the same page without the embed.</li>
+<li><strong>A computed field that fails is a 500 on the whole response.</strong> If a computed field of the embedded target fails, the
+child’s response is the <code>500</code> <code>internal</code> of <a href="computed-fields.html#when-a-hook-fails">a failing hook</a>, and no part of it
+is served: the embed is not dropped silently. The log line names the target’s model and the operation <code>get</code>.</li>
+<li><strong>The tag does not follow the parent.</strong> The <code>ETag</code> of the response is the child row’s: the embedded parent can change
+under the same tag. See <a href="ferra-http.html#the-tag">The tag</a>.</li>
+<li><strong>Depth 1.</strong> The embedded row carries no <code>_links</code>, no embed of its own and no foreign key of its own: its parents are
+not read again, so their keys are not served. Follow the <code>film</code> link for the whole row.</li>
+<li><strong>Every response that serializes the row</strong> embeds: item, list, cursor page, <code>/me</code> and the write responses of a
+projection route (the bare route too, when a promoted projection names the relation). <code>Resource&lt;M&gt;</code> and a hook’s
+<code>tx.resource</code> never embed: they return the typed read view, which has no member for a parent’s row.</li>
+<li><strong>Two projections of one name.</strong> The <code>summary</code> of <code>reviews</code> and the <code>summary</code> of <code>films</code> would both default to
+the URL prefix <code>/summary/</code>, and <code>Foundry::build()</code> refuses two projections on one prefix (<code>FRG-310</code>, see
+<a href="projections-and-routing.html"><code>projections-and-routing.md</code></a>). So the target’s projection carries its own
+<code>path_prefix</code> (<code>/film-summary</code> above), or the embedding one does. There is no syntax to embed a projection of another
+name.</li>
+<li><strong>No cycle.</strong> If the <code>summary</code> of <code>films</code> embedded a <code>BelongsTo</code> back to <code>reviews</code> and the <code>summary</code> of <code>reviews</code>
+embedded <code>films</code>, <code>Foundry::build()</code> (and <code>try_build()</code>) refuses the chain with <code>BuildError::EmbedCycle</code>:
+<code>Embedding cycle: `reviews.summary → films.summary → reviews.summary`; remove one embed from a `read` list.</code> The
+path is made of resource names, which are the table names unless <code>resource =</code> says otherwise, and starts at the first
+node the check meets again. Only an embed that is served counts: a relation whose target is not mounted (no key and
+no link either) or has no projection of that name (the link alone) closes no loop.</li>
+<li><strong>Only a <code>BelongsTo</code>.</strong> A <code>HasMany</code> or a <code>HasOne</code> named in a <code>read</code> list does not compile: it stays the link to its
+sub-collection, bounded by the pagination of the child.</li>
+<li><strong>OpenAPI.</strong> The projection’s read schema gets the relation as an optional member, a reference to the read schema of
+the parent’s projection of that name, when the parent is mounted on the same <code>Foundry</code>. The <code>required</code> list does
+not hold it.</li>
+</ul>
+<h2 id="writing-a-foreign-key"><a class="header" href="#writing-a-foreign-key">Writing a foreign key</a></h2>
+<p>A create, a <code>PUT</code> or a <code>PATCH</code> that sets the key of a plain <code>BelongsTo</code> (no <code>owner(from)</code>) reads the target before it
+writes (0.16.0, FR-032). The read is the one that decides whether the caller may see the parent: the target’s <code>get</code>
+rule, its authority, its owner condition and soft delete, judged in the write’s own transaction. It takes no lock, so a
+plain <code>BelongsTo</code> still waits for nothing.</p>
+<ul>
+<li><strong>One refusal.</strong> A target that is absent, soft-deleted, out of the caller’s reach, or not mounted on the <code>Foundry</code> is
+the same 422 <code>reference_not_found</code> with <code>field</code> the key, whichever it is. The bytes are those of the parent check of
+an <code>owner(from)</code> child, and the same for the route, <code>Resource&lt;M&gt;</code> and a hook’s <code>tx.resource</code>. A caller cannot tell a
+film that does not exist from one it may not read, and nothing is written.</li>
+<li><strong>A table the API does not serve.</strong> A target that is not mounted on the <code>Foundry</code> is refused for every value, one
+that exists as much as one that does not: nobody can read it through this API, so none of its rows may be pointed
+at, and an answer that told the two apart would tell which ids exist. Two ways to write such a key:
+<ul>
+<li>mount the target model: its <code>get</code> rule then says who may point at it, and the key and the link are served;</li>
+<li>set the key in <code>before_save</code> from another value the body carries, reading the reference through <code>tx.resource</code>
+(it reaches an unmounted model under its own rules).</li>
+</ul>
+</li>
+<li><strong>A key a hook writes</strong> is the application’s responsibility: Ferra reads the targets of the keys the body names,
+before <code>before_save</code> runs, and does not judge what a hook then puts in the draft. The constraint still answers the
+422 for an absent target. What an action writes (its <code>changed</code>) is the same: the application’s code and its
+responsibility, not judged by this read.</li>
+<li><strong>Several keys.</strong> When a body names several refused keys, the 422 names the first in declaration order, whatever the
+others are.</li>
+<li><strong><code>null</code> and silence.</strong> <code>null</code> clears the key and reads nothing. A <code>PATCH</code> or a <code>PUT</code> that does not name the key reads
+nothing and keeps the stored value, even when the parent became unreadable.</li>
+<li><strong>An <code>owner(from)</code> key</strong> keeps its own check (<code>lock_for_child</code>): it is not read twice, and a <code>PATCH</code> naming it is
+still the 422 <code>unknown_field</code> first.</li>
+<li><strong>One statement per key named</strong>, none for a write that names no key.</li>
+<li><strong>Before 0.16.0</strong> a target the caller could not read was accepted (201), and an absent one was a 500 (SQLSTATE
+<code>23503</code>): the two answers told a caller which ids exist. See
+<a href="migrating-to-0.16.html#a-write-naming-a-foreign-key-reads-its-target">Migrating</a>.</li>
+</ul>
+<h2 id="deleting-a-parent"><a class="header" href="#deleting-a-parent">Deleting a parent</a></h2>
+<p>Whether a parent that still has children can be deleted is the schema’s choice, made in the foreign-key constraint of
+the child’s table (0.16.0, FR-033). Ferra asks the database and answers what it says.</p>
+<ul>
+<li><strong><code>ON DELETE RESTRICT</code></strong> (or the default, <code>NO ACTION</code>): the database refuses the <code>DELETE</code>. Ferra answers the 409
+<code>conflict</code> with its fixed <code>detail</code>, nothing is deleted, and the statement is run once (a foreign-key violation is
+not a transient failure, so it is not retried). The OpenAPI document declares the 409 on the <code>DELETE</code> of every model
+that a <code>BelongsTo</code> targets. The server log holds the constraint’s name (<code>INFO</code>, target <code>ferra_http::conflict</code>), never
+the key value that Postgres prints in its detail line.</li>
+<li><strong><code>ON DELETE CASCADE</code></strong>: the database deletes the children itself. Ferra does not see them: their <code>before_delete</code> and
+<code>after_delete</code> hooks do not run, their rules and their soft delete are not applied. Use it only for rows nothing else
+has an opinion on.</li>
+<li><strong>A write the database refuses for a foreign key</strong> (the target was removed between Ferra’s read and its write) is the
+422 <code>reference_not_found</code> of <a href="#writing-a-foreign-key">Writing a foreign key</a>, on the key the constraint names, with
+the same bytes as a target that was absent at the read.</li>
+<li><strong>Accepted residual.</strong> Under <code>RESTRICT</code> a caller who may delete the parent learns, from the 409, that some row
+references it, including a child that caller cannot read: one bit per parent. When that matters, make the children
+owner-scoped (<code>owner(from = ...)</code> on the child, so the parent’s owner owns every child) or let the schema <code>CASCADE</code>.</li>
+<li>A soft delete is an <code>UPDATE</code>: no constraint refuses it, and the children stay as they are.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="actions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="computed-fields.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="actions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="computed-fields.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

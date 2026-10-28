@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,7 +187,7 @@
 <code>FRG-326</code>, with <code>FRG-313</code> intentionally unallocated, and <code>FRG-306</code> and <code>FRG-330</code>
 through <code>FRG-334</code> retired), the behavior codes (<code>FRG-320</code> through <code>FRG-323</code>, and
 <code>FRG-327</code>), the
-collection-read codes (<code>FRG-350</code> through <code>FRG-358</code>), the field-mode codes <code>FRG-359</code> through <code>FRG-362</code>, the authorization codes
+collection-read codes (<code>FRG-350</code> through <code>FRG-358</code>), the field-mode codes <code>FRG-359</code> through <code>FRG-365</code>, the authorization codes
 (<code>FRG-100</code> through <code>FRG-152</code>; <code>#[operation(...)]</code> is refused with <code>FRG-335</code>,
 <code>groups</code> with <code>FRG-137</code>, an attribute where the derive does not read it with <code>FRG-138</code>, and
 <code>action(...)</code> declarations with <code>FRG-139</code> through <code>FRG-146</code>),
@@ -235,7 +235,7 @@ FRG-200 .. FRG-299   validation-attribute       (0.6.0 Welding — FRG-201..FRG-
 FRG-300 .. FRG-399   projection / computed /    (0.6.5 Chasing — FRG-301..FRG-316,
                      write-only attribute        FRG-313 intentionally unallocated,
                                                  FRG-306 and FRG-330..FRG-334 retired, FRG-335;
-                                                 0.15.0 — FRG-359..FRG-362)
+                                                 0.15.0 — FRG-359..FRG-362; 0.16.0 — FRG-363..FRG-365)
 FRG-400 .. FRG-499   application dependencies     (0.9.0 — FRG-400)
 FRG-500 ..           later phases               (reserved)
 </code></pre>
@@ -311,7 +311,7 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-143</code></td><td>A collection action on a model whose primary key has several columns</td><td><a href="#frg-143--a-collection-action-on-a-composite-key">link</a></td></tr>
 <tr><td><code>FRG-144</code></td><td>An <code>action(...)</code> on a <code>#[ferra(system_only)]</code> model</td><td><a href="#frg-144--an-action-on-a-system_only-model">link</a></td></tr>
 <tr><td><code>FRG-145</code></td><td><code>#[derive(ActionBody)]</code> on a type a body cannot be: not a struct with named fields, a generic one, a field that is not a scalar Ferra field type, a <code>#[field(...)]</code> key outside the eight validation keys, or a <code>#[serde(...)]</code> attribute <code>FRG-116</code> does not list</td><td><a href="#frg-145--a-type-an-action-body-cannot-be">link</a></td></tr>
-<tr><td><code>FRG-146</code></td><td>A <code>writes</code> entry of an <code>action(...)</code> that is no field of the model, or that is not a <code>read_only</code> field or a field with a <code>write</code> rule, or that is the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code>, <code>skip</code> or <code>#[sea_orm(ignore)]</code> field or a field a behavior adds</td><td><a href="#frg-146--a-field-an-action-cannot-write">link</a></td></tr>
+<tr><td><code>FRG-146</code></td><td>A <code>writes</code> entry of an <code>action(...)</code> that is no field of the model, or that is not a <code>read_only</code> field or a field with a <code>write</code> rule, or that is the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> or <code>skip</code> field or a field a behavior adds</td><td><a href="#frg-146--a-field-an-action-cannot-write">link</a></td></tr>
 <tr><td><code>FRG-117</code></td><td>A projection widens exposure without <code>authorize</code>, or is the sibling of a ruled default projection without it</td><td><a href="#frg-117--a-projection-widens-exposure-without-authorize">link</a></td></tr>
 <tr><td><code>FRG-118</code></td><td><code>IsOwner</code> in a projection’s <code>authorize</code></td><td><a href="#frg-118--isowner-in-a-projections-authorize">link</a></td></tr>
 <tr><td><code>FRG-115</code></td><td>A projection writes the owner field</td><td><a href="#frg-115--a-projection-writes-the-owner-field">link</a></td></tr>
@@ -349,7 +349,7 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-312</code></td><td>A projection’s auto-derived URL prefix collides with an existing resource route (runtime)</td><td><a href="#frg-312--projection-prefix-collides-with-a-resource-route">link</a></td></tr>
 <tr><td><code>FRG-313</code></td><td>intentionally unallocated</td><td><a href="#frg-3nn--projection-attribute-diagnostics-065-chasing">link</a></td></tr>
 <tr><td><code>FRG-314</code></td><td>An explicit <code>write = [...]</code> list omits a <code>#[ferra(write_only)]</code> field on the model</td><td><a href="#frg-314--write_only-field-omitted-from-an-explicit-write-list">link</a></td></tr>
-<tr><td><code>FRG-315</code></td><td><code>path_prefix</code> declared on a sub-resource (runtime)</td><td><a href="#frg-315--path_prefix-declared-on-a-sub-resource">link</a></td></tr>
+<tr><td><code>FRG-315</code></td><td>reserved, never emitted: no sub-resource takes a prefix (ADR-0030 as amended)</td><td><a href="#frg-315--reserved-no-sub-resource-takes-a-prefix">link</a></td></tr>
 <tr><td><code>FRG-316</code></td><td><code>default = true</code> without <code>promotes_from</code> + <code>breaking_change_version</code> attestations</td><td><a href="#frg-316--default--true-requires-promotes_from--breaking_change_version">link</a></td></tr>
 <tr><td><code>FRG-317</code></td><td>A projection named <code>default</code>, <code>collection</code> or <code>hal</code></td><td><a href="#frg-317--a-reserved-projection-name">link</a></td></tr>
 <tr><td><code>FRG-318</code></td><td>A projection writes the primary key</td><td><a href="#frg-318--a-projection-writes-the-primary-key">link</a></td></tr>
@@ -380,6 +380,9 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-360</code></td><td>A <code>#[ferra(computed)]</code> field without <code>#[sea_orm(ignore)]</code></td><td><a href="#frg-360--a-computed-field-without-sea_ormignore">link</a></td></tr>
 <tr><td><code>FRG-361</code></td><td><code>#[field(filterable)]</code>, <code>#[field(sortable)]</code> or <code>#[field(cursor_key)]</code> on a computed field</td><td><a href="#frg-361--filterable-sortable-or-cursor_key-on-a-computed-field">link</a></td></tr>
 <tr><td><code>FRG-362</code></td><td>A model with a <code>#[ferra(computed)]</code> field and no <code>impl FerraComputed</code></td><td><a href="#frg-362--a-computed-field-without-impl-ferracomputed">link</a></td></tr>
+<tr><td><code>FRG-363</code></td><td>A projection’s <code>read = [...]</code> names a <code>HasMany</code> or a <code>HasOne</code> relation</td><td><a href="#frg-363--a-hasmany-or-hasone-in-a-read-list">link</a></td></tr>
+<tr><td><code>FRG-364</code></td><td>A <code>#[sea_orm(ignore)]</code> field without <code>#[ferra(computed)]</code></td><td><a href="#frg-364--an-ignored-field-without-computed">link</a></td></tr>
+<tr><td><code>FRG-365</code></td><td>A composite foreign key: a relation’s <code>from</code> or <code>to</code> written <code>"(a, b)"</code></td><td><a href="#frg-365--a-composite-foreign-key">link</a></td></tr>
 <tr><td><code>FRG-400</code></td><td>The application’s <code>sea-orm</code> is not the one Ferra was built with</td><td><a href="#frg-400--two-copies-of-sea-orm">link</a></td></tr>
 </tbody>
 </table>
@@ -3525,6 +3528,9 @@ target’s metadata to build the relation and, for <code>owner(from)</code>, to 
 the target must be a Ferra model. Reported at the relation field’s target type, and for <code>owner(from)</code> also at
 the <code>from</code> value. A parent that is not a model also draws <a href="#frg-127--the-parent-of-ownerfrom-declares-no-matching-owner"><code>FRG-127</code></a>,
 which is true of it and needs no separate fix.</p>
+<p>The refusal has a second site. When the derive stays quiet but the target is still no Ferra model (an entity
+whose metadata is written by hand, without the derive), <code>.mount</code> of the model that holds the relation refuses it
+with the same text, naming the target: the bound that carries it is <code>Served</code>, in <code>ferra-http</code>. The fix is the same.</p>
 <p><strong>Bad.</strong></p>
 <pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
@@ -4148,10 +4154,10 @@ Ferra already answers 422 <code>unknown_field</code> to a key outside the body�
 <h2 id="frg-146--a-field-an-action-cannot-write"><a class="header" href="#frg-146--a-field-an-action-cannot-write">FRG-146 — a field an action cannot write</a></h2>
 <p><strong>Trigger.</strong> A name in <code>writes = [..]</code> of an <code>action(...)</code> that is no field of the model, or that is not a
 <code>read_only</code> field or a field with a <code>write</code> rule of the model, or that is the key, the owner, the foreign key behind
-<code>owner(from = ..)</code>, a <code>computed</code> field, a <code>skip</code> field, a <code>#[sea_orm(ignore)]</code> field or a field a behavior adds
+<code>owner(from = ..)</code>, a <code>computed</code> field, a <code>skip</code> field or a field a behavior adds
 (<code>created_at</code> of <code>timestampable</code>). <code>writes</code> opens a field that is closed to the caller, to the action alone
 (<a href="actions.html#writes">Declared actions</a>): a field that is already writable needs no opening, the key, the owner and
-the computed fields are Ferra’s, and a field with no column has nothing to write. The message depends on the name: a
+the computed fields (the only fields with no column, FRG-364) are Ferra’s. The message depends on the name: a
 name that is no field of the model (a typo) reads “no field <code>x</code> on the model <code>M</code>”; a field the action cannot write
 reads “the field <code>x</code> cannot be written by an action: “ followed by its reason, one per kind above. One error per
 name, reported at the name in the list.</p>
@@ -4215,14 +4221,12 @@ error: FRG-146: the field `id` cannot be written by an action: it is the primary
 </code></pre>
 <p>The reasons: “it is the primary key; Ferra sets it”, “it is the owner; Ferra sets it”, “it is the foreign key
 <code>owner(from = ..)</code> follows to the parent; moving it would hand the row to another owner” (when it is <code>read_only</code> or has a <code>write</code> rule: a foreign key that any caller may write gets the last reason), “it is <code>computed</code>; Ferra
-derives its value”, “it is <code>skip</code>: the API never reads or writes it”, “it has no column, so writing it has no effect”
-(a <code>#[sea_orm(ignore)]</code> field), “a behavior adds it; Ferra stamps it”, and “any caller who may write the row can
+derives its value”, “it is <code>skip</code>: the API never reads or writes it”, “a behavior adds it; Ferra stamps it”, and “any caller who may write the row can
 already write it; <code>writes</code> opens only a closed field”.</p>
 <p><strong>Fix.</strong> List only a <code>read_only</code> field or a field with a <code>write</code> rule. Remove a field that any caller who may write the
-row can already write, and the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> field, a <code>skip</code> field, a
-<code>#[sea_orm(ignore)]</code> field and a field a behavior adds: an action cannot set them, listed or not. Check the spelling of
+row can already write, and the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> field, a <code>skip</code> field and a field a behavior adds: an action cannot set them, listed or not. Check the spelling of
 a name the model does not have.</p>
-<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_free_field.rs"><code>frg_146_free_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_key.rs"><code>frg_146_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner.rs"><code>frg_146_owner.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner_from_fk.rs"><code>frg_146_owner_from_fk.rs</code></a> (the foreign key left writable: the reason of a free field), <a href="../../crates/ferra-http/tests/ui/fail_action_writes_owner_from_fk_read_only.rs"><code>fail_action_writes_owner_from_fk_read_only.rs</code></a> (the foreign key <code>read_only</code>: its own reason), <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_computed.rs"><code>frg_146_computed.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_skip.rs"><code>frg_146_skip.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_behavior_field.rs"><code>frg_146_behavior_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_unknown_name.rs"><code>frg_146_unknown_name.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_sea_orm_ignore.rs"><code>frg_146_sea_orm_ignore.rs</code></a></p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_free_field.rs"><code>frg_146_free_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_key.rs"><code>frg_146_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner.rs"><code>frg_146_owner.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner_from_fk.rs"><code>frg_146_owner_from_fk.rs</code></a> (the foreign key left writable: the reason of a free field), <a href="../../crates/ferra-http/tests/ui/fail_action_writes_owner_from_fk_read_only.rs"><code>fail_action_writes_owner_from_fk_read_only.rs</code></a> (the foreign key <code>read_only</code>: its own reason), <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_computed.rs"><code>frg_146_computed.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_skip.rs"><code>frg_146_skip.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_behavior_field.rs"><code>frg_146_behavior_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_unknown_name.rs"><code>frg_146_unknown_name.rs</code></a></p>
 <hr>
 <h2 id="frg-150--mounting-a-model-without-posture"><a class="header" href="#frg-150--mounting-a-model-without-posture">FRG-150 — mounting a model without posture</a></h2>
 <p><strong>Trigger.</strong> Two sites share this code.</p>
@@ -4265,9 +4269,10 @@ pub struct Model {
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let app = ferra::Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;Model&gt;().build();
-<span class="boring">}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let app = ferra::Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Model&gt;().build();
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p><strong>Fix.</strong> Derive <code>FerraModel</code> and declare a posture on the model (see FRG-100).
 Do not implement <code>FerraAuthConfigured</code> by hand: it is a declaration that the
@@ -4442,12 +4447,13 @@ pub struct Model {
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
 </span>#[axum::debug_handler(state = ferra::ResourceHandle&lt;Model&gt;)]
 async fn mine(_films: ferra::Resource&lt;Model&gt;) {}
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let (foundry, films) = ferra::Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Model&gt;();
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let (foundry, films) = ferra::Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount_and_handle::&lt;Model&gt;();
 let _app: axum::Router = foundry
     .build()
     .merge(axum::Router::new().route("/films", axum::routing::get(mine)).with_state(films));
-<span class="boring">}
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p><strong>Fix.</strong> Mount the model with <code>.mount_and_handle::&lt;M&gt;()</code> instead of <code>.mount::&lt;M&gt;()</code>,
 and keep the handle it returns in the state of the router the handler is on:
@@ -4511,9 +4517,10 @@ pub struct Model {
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let _app = ferra::Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;Model&gt;().build();
-<span class="boring">}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let _app = ferra::Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Model&gt;().build();
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p><strong>Good.</strong></p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4534,9 +4541,10 @@ pub struct Model {
 <span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let _app = ferra::Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;Model&gt;().build();
-<span class="boring">}
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let _app = ferra::Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Model&gt;().build();
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p><strong>An action against another model’s operation.</strong> The <code>operationId</code> of a row action is its
 name in lowerCamel case and the model’s name, so the action <code>get_ack</code> of <code>Job</code> is <code>getAckJob</code>,
@@ -4589,9 +4597,10 @@ mod ack_job {
 </span><span class="boring">    pub enum Relation {}
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span>}
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let _app = ferra::Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;job::Model&gt;().mount::&lt;ack_job::Model&gt;().build();
-<span class="boring">}
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let _app = ferra::Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;job::Model&gt;().mount::&lt;ack_job::Model&gt;().build();
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p><strong>Good.</strong></p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4638,9 +4647,10 @@ mod ack_job {
 </span><span class="boring">    pub enum Relation {}
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span>}
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let _app = ferra::Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount::&lt;job::Model&gt;().mount::&lt;ack_job::Model&gt;().build();
-<span class="boring">}
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let _app = ferra::Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;job::Model&gt;().mount::&lt;ack_job::Model&gt;().build();
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>The same refusal covers a <code>patch_ack</code> action against the <code>patch</code> of <code>AckJob</code> (<code>patchAckJob</code>,
 <code>PATCH</code>), two actions of two models (<code>a_b</code> of <code>Job</code> and <code>a</code> of <code>BJob</code> are both <code>aBJob</code>) and
@@ -5551,10 +5561,10 @@ diagnostic is desired.</p>
 <h1 id="frg-3nn--projection-attribute-diagnostics-065-chasing"><a class="header" href="#frg-3nn--projection-attribute-diagnostics-065-chasing">FRG-3NN — projection-attribute diagnostics (0.6.5 Chasing)</a></h1>
 <p>The 0.6.5 Chasing release opens the <code>FRG-3NN</code> block for projection /
 computed / write-only attribute rejections. Codes FRG-301..FRG-312 and
-FRG-314 ship from the proc-macro parser (<code>#[derive(FerraModel)]</code>); codes
-FRG-312 and FRG-315 are runtime-detected at <code>Foundry::build()</code> and ship
-their full integration-test fixture when the corresponding API surface
-(cross-model collision check, nested-mounting) wires in. FRG-313 is
+FRG-314 ship from the proc-macro parser (<code>#[derive(FerraModel)]</code>); code
+FRG-312 is runtime-detected at <code>Foundry::build()</code> (cross-model collision
+check). FRG-315 is reserved and never emitted: the sub-collection is served at
+the bare path and no nested path takes a prefix (ADR-0030 as amended). FRG-313 is
 <strong>intentionally unallocated</strong> — the slot is reserved for namespace
 stability; the framework will not recycle the identifier.</p>
 <p>See <a href="projections-and-routing.html">Projections and routing</a> for the
@@ -5565,6 +5575,10 @@ user-facing contract; this page documents the compile-time enforcement.</p>
 the host struct. The check also fires when an ident references a
 field but in the wrong half (e.g. a <code>#[ferra(write_only)]</code> field
 listed in a <code>read = [...]</code>; see FRG-305 for that refinement).</p>
+<p>On a model written with <code>#[sea_orm::model]</code>, a <code>read</code> list also accepts the name of a <code>BelongsTo</code>
+relation field: it is not unknown, it is an embed
+(<a href="relations.html#embedding">Embedding</a>). The name of a <code>HasMany</code> or a <code>HasOne</code> is
+<a href="#frg-363--a-hasmany-or-hasone-in-a-read-list">FRG-363</a>. Any other name that is no field is still unknown here.</p>
 <p><strong>Bad.</strong></p>
 <pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -5605,7 +5619,8 @@ pub struct Model {
 </span><span class="boring">}</span></code></pre>
 <p><strong>Fix.</strong> Replace the unknown ident with a field that exists on the
 struct, or add the field. Identifiers in <code>read</code>/<code>write</code> lists must
-match field names exactly (case-sensitive).</p>
+match field names exactly (case-sensitive). A <code>read</code> list may name a
+<code>BelongsTo</code> relation too, to embed the parent.</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs"><code>crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs</code></a></p>
 <hr>
 <h2 id="frg-302--write_only-and-read_only-on-the-same-field"><a class="header" href="#frg-302--write_only-and-read_only-on-the-same-field">FRG-302 — <code>write_only</code> and <code>read_only</code> on the same field</a></h2>
@@ -6216,14 +6231,14 @@ mod admin {
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span>}
 
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = ferra::Foundry::new(conn)
-    .etag_key("a-development-key-of-at-least-32-bytes")
-    .expect("a key of at least 32 bytes")
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;widget::Model&gt;()
     .mount::&lt;admin::Model&gt;() // panics: FRG-312
     .build();
-<span class="boring">}
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p><strong>Good.</strong></p>
 <pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
@@ -6260,14 +6275,14 @@ mod admin {
 </span><span class="boring">    impl ActiveModelBehavior for ActiveModel {}
 </span>}
 
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = ferra::Foundry::new(conn)
-    .etag_key("a-development-key-of-at-least-32-bytes")
-    .expect("a key of at least 32 bytes")
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;widget::Model&gt;()
     .mount::&lt;admin::Model&gt;()
     .build();
-<span class="boring">}
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p><strong>Fix.</strong> Rename one of the colliding sides — either pick a different
 projection name (auto-deriving a different prefix), or remount the
@@ -6359,14 +6374,13 @@ projection. If the projection is meant to accept <em>every</em> writable
 field, drop the explicit <code>write = [...]</code> and rely on the default.</p>
 <p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_314_write_only_omitted_from_explicit_write.rs"><code>crates/ferra-forge/tests/diagnostics/frg_314_write_only_omitted_from_explicit_write.rs</code></a></p>
 <hr>
-<h2 id="frg-315--path_prefix-declared-on-a-sub-resource"><a class="header" href="#frg-315--path_prefix-declared-on-a-sub-resource">FRG-315 — <code>path_prefix</code> declared on a sub-resource</a></h2>
-<p><strong>Trigger.</strong> A model mounted as a sub-resource of another model (Foundry’s nested-mounting pattern) carries <code>path_prefix = "..."</code> on one of its <code>#[ferra(projection(...))]</code> declarations. The URL surface of a nested resource is governed exclusively by the root resource’s projection prefix (ADR-0030 §Nested resources); a sub-resource overriding the URL would break the one-prefix-per-request invariant.</p>
-<p><strong>Detection site.</strong> Primary detection lives at <code>Foundry::build()</code> time — the proc-macro cannot fully detect sub-resource context (it sees one struct at a time). The proc-macro carries a hint emit at the <code>path_prefix</code> attribute as defense-in-depth.</p>
-<p><strong>Status at 0.6.5.</strong> The framework’s nested-mounting API ships in a future release. The FRG-315 namespace slot and the parser hint are in place; the runtime fixture lands when nested-mounting becomes wireable.</p>
-<p><strong>Status in 0.9.0: reserved, never emitted.</strong> Nested mounting does not exist in 0.9.0:
-<code>Foundry</code> has no way to mount a model under another one, so no model is a
-sub-resource and nothing raises this code. There is no example to compile, and
-no fixture. The number stays allocated for the day nested mounting lands.</p>
+<h2 id="frg-315--reserved-no-sub-resource-takes-a-prefix"><a class="header" href="#frg-315--reserved-no-sub-resource-takes-a-prefix">FRG-315 — reserved: no sub-resource takes a prefix</a></h2>
+<p><strong>Status: reserved, never emitted.</strong> ADR-0030 once planned to reject a <code>path_prefix</code> on a model mounted as a
+sub-resource, because a nested path would take the root’s projection prefix. As amended (ADR-0084, 0.16.0), no nested
+path takes a prefix: a parent and its child serve only the sub-collection <code>GET</code> and <code>POST {parent item}/{relation}</code>, at
+the bare path and in the child’s default representation, and the child’s own <code>path_prefix</code> is its own
+(<a href="projections-and-routing.html#nested-resources-the-sub-collection">Nested resources</a>). There is nothing to reject, so
+nothing raises this code. There is no example to compile, and no fixture. The number stays allocated.</p>
 <hr>
 <h2 id="frg-316--default--true-requires-promotes_from--breaking_change_version"><a class="header" href="#frg-316--default--true-requires-promotes_from--breaking_change_version">FRG-316 — <code>default = true</code> requires <code>promotes_from</code> + <code>breaking_change_version</code></a></h2>
 <p><strong>Trigger.</strong> Three triggers, one code:</p>
@@ -7204,11 +7218,10 @@ pub struct Model {
 </span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
 </span><span class="boring">}
 </span><span class="boring">async fn publish_film() -&gt; Result&lt;Json&lt;()&gt;, FerraError&gt; { Ok(Json(())) }
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) {
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>// The action route is yours, added to the router `Foundry::build()` returns:
 let (builder, films) = Foundry::new(conn)
-    .etag_key("a-development-key-of-at-least-32-bytes")
-    .expect("a key of at least 32 bytes")
+    .etag_key(std::env::var("ETAG_KEY")?)?
     .with_auth::&lt;MyClaims&gt;(jwt)
     .mount_and_handle::&lt;Model&gt;();
 let app = builder.build().merge(
@@ -7216,7 +7229,8 @@ let app = builder.build().merge(
         .route("/films/{id}/publish", post(publish_film))
         .with_state(films),
 );
-<span class="boring">}
+<span class="boring">Ok(())
+</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p><strong>Fix.</strong> Remove the attribute. <code>restore</code> is the only named operation: it is
 mounted by <code>#[behavior(soft_delete)]</code> and governed by the <code>restore</code> key of
@@ -8051,6 +8065,310 @@ in <code>crates/ferra-forge/tests/diagnostics/</code>, and
 <a href="../../crates/ferra-http/tests/ui/fail_computed_without_impl.rs"><code>fail_computed_without_impl.rs</code></a>,
 which pins both errors in <code>crates/ferra-http/tests/ui/</code>.</p>
 <hr>
+<h2 id="frg-363--a-hasmany-or-hasone-in-a-read-list"><a class="header" href="#frg-363--a-hasmany-or-hasone-in-a-read-list">FRG-363 — a <code>HasMany</code> or <code>HasOne</code> in a <code>read</code> list</a></h2>
+<p><strong>Trigger.</strong> A projection’s <code>read = [...]</code> names a <code>HasMany</code> or a <code>HasOne</code> relation field of a model written
+with <code>#[sea_orm::model]</code>. The foreign key of such a relation is on the other side: it is served as the link to its
+sub-collection, never embedded, and a depth bound does not bound a fan-out (a <code>HasOne</code> has no bound either without a
+uniqueness the derive can see). A <code>BelongsTo</code> is the relation a <code>read</code> list embeds (<a href="relations.html#embedding">Embedding</a>);
+a name that is neither a field nor a relation is still <a href="#frg-301--projection-references-an-unknown-field">FRG-301</a>.
+Reported on the name inside <code>read</code>.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "bearer")]
+    #[ferra(projection(name = "summary", read = [id, reviews]))] // `reviews` is a `HasMany`
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(has_many)]
+        pub reviews: HasMany&lt;super::review::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod review {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "reviews")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub film_id: i32,
+        #[sea_orm(belongs_to, from = "film_id", to = "id")]
+        pub film: BelongsTo&lt;super::film::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "bearer")]
+    #[ferra(projection(name = "summary", read = [id]))] // `reviews` stays the link `reviews`
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(has_many)]
+        pub reviews: HasMany&lt;super::review::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod review {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "reviews")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub film_id: i32,
+        #[sea_orm(belongs_to, from = "film_id", to = "id")]
+        pub film: BelongsTo&lt;super::film::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Messages.</strong></p>
+<pre><code class="language-text">error: FRG-363: `reviews` is a relation whose foreign key is on the other side; it is served as the link `reviews` to its sub-collection, never embedded (a `HasOne` has no bound without a uniqueness the derive can see)
+         help: remove `reviews` from `read`
+         note: see docs/user-guide/ferra-forge-diagnostics.md § FRG-363
+</code></pre>
+<p><strong>Fix.</strong> Remove the name from <code>read</code>. The relation is still in every response, as the link <code>reviews</code> to its
+sub-collection (<a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>). To show the rows of the other side
+inside this one, embed from that side: the <code>BelongsTo</code> of <code>review</code> to <code>film</code> is a name its <code>read</code> list may carry.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_363_has_many_in_read.rs"><code>frg_363_has_many_in_read.rs</code></a>
+and <a href="../../crates/ferra-forge/tests/diagnostics/frg_363_has_one_in_read.rs"><code>frg_363_has_one_in_read.rs</code></a>,
+in <code>crates/ferra-forge/tests/diagnostics/</code>.</p>
+<hr>
+<h2 id="frg-364--an-ignored-field-without-computed"><a class="header" href="#frg-364--an-ignored-field-without-computed">FRG-364 — an ignored field without <code>computed</code></a></h2>
+<p><strong>Trigger.</strong> A field declares <code>#[sea_orm(ignore)]</code> and no <code>#[ferra(computed)]</code>. A field with no column
+has no value to read from the table, and Sea-ORM builds it with <code>Default</code>. Ferra would serve that
+<code>Default</code> as if it were the row’s: a <code>0</code>, an empty string, a <code>null</code> that lies. Since 0.16.0 the derive
+refuses the field instead of serving it (before 0.16.0 it compiled). Reported at the <code>ignore</code>, naming the field.
+<code>#[ferra(computed)]</code> on an ignored field is the supported form (FRG-360 is its converse).</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub subtotal: f64,
+    #[sea_orm(ignore)] // no column, and not `#[ferra(computed)]`: no value to serve
+    pub note: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[derive(Clone, Debug, PartialEq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "invoices")]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub subtotal: f64,
+    #[sea_orm(ignore)]
+    #[ferra(computed)]
+    pub note: String,
+}
+<span class="boring">#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+</span><span class="boring">pub enum Relation {}
+</span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">impl ferra::compute::FerraComputed for Model {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Messages.</strong></p>
+<pre><code class="language-text">error: FRG-364: `note` has `#[sea_orm(ignore)]` but no `#[ferra(computed)]`: a field with no column has no value to serve
+         help: add `#[ferra(computed)]` with its `FerraComputed` impl, or move the field out of the model (into a type of your own, or a `Resource&lt;M&gt;` route)
+</code></pre>
+<p><strong>Fix.</strong> Add <code>#[ferra(computed)]</code> and write the <code>impl FerraComputed for Model</code> that fills the field (empty
+when nothing computes it yet; see <a href="computed-fields.html">Computed fields</a>), or move the field out of the
+model, into a type of your own or a <code>Resource&lt;M&gt;</code> route. See <a href="migrating-to-0.16.html"><code>migrating-to-0.16.md</code></a>.</p>
+<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_364_ignore_without_computed.rs"><code>frg_364_ignore_without_computed.rs</code></a>,
+in <code>crates/ferra-forge/tests/diagnostics/</code>.</p>
+<hr>
+<h2 id="frg-365--a-composite-foreign-key"><a class="header" href="#frg-365--a-composite-foreign-key">FRG-365 — a composite foreign key</a></h2>
+<p><strong>Trigger.</strong> A relation writes its <code>from</code> or its <code>to</code> as a list of columns, <code>from = "(studio_id, studio_region)"</code>.
+Sea-ORM accepts the composite form; Ferra’s gate on a foreign key reads one column, so a model
+that compiled with a composite key had its key served to a caller who may not read the parent. Since 0.16.0 the
+derive refuses it instead (before 0.16.0 it compiled). Reported on the string, naming the key and the number of columns.</p>
+<p>Ferra reads a <code>from</code> or a <code>to</code> as Sea-ORM does: <code>"film_id"</code>, <code>"Column::FilmId"</code>, <code>"FilmId"</code> and <code>"filmId"</code> all name
+the field <code>film_id</code>, and the gate follows each spelling. That holds for a <code>from</code>, matched against the fields of the
+model. A <code>to</code> names a field of the target, which the derive cannot see: it is read in snake_case (<code>"FilmId"</code> is
+<code>film_id</code>) and stays fail-closed. A <code>to</code> that then names no column of the target hides the key and refuses a write that
+names it; it never serves the key.</p>
+<p>A <code>to</code> that names no field of the target is the same family. Ferra’s derive cannot see the target’s fields; it emits
+<code>Column::&lt;To&gt;</code> of the target on your string, so the check is rustc’s own: it reports it as E0599 on your string
+(and once more on <code>#[sea_orm::model]</code>, Sea-ORM’s own), with no <code>FRG-365</code> in its text. <code>FRG-365</code> is the code to look up.
+A <code>from</code> that names no field of the model is Sea-ORM’s own refusal alone. Two fields with the same
+variant (<code>line_2</code> and <code>line2</code>, both <code>Line2</code>) are refused by Sea-ORM itself (E0428).</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod studio {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "studios")]
+    #[ferra(auth = "bearer", client_pk)]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub id: i32,
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub region: i32,
+        #[sea_orm(has_many)]
+        pub films: HasMany&lt;super::film::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub studio_id: i32,
+        pub studio_region: i32,
+        #[sea_orm(belongs_to, from = "(studio_id, studio_region)", to = "(id, region)")]
+        pub studio: BelongsTo&lt;super::studio::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Bad: a <code>to</code> that names no field of the target.</strong></p>
+<!-- expect: no variant, associated function, or constant named `Idd` -->
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod parent {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "parents")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(has_many)]
+        pub children: HasMany&lt;super::child::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod child {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "children")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub parent_id: i32,
+        #[sea_orm(belongs_to, from = "parent_id", to = "idd")] // `parent` has no field `idd`
+        pub parent: BelongsTo&lt;super::parent::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod studio {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "studios")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(has_many)]
+        pub films: HasMany&lt;super::film::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub studio_id: i32,
+        #[sea_orm(belongs_to, from = "Column::StudioId", to = "id")] // any spelling of one column
+        pub studio: BelongsTo&lt;super::studio::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Messages.</strong></p>
+<pre><code class="language-text">error: FRG-365: composite foreign keys are not supported: `from = "(studio_id, studio_region)"` names 2 columns
+         help: give the relation one column (`from = "studio_id"`), or keep the composite key out of the model's relations
+</code></pre>
+<p><strong>Fix.</strong> Give the relation one foreign-key column and point it at one column of the target, or keep the
+composite key out of the model’s relations. For a <code>to</code> with no field, name a field of the target. See <a href="migrating-to-0.16.html"><code>migrating-to-0.16.md</code></a>.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_365_composite.rs"><code>frg_365_composite.rs</code></a>,
+in <code>crates/ferra-forge/tests/diagnostics/</code>, and
+<a href="../../crates/ferra-forge/tests/ui_relations/sea_orm_to_names_no_field.rs"><code>sea_orm_to_names_no_field.rs</code></a>, which pins rustc’s
+E0599 on the <code>to</code> string, in <code>crates/ferra-forge/tests/ui_relations/</code>.</p>
+<hr>
 <h2 id="frg-400--two-copies-of-sea-orm"><a class="header" href="#frg-400--two-copies-of-sea-orm">FRG-400 — two copies of Sea-ORM</a></h2>
 <p><strong>Trigger.</strong> The application declares <code>sea-orm</code> in its own <code>[dependencies]</code>, and
 cargo resolved that declaration and the one of <code>ferra</code> to <strong>different versions</strong>:
@@ -8097,12 +8415,12 @@ copies.</p>
 </code></pre>
 <p><strong>Bad.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" } # built with sea-orm 2.x
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" } # built with sea-orm 2.x
 sea-orm = "1"                                                           # another major
 </code></pre>
 <p><strong>Good.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p><strong>Fix.</strong> Give <code>sea-orm</code> the same major version as Ferra, in <code>[dependencies]</code>,

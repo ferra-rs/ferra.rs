@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -192,7 +192,7 @@ is no separate auth dependency to add.</p>
 majors of Sea-ORM does not compile: <code>FRG-400</code>):</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -1013,15 +1013,16 @@ new job the source’s owner. The owner is never the body’s nor the token’s:
 ignored (or refused, like any field outside the write projection). The share lock holds the
 source until the job is committed, so a soft delete of the source that comes meanwhile waits
 for the create; sibling creates do not wait for each other.</p>
-<p><strong>Update.</strong> The owner never changes: a body <code>owner_id</code> is ignored, like on any owned model. A
-<code>PUT /jobs/12</code> that leaves <code>source_id</code> as it is reads no parent, so a job under a soft-deleted
-source stays editable. A <code>source_id</code> that changes moves the job: once the job is locked, the new
-source is read <code>FOR SHARE</code> and judged as on create, and its owner must be the job’s, so a job
-cannot leave its owner even through a parent the caller may update. Any refusal is the same 422
-<code>reference_not_found</code>, the job unchanged. The job itself is checked first: a job the caller may not
-see is a 404 before the new source is looked at.</p>
+<p><strong>Update.</strong> The foreign key and the owner never change (0.16.0). A <code>PUT</code> or a <code>PATCH</code> that names
+<code>source_id</code> is the 422 <code>unknown_field</code> that any key outside the write set gets, whatever source it
+names, the job unchanged; a <code>PUT</code> that leaves it out keeps the job under its source (the stored value
+fills in), and a body <code>owner_id</code> is refused like any field outside the write set. To move a job,
+delete it and create it again (see <a href="relations.html#moving-a-child">Relations</a>). An update reads no
+parent to judge a rule, so a job under a soft-deleted source stays editable; the write still locks
+the source <code>FOR SHARE</code> before the job (see <a href="relations.html#the-aggregate-protocol">Relations</a>). The job
+itself is checked first: a job the caller may not see is a 404 before the body is looked at.</p>
 <p><strong>The parent’s authority.</strong> A source that has <code>#[ferra(authority)]</code> is also judged by it, on
-create and on a re-parenting update: its <code>filter</code> (when it serves <code>list</code>) is in the locking
+create: its <code>filter</code> (when it serves <code>list</code>) is in the locking
 <code>WHERE</code>, then <code>can(Update, source)</code> judges the row, with the context of the request. A refusal,
 an <code>Err</code> or a panic of that authority is the same 422 below, never a 500; the job’s own
 <code>can(Create)</code> runs after the insert and answers 403 or 500. The context is the caller’s, whatever the job’s own rules say: a model with <code>owner(from)</code> gets at least the populate-only credential layer, so the identity is there and the API key header is dropped.</p>
@@ -1039,12 +1040,17 @@ the rule that says who may attach rows to it.</li>
 <li>A soft-deleted parent cascades nothing. Its children stay served under their own owner;
 creating under it is the 422; restoring a child does not check its parent, and restoring the
 parent leaves its children as they are.</li>
-<li>A plain <code>BelongsTo</code> foreign key violated by a write Ferra cannot see (SQLSTATE <code>23503</code>) is a
-500 until 0.16.0; so is any write made outside Ferra (a migration, a script, a hand-written
-route that uses its own connection): the check lives in Ferra’s write path only.</li>
-<li>Two writes that lock the same rows in opposite orders can deadlock (<code>40P01</code>): Postgres aborts
-one, which answers 500 until the retry of 0.14.0. Authority code and rules must be pure: a
-retry runs them again.</li>
+<li>A plain <code>BelongsTo</code> key to an absent or unreadable row is the same 422 <code>reference_not_found</code> (0.16.0:
+the target is read under the caller’s read scope, see <a href="relations.html#writing-a-foreign-key">Writing a foreign key</a>).
+A foreign key the database alone detects (the target removed after the read, SQLSTATE <code>23503</code>) is
+the same 422, and a delete a foreign key refuses is a 409 (see
+<a href="relations.html#deleting-a-parent">Deleting a parent</a>). A write made outside Ferra (a migration, a
+script, a hand-written route that uses its own connection) is not checked: the check lives in
+Ferra’s write path only.</li>
+<li>Every write of a job locks its source <code>FOR SHARE</code>, then the job (0.16.0), so the writes of a
+job and of its source do not cross. Residual deadlocks (two jobs whose hooks write each other’s
+siblings) go to the bounded retries and end at the 503 <code>retry_exhausted</code>; Ferra does not
+promise their absence. Authority code and rules must be pure: a retry runs them again.</li>
 <li>The check reads the parent by the key the body carries; a parent whose primary key is
 composite is not found by it and the create is refused as above.</li>
 </ul>
@@ -1199,6 +1205,9 @@ pub struct Model {
 </span><span class="boring">pub enum Relation {}
 </span><span class="boring">impl ActiveModelBehavior for ActiveModel {}
 </span><span class="boring">}</span></code></pre>
+<p><strong>A <code>BelongsTo</code> key is gated the same way.</strong> The foreign key of a <code>BelongsTo</code> is served as if it carried a <code>read</code> rule
+that says “the caller may read the parent” (<a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>): absent, never
+<code>null</code>, in <code>FerraViews::Read</code> an <code>Option</code>.</p>
 <p><strong>Reads.</strong> A field the caller may not read is <strong>absent</strong> from every response: an item, a
 list, a create, an update, a restore. It is never <code>null</code>; <code>null</code> means the column is null
 and the caller may read it. An <code>IsOwner</code> rule is judged on each row alone, from the owner
@@ -1531,15 +1540,15 @@ claims type (both, compiled, under
 </span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
 </span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
 </span><span class="boring">}
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) {
-</span>let key = "a-development-key-of-at-least-32-bytes"; // from `ETAG_KEY` in a real service
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let key = std::env::var("ETAG_KEY")?;
 let app = Foundry::new(conn)
-    .etag_key(key)
-    .expect("32 bytes at least")
+    .etag_key(key)?
     .with_auth::&lt;MyClaims&gt;(jwt)
     .mount::&lt;Film&gt;()
     .build();
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>A model declared <code>auth = "none"</code>, or whose <code>#[authorize]</code> rules are all <code>Anyone</code>,

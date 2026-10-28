@@ -97,11 +97,14 @@
       <code>POST</code> (create) and <code>PUT</code> (update) endpoints.
     </p>
     <p class="errpage-body__desc" style="font-size:16px">
-      A model whose owner comes from a parent row (<code>owner(from = …)</code>)
-      adds one more code: <code>reference_not_found</code>, with <code>field</code>
-      the foreign key and the fixed message <code>the referenced row does not exist</code>.
-      The same body answers a parent that is absent, soft-deleted, unreadable, not
-      updatable by the caller or of another owner, so it reveals nothing about which.
+      A foreign key adds one more code: <code>reference_not_found</code>, with
+      <code>field</code> the foreign key and the fixed message
+      <code>the referenced row does not exist</code>. Since v0.16.0 it answers
+      any declared <code>BelongsTo</code> key whose target row is absent or
+      hidden from the caller, not only a model whose owner comes from a parent
+      row (<code>owner(from = …)</code>). The same body answers a target that is
+      absent, soft-deleted, unreadable, not updatable by the caller or of another
+      owner, so it reveals nothing about which.
     </p>
 
     <p class="errpage-body__label" style="margin-top:0">how to handle</p>

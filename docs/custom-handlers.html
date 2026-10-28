@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,7 +188,7 @@
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -386,6 +386,12 @@ read is refused as on the route, and a <code>sort</code> on it keeps the default
 as the generated routes do (<a href="behaviors.html#hooks">Hooks</a>).</p>
 </blockquote>
 <blockquote>
+<p><strong>A write the database keeps aborting (0.16.0).</strong> A <code>Resource&lt;M&gt;</code> write that the database aborted on each of
+its three attempts returns <code>Err(FerraError::RetryExhausted)</code>: return it from your route and the client gets the
+<code>503</code> <code>retry_exhausted</code> with <code>Retry-After: 1</code>. Never replay the write in a loop of your own; the retries already
+ran (<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>).</p>
+</blockquote>
+<blockquote>
 <p><strong>No response envelope in 0.9.0.</strong> The routes <code>Foundry</code> generates answer with
 the row filtered through its read projection, under its wire names, flat or with
 HAL <code>_links</code> as the client’s <code>Accept</code> chooses. That envelope is not public: a route of your own would build links
@@ -523,8 +529,8 @@ use ferra::Foundry;
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">async fn publish_film() {}
-</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) {
-</span>let (builder, films) = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
+</span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let (builder, films) = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount_and_handle::&lt;Film&gt;();
 let api = builder.with_docs().build();
 
 let custom = Router::new()
@@ -533,6 +539,7 @@ let custom = Router::new()
 
 let app: Router = api.merge(custom);
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your custom endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
@@ -607,9 +614,9 @@ async fn publish_film(
     Ok(StatusCode::NO_CONTENT)
 }
 
-<span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt_config: JwtConfig) {
+<span class="boring">fn demo(conn: sea_orm::DatabaseConnection, jwt_config: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let jwt = Arc::new(jwt_config); // the same `JwtConfig` settings you give `.with_auth`
-let (_api, films) = Foundry::new(conn).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
+let (_api, films) = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount_and_handle::&lt;Film&gt;();
 let custom: Router = Router::new()
     .route("/films/{id}/publish", post(publish_film))
     .with_state(films)
@@ -618,6 +625,7 @@ let custom: Router = Router::new()
         ferra_auth_enforcing_middleware::&lt;YourClaims&gt;,
     ));
 <span class="boring">let _ = custom;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>To unit-test such a handler, call it with <code>CurrentUser(claims)</code> — the tuple field is
@@ -665,14 +673,15 @@ async fn count_films(State(conn): State&lt;DatabaseConnection&gt;) -&gt; Result&
     Ok(Json(n))
 }
 
-<span class="boring">fn demo(conn: DatabaseConnection) {
-</span>let (builder, films) = Foundry::new(conn.clone()).etag_key("a-development-key-of-at-least-32-bytes").expect("a key of at least 32 bytes").mount_and_handle::&lt;Film&gt;();
+<span class="boring">fn demo(conn: DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let (builder, films) = Foundry::new(conn.clone()).etag_key(std::env::var("ETAG_KEY")?)?.mount_and_handle::&lt;Film&gt;();
 let app: Router = builder.build().merge(
     Router::new()
         .route("/films/count", get(count_films))
         .with_state(AppState { films, conn }),
 );
 <span class="boring">let _ = app;
+</span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>A transaction is the same: <code>conn.begin()</code> on your connection, outside Ferra. Ferra has no transaction-taking method on <code>Resource&lt;M&gt;</code>.</p>

@@ -229,7 +229,9 @@
       <span class="variant__http variant__http--4xx">409 Conflict</span>
       <p class="variant__desc">
         Returned when a write would violate a unique constraint — a duplicate
-        slug, primary-key collision, or similar.
+        slug, primary-key collision, or similar — when a <code>DELETE</code>
+        is refused by a foreign key that still points at the row (0.16.0), or
+        when your hook returns <code>HookError::conflict</code>.
       </p>
       <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/conflict"</span><span class="tok-pun">,</span>

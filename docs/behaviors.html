@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -633,6 +633,22 @@ written, the hook’s write included. It is never the <code>404</code> of the re
 <p>The draft is the hook’s way to change the row being written (<a href="#the-pending-values-modeldraft">the pending values</a>); a
 write to another model’s row through <code>tx.resource</code> is unaffected
 (<a href="../decision-record/0072-hooks-in-the-operation-transaction-and-after-commit.html">ADR-0072</a>, amended 2026-10-15).</p>
+<h3 id="a-childs-hook-cannot-write-the-parent-it-holds"><a class="header" href="#a-childs-hook-cannot-write-the-parent-it-holds">A child’s hook cannot write the parent it holds</a></h3>
+<p>A write of a model with <code>owner(from = ..)</code> holds its parent row <code>FOR SHARE</code> for the length of the transaction
+(<a href="relations.html#the-aggregate-protocol">the aggregate protocol</a>). A hook of that child that updates or deletes the
+same parent through <code>tx.resource</code> would ask for <code>FOR UPDATE</code> on a row it shares, which deadlocks against any other
+child of that parent in flight. Since 0.16.0 Ferra refuses it before any statement:</p>
+<ul>
+<li>the call returns <code>FerraError::Internal</code>, and the write is answered <code>500</code> <code>internal</code>, with one <code>error!</code> that names the
+child’s resource, the parent’s resource, the operation and the fix, and never a key value;</li>
+<li>the refusal poisons the write: a hook that swallows the error and returns <code>Ok</code> still commits nothing, and a rollback
+to a savepoint does not clear it. A refused write is not transient, so it is never retried;</li>
+<li>a read of the parent, a sibling create and a write of a row this write does not hold are not touched, and neither is
+a row the write holds <code>FOR UPDATE</code> (a parent’s own action writing its children through <code>tx.resource</code>).</li>
+</ul>
+<p>Write the parent from its own action, where it is locked <code>FOR UPDATE</code> first. A hook that writes a grandparent, or a row
+under another parent, writes a row the write does not hold: Ferra allows it, and it can deadlock against that row’s own
+protocol. The bounded retries end it at the 503 <code>retry_exhausted</code>; write across aggregates from the root’s action.</p>
 <h3 id="hooks-can-run-more-than-once"><a class="header" href="#hooks-can-run-more-than-once">Hooks can run more than once</a></h3>
 <p>When the database aborts a write with <code>40001</code> or <code>40P01</code>, Ferra runs the write again from its start, up to three
 attempts (<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>). The four
@@ -750,8 +766,11 @@ impl FerraHooks for Model {
 }
 <span class="boring">}</span></code></pre>
 <p>The values a hook writes are trusted: Ferra validates the request body, not what a hook then puts in the draft. There is
-no second <code>garde</code> validation and no write field rule on them; the storage constraints (a unique index, a foreign key)
-still apply, and a violation is the <code>409</code> the client sees.</p>
+no second <code>garde</code> validation and no write field rule on them; the storage constraints still apply. A violated unique
+index is the <code>409</code> the client sees; a foreign key a write violates is the <code>422</code> <code>reference_not_found</code> (the <code>409</code> is a
+delete’s). The target of a plain <code>BelongsTo</code> key a hook writes is not read by Ferra: it is your responsibility, and the
+constraint answers the <code>422</code> for an absent one
+(<a href="relations.html#writing-a-foreign-key">Writing a foreign key</a>).</p>
 <p>Three more things to know:</p>
 <ul>
 <li><code>ActiveModelBehavior</code> runs after the draft is applied, inside the statement, and can still change any column, the
@@ -1044,10 +1063,9 @@ ordered. Ferra assumes <code>CACHE 1</code> and does not check it.</li>
 holds every other appender; there is no lock timeout, the request budget is the bound. Two hooked models that lock
 two targets in opposite orders can deadlock: the database aborts one (<code>40P01</code>) and the write is run again, up to
 three attempts, then answers <code>503</code> <code>retry_exhausted</code> (0.14.0).</li>
-<li><strong>A write of a model with a grant runs at <code>READ COMMITTED</code>.</strong> The head read after the lock must see the last
-commit, so Ferra sets the level at <code>BEGIN</code> whatever <code>default_transaction_isolation</code> says; the hooks of that model
-run at that level too. Other writes keep the server’s level: there a stale snapshot fails closed (<code>40001</code>) and the write
-is run again (0.14.0).</li>
+<li><strong>A write runs at <code>READ COMMITTED</code>.</strong> The head read after the lock must see the last
+commit, so Ferra sets the level at <code>BEGIN</code> whatever <code>default_transaction_isolation</code> says; the hooks run at that
+level too (every write does since 0.16.0; see <a href="migrating-to-0.16.html">Migrating from 0.15 to 0.16</a>).</li>
 <li><strong>Neon’s pooled endpoint.</strong> A transaction-level advisory lock works behind a pooler in transaction mode (only
 session-level locks do not). PgBouncer’s documentation says so, and the repository’s <code>pooler_acceptance</code> binary proves it through a
 PgBouncer in transaction mode; Neon’s own documentation does not state it.</li>

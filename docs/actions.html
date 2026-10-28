@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -381,18 +381,22 @@ decided on the locked row. Then the handler runs, and its answer and the checks 
 <h2 id="what-the-handler-may-change"><a class="header" href="#what-the-handler-may-change">What the handler may change</a></h2>
 <p>The row it returns is judged against the row it was given, in this order. Nothing is written when one fails.</p>
 <ol>
-<li><strong>The key and the owner stay.</strong> A handler that changes either one is a bug of yours: <code>500</code> <code>internal</code>, the
-generic body, one <code>error!</code> that names the model, the action and the column and no value.</li>
+<li><strong>The key, the owner and the <code>owner(from)</code> foreign key stay.</strong> A handler that changes any of them is a bug of
+yours: <code>500</code> <code>internal</code>, the generic body, one <code>error!</code> that names the model, the action and the column and no
+value. (The foreign key is immutable since 0.16.0: delete the row and create it again to move it.)</li>
 <li><strong>The field rules apply.</strong> A changed field the caller may not write on the bare <code>PUT</code> is a <code>403</code>: a <code>read_only</code> or
 <code>computed</code> field, or a field whose <code>write</code> rule the caller does not meet. A field the handler leaves alone is
 never judged. A field the action lists in <a href="#writes"><code>writes</code></a> is the exception.</li>
 <li><strong>The validators apply</strong> to the changed fields: a <code>422</code> that names the fields the caller may read; a <code>500</code> with the
 generic body when only fields the caller may not read fail, logged with their names.</li>
-<li><strong>The parent chain.</strong> On a model with <code>owner(from = ..)</code>, a foreign key moved under a parent the caller may not
-see is a <code>422</code> <code>reference_not_found</code>.</li>
+<li><strong>The parent chain.</strong> On a model with <code>owner(from = ..)</code>, the foreign key is never written by an action: a
+handler that changes it is the <code>500</code> of point 1.</li>
 <li><strong>Its own row stays untouched.</strong> A handler or a hook that updates, soft-deletes or deletes the row it was given
 through <code>tx.resource</code> is a <code>500</code> with the generic body, never a <code>404</code> (<a href="behaviors.html#a-hook-cannot-write-its-own-row">A hook cannot write its own row</a>).
-Other models’ rows, written through <code>tx.resource</code>, are written under the caller’s rules.</li>
+Other models’ rows, written through <code>tx.resource</code>, are written under the caller’s rules. The exception is a row
+the write holds <code>FOR SHARE</code>, the parent of a child’s hook: the write is refused
+(<a href="behaviors.html#a-childs-hook-cannot-write-the-parent-it-holds">A child’s hook cannot write the parent it holds</a>).
+A parent’s action holds its row <code>FOR UPDATE</code>, so it may write its children, and the parent itself stays its own.</li>
 <li><strong><code>can(Action(name))</code> on the row as written.</strong> An authority that refuses the new state is a <code>403</code>.</li>
 </ol>
 <p>A returned row equal to the locked one writes nothing: no <code>UPDATE</code>, the same <code>ETag</code>, the hooks still run.</p>
@@ -542,7 +546,9 @@ run on every row.</li>
 one row fails (the answer is then the first error).</li>
 <li><strong>The batch is the retried unit.</strong> On <code>40001</code> or <code>40P01</code> the whole batch runs again, the handlers and hooks of
 every row with it (<a href="#retries-and-the-request-budget">Retries and the request budget</a>). The rows are locked in key
-order, so two batches that list the same rows in opposite orders do not deadlock. Set a request budget: without
+order, so two batches that list the same rows in opposite orders do not deadlock. On a model with <code>owner(from = ..)</code>
+the distinct parents are locked <code>FOR SHARE</code> first, in key order, so a batch and a child write do not either
+(<a href="relations.html#the-aggregate-protocol">Relations</a>). Set a request budget: without
 one, a batch of 100 rows holds its locks as long as its handlers run.</li>
 </ul>
 <p>The answer is <code>204</code>, with no body, no <code>ETag</code> and no <code>_links</code>: a batch serves no row. A collection action never
@@ -573,7 +579,7 @@ collection action) under a projection prefix answers <code>404</code> or <code>4
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="computed-fields.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="relations.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -587,7 +593,7 @@ collection action) under a projection prefix answers <code>404</code> or <code>4
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="computed-fields.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="relations.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

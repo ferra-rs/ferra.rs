@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69313c8e.js";
+            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f6e1ccda.js"></script>
+        <script src="toc-fcc48201.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -303,7 +303,7 @@ Both are off by default.</p>
 </table>
 </div>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["observability"] }
 </code></pre>
 <p>The implementation crates have features of their own that you do not set:</p>
 <ul>
@@ -342,7 +342,7 @@ Rust ecosystem.</p>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <p>A complete Ferra application written the re-export way, with no <code>sea-orm</code> of its
 own, demonstrating both halves of the principle:</p>
-<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.15.0" }
+<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
 // (plus tokio, axum and serde, as in Getting started)
 
 // Direct re-export (half A): upstream `sea_orm` reached without renaming.
