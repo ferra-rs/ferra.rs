@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>service_unavailable (503) — Ferra Error Types</title>
-  <meta name="description" content="Ferra error type: service_unavailable. HTTP 503 when an application hook reports that a dependency is unavailable. After a commit the write stands." />
+  <meta name="description" content="Ferra error type: service_unavailable. HTTP 503 when an application hook reports that a dependency is unavailable (after a commit the write stands), or when no database connection could be had in time (nothing was applied)." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@700;900&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
@@ -50,13 +50,21 @@
 </div>
 <div class="bleed bleed--white">
   <div class="wrap errpage-body">
-    <p class="errpage-body__desc">Returned when a hook of the application reports, with <code>HookError::unavailable</code>, that something it depends on is out of reach: a queue, a payment provider, another service. The <code>detail</code> is the application's own text. No <code>Retry-After</code> is sent. <strong>After a commit the write stands:</strong> an <code>unavailable</code> returned by <code>after_commit</code> answers 503 once the row is already written, so a client must not retry a non-idempotent request blindly; read the resource first, or send an idempotency key. Unlike <code>timeout</code>, which says nothing was committed, this type says nothing about the write. New in v0.13.0.</p>
-    <p class="errpage-body__label">Example RFC 7807 body</p>
+    <p class="errpage-body__desc">Two causes share this type, and neither sends a <code>Retry-After</code>.</p>
+    <p class="errpage-body__desc"><strong>A hook of the application</strong> reports, with <code>HookError::unavailable</code>, that something it depends on is out of reach: a queue, a payment provider, another service. The <code>detail</code> is the application's own text. <strong>After a commit the write stands:</strong> an <code>unavailable</code> returned by <code>after_commit</code> answers 503 once the row is already written, so a client must not retry a non-idempotent request blindly; read the resource first, or send an idempotency key. New in v0.13.0.</p>
+    <p class="errpage-body__desc"><strong>The database connection</strong> could not be had in time. A generated route or a <code>Resource&lt;M&gt;</code> call got no connection from the pool within its <code>acquire_timeout</code>. The answer comes before the operation: nothing of it was applied and no hook ran, so the client may retry it. The <code>detail</code> is one fixed text that names neither the pool, nor the database, nor a delay. Two situations give it: a saturated pool, and a database that is down or starting (a closed port, <code>53300</code> or <code>57P03</code>), which the pool keeps retrying until the <code>acquire_timeout</code> elapses. A connection the database refuses at once, a wrong password (<code>28P01</code>) or an unknown database (<code>3D000</code>), is not this 503: it stays a 500 <code>internal</code>. No <code>Retry-After</code> is sent, since no delay is known: back off with full jitter. New in v0.17.0.</p>
+    <p class="errpage-body__label">Example RFC 7807 bodies: a hook, then the database connection</p>
     <pre class="doc-codeblock">{
   <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/service_unavailable"</span><span class="tok-pun">,</span>
   <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Service Unavailable"</span><span class="tok-pun">,</span>
   <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">503</span><span class="tok-pun">,</span>
   <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the payment provider is not reachable"</span>
+}</pre>
+    <pre class="doc-codeblock" style="margin-top:16px">{
+  <span class="tok-key">"type"</span><span class="tok-pun">:</span>   <span class="tok-uri">"https://ferra.rs/errors/service_unavailable"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"title"</span><span class="tok-pun">:</span>  <span class="tok-str">"Service Unavailable"</span><span class="tok-pun">,</span>
+  <span class="tok-key">"status"</span><span class="tok-pun">:</span> <span class="tok-num">503</span><span class="tok-pun">,</span>
+  <span class="tok-key">"detail"</span><span class="tok-pun">:</span> <span class="tok-str">"the service could not handle the request in time; this operation was not applied"</span>
 }</pre>
     <a href="/errors/" class="errpage-back">← All error types</a>
   </div>
