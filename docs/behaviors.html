@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -703,11 +703,36 @@ committed: the answer is a <code>500</code> and the row stands, and a replayed <
 <a href="computed-fields.html#idempotent-creates">Idempotent creates</a>).</li>
 <li><strong>A <code>5xx</code> after a <code>POST</code> invites a duplicate retry.</strong> On a non-idempotent write, log inside <code>after_commit</code> and
 return <code>Ok(())</code>; keep <code>Err</code> for the failures a client may safely hear about.</li>
-<li><strong>The request budget cuts it.</strong> With <a href="foundry.html#request-time-budget"><code>.request_budget(..)</code></a>, Ferra runs
-<code>after_commit</code> under a timeout of the budget that is left (never a <code>503</code> <code>timeout</code> after a commit). There is no
-call that reads the time left. When it runs out the hook’s future is dropped where it waits (at an <code>.await</code>), the
-answer is a <code>500</code> and the commit stands. A slow <code>COMMIT</code> can use up the whole budget: the timeout is then zero, and
-the hook is dropped at its first <code>.await</code>. Without a budget nothing bounds it.</li>
+<li><strong>The request budget cuts it.</strong> With <a href="foundry.html#request-time-budget"><code>.request_budget(..)</code></a>, after a
+confirmed commit, the post-commit work Ferra runs for the request (every <code>after_commit</code>, and every <a href="computed-fields.html#when-the-hooks-run">computed
+field</a> served after the commit) is attempted once, guaranteeing neither
+completion nor durable delivery, under one post-commit deadline per request,
+<code>max(deadline, first post-commit work + 1 s)</code>; when it expires the work is dropped and the answer is <code>500</code>
+<code>internal</code>, the commit standing. The budget has thus three phases: until a <code>COMMIT</code> starts it cuts (<code>503</code> <code>timeout</code>, nothing written); a started <code>COMMIT</code> is
+not cancelled; after a confirmed commit the post-commit deadline bounds that work. A cut after a commit is never a
+<code>503</code> <code>timeout</code>. The hook’s future is dropped where it waits (at an <code>.await</code>); there is no call that reads the
+time left. The deadline is the request’s, not the hook’s: every <code>after_commit</code> call of the request, the rows of a
+collection action included, and the computed fields share it, so, without a <code>BelongsTo</code>, a response is held at most for the budget + the
+overrun of the <code>COMMIT</code> + 1 s, whatever the number of events. The overrun is the time the <code>COMMIT</code> took past the
+budget; a slow <code>COMMIT</code> can use up the whole budget, and the hook still has its second. For a model with a
+<code>BelongsTo</code>, the read of the written row’s parents after the commit is under no deadline either: <code>acquire_timeout</code>
+bounds the wait for the connection and <code>statement_timeout</code> bounds the query; a connection not had in time for that
+read answers <code>500</code>, the commit standing. Each call cut is one
+<code>error!</code> line; a call that starts after the deadline is polled once and cut at its first <code>.await</code>. Without a
+budget nothing bounds it. A gateway or process timeout that fires before the response leaves the client with the
+outcome unknown: the write may be committed. Choose a budget below that timeout, and make a create safe to
+replay (the <a href="computed-fields.html#idempotent-creates">idempotent create</a>).
+Before the <code>COMMIT</code>, the budget and the pool’s <code>acquire_timeout</code> can meet: the deadline that comes first answers, a
+<code>503</code> <code>timeout</code> for the budget, a <code>503</code> <code>service_unavailable</code> for the pool, and nothing is written in either case.
+Set the <code>acquire_timeout</code> under the budget so the pool’s answer is the one you see
+(<a href="ferra-db.html#when-no-connection-can-be-had">When no connection can be had</a>).
+A <code>COMMIT</code> the database fails is told the same way, in the log. The answer is a <code>500</code> and no <code>after_commit</code> runs.
+Ferra writes one <code>error!</code> line, target <code>ferra_db::commit</code>, with the fields <code>resource</code>, <code>outcome</code> and
+<code>db.response.status_code</code>. <code>outcome = "rolled_back"</code> says the server refused the <code>COMMIT</code> (a deferred constraint, a
+<code>statement_timeout</code>, a trigger’s own error): nothing was written. <code>outcome = "unknown"</code> says the connection was
+lost or the server went away (a terminated backend, a closed socket): the write may be committed, and replaying
+the <code>POST</code> can create a duplicate, so make it idempotent. Only a <code>40001</code> or <code>40P01</code> is run again; a deferred unique
+or foreign-key violation is a <code>409</code> and writes no such line.</li>
 <li><strong>The <code>503</code> detail is served as it is</strong>, whatever the caller may read: put no value in it that the caller may not
 read.</li>
 </ul>
@@ -858,8 +883,9 @@ impl FerraHooks for Model {
 <li><strong>A hook is not a write boundary.</strong> A write made through <code>tx.resource</code> runs no hook of <code>N</code>, and none of <code>M</code>’s own
 when <code>N</code> is <code>M</code>: there is no re-entry. An invariant that <code>N</code> keeps in its own hooks does not hold for a write made
 from another hook; enforce it with a database constraint.</li>
-<li><strong>The rows it returns are not read-checked.</strong> A row that a <code>tx.resource</code> write returns is not checked against <code>N</code>’s
-read authority (<code>can(Get)</code>). Do not echo it to the caller.</li>
+<li><strong>A write returns <code>None</code> for a row the caller may not read.</strong> <code>tx.resource::&lt;N&gt;().create(..)</code> and <code>.update(..)</code> return
+<code>Result&lt;Option&lt;Read&gt;, FerraError&gt;</code>: <code>None</code> when the row is written and the caller may not read it under <code>N</code>’s rules
+(the <code>get</code> rule, then <code>can(Get)</code>), mounted or not. The side row stays written; <code>None</code> is never an error.</li>
 </ul>
 <hr>
 <h2 id="system-grant"><a class="header" href="#system-grant">System grant</a></h2>
@@ -947,8 +973,9 @@ shape of <code>T</code>, <code>{Model}WriteProjection</code> (<code>audit_entry:
 carry, so not the key), as for <code>tx.resource::&lt;N&gt;().create(..)</code> <a href="#rows-of-other-models-txresource">above</a>. Ferra
 hashes nothing: the hook computes the chain hash from the head.</li>
 </ul>
-<p>Both fail with a <code>HookError</code>, the type a hook returns, so a <code>?</code> inside a hook needs no conversion. The example drops
-the row that <code>insert</code> returns because the response carries nothing of the target.</p>
+<p>Both fail with a <code>HookError</code>, the type a hook returns, so a <code>?</code> inside a hook needs no conversion. The row that <code>insert</code>
+and <code>latest</code> return is the whole model, read-checked by nothing: never put it in a response. The example drops the row
+that <code>insert</code> returns because the response carries nothing of the target.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use ferra::FerraModel;

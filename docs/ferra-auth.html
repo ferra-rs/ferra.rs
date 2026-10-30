@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -192,7 +192,7 @@ is no separate auth dependency to add.</p>
 majors of Sea-ORM does not compile: <code>FRG-400</code>):</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -592,12 +592,17 @@ only and answers 401 on a key request: a handler that must accept both extracts
 malformed key are the same 401 as a bad token: same body, same headers. A malformed
 key (not exactly <code>ferra_&lt;16 hex&gt;_&lt;64 hex&gt;</code>) never reaches the database.</li>
 <li><strong>When the store fails</strong> (database down, pool timeout) on a well-formed key, the answer
-is 503 <code>identity_unavailable</code>, the same body as an unreachable key set; the failure
+is 503 <code>identity_unavailable</code>, the same body as an unreachable key set. It fails closed:
+the handler never runs, and the answer is never a 401 or a pass-through, a saturated
+pool included (0.17.0). The key store does not answer <code>service_unavailable</code>, which
+speaks for the operation, not the credential. The failure
 goes to a <code>warn</code> trace (<code>credential refused</code>, <code>reason = "store_unavailable"</code>, the
 key’s prefix), never to the response. The trace holds no text of the database error (no
 host name, no message): when the store’s error is a Sea-ORM database error, or one wrapping a
 <code>DbErr</code> as its <code>source</code>, that carries a SQLSTATE, the five characters are in the field <code>db.response.status_code</code>; any other
-store error logs no such field.</li>
+store error logs no such field. A store that shares a saturated pool writes that one line
+per refused request, and no <code>ferra_db::pool</code> line; give it a small pool of its own (see
+<a href="ferra-db.html#when-no-connection-can-be-had">When no connection can be had</a>).</li>
 <li><strong>Last use</strong> (<code>ApiKeyConfig::track_last_use()</code>, off by default) records <code>last_used_at</code>
 without slowing the request: after a verified request whose key has no last use, or one
 older than a minute, the write is spawned and never awaited. At most eight such writes
@@ -784,11 +789,13 @@ route that reads no caller. A CORS preflight is exempt from authentication, as b
 <code>ferra_http::credential</code>, with <code>credential</code> (<code>token</code>, <code>api_key</code> or <code>cookie</code>), <code>api_key.prefix</code>
 when the key is well formed, and a <code>reason</code>. The secret, the token and any cookie
 value are never logged.</li>
-<li><strong>Accepted requests are traced.</strong> The request span of the default trace layer carries
-<code>credential</code> and, for a key, <code>api_key.prefix</code>: a trace says which key acted. A custom
-<code>trace_layer(...)</code> builds its own span and does not get these fields; it also sees the
-request headers, so mark <code>Authorization</code>, <code>Cookie</code> and your key header sensitive in it
-(<code>tower_http::sensitive_headers</code>) before logging any header.</li>
+<li><strong>Accepted requests are traced.</strong> The request span (<code>request</code>, opened once per request
+by <code>Foundry::build()</code>) carries <code>credential</code> (<code>token</code>, <code>cookie</code> or <code>api_key</code>) for a
+credential Ferra verified, and no other attribute about it: not the key’s prefix, which
+only the <code>warn</code> of a refused key carries. A custom <code>trace_layer(...)</code> builds its own span
+and does not get this field; it also sees the request headers, so mark <code>Authorization</code>,
+<code>Cookie</code> and your key header sensitive in it (<code>tower_http::sensitive_headers</code>) before
+logging any header.</li>
 <li><strong>Throttle at the platform.</strong> The mutation rate limiter covers writes only and runs
 after the credential layer; reads are never throttled. A well-formed key that does not
 exist costs one indexed <code>SELECT</code>, and on a scaled-to-zero database it can wake the
@@ -1635,9 +1642,11 @@ refuses gets the 404 first (see Projections and authorization). A soft-deleted r
 and <code>delete</code>; <code>restore</code> reads it on purpose and applies the same 404 rule.</p>
 <h2 id="where-auth-sits-in-the-request-pipeline"><a class="header" href="#where-auth-sits-in-the-request-pipeline">Where auth sits in the request pipeline</a></h2>
 <p>Outermost first, as a request traverses it:</p>
-<pre><code class="language-text">CORS  →  auth  →  body-size limit  →  tracing  →  route  →  rate limit (mutations)
-      →  handler: #[authorize] check  →  body parse  →  validation  →  database
+<pre><code class="language-text">observation (request span, request line, metrics)  →  cache defaults  →  request budget
+      →  CORS  →  auth  →  body-size limit  →  trace slot (empty unless trace_layer)  →  route
+      →  rate limit (mutations)  →  handler: #[authorize] check  →  body parse  →  validation  →  database
 </code></pre>
+<p>The full stack, layer by layer, is in <a href="ferra-http.html#layer-ordering--how-layer-composes"><code>ferra-http.md</code> § Layer ordering</a>.</p>
 <p>Two consequences worth planning around:</p>
 <ul>
 <li><strong>Authentication precedes body parsing and validation.</strong> An unauthenticated caller

@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,7 +188,7 @@
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -208,7 +208,12 @@ serde   = { version = "1", features = ["derive"] }
 <hr>
 <h2 id="the-worked-example-post-filmsidpublish"><a class="header" href="#the-worked-example-post-filmsidpublish">The worked example: <code>POST /films/{id}/publish</code></a></h2>
 <p>The complete shape of a custom handler for a verb on one row — model declaration, handler signature, composition with <code>Foundry</code> — in one file. The route reaches the <code>films</code> table through <code>Resource&lt;Film&gt;</code>: it is judged by the rules of <code>PUT /films/{id}</code>, not by whatever the handler remembers to check. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical dependency set (<code>ferra</code>, <code>tokio</code>, <code>serde</code>, <code>sea-orm</code> as in <a href="getting-started.html">Getting Started</a>, and <code>axum</code> with its <code>macros</code> feature, which <code>#[axum::debug_handler]</code> needs) and it compiles. The route is a custom handler, not a declared action: for a verb that Ferra serves itself, with its own rule, the row lock and the preconditions, see <a href="actions.html">Declared actions</a>.</p>
-<pre class="playground"><code class="language-rust no_run">use axum::{Json, Router, routing::post};
+<pre class="playground"><code class="language-rust no_run">use axum::{
+    Json, Router,
+    http::{StatusCode, header},
+    response::{IntoResponse, Response},
+    routing::post,
+};
 use ferra::{
     ClaimCheck, Date, FerraError, FerraIdentity, FerraJson, FerraModel, FerraPath, Foundry,
     HmacAlgorithm, JwtConfig, Resource, ResourceHandle,
@@ -310,7 +315,7 @@ async fn publish_film(
     // FromRequest — `FerraJson` consumes the request body. Body-
     //              consuming extractors MUST be the LAST argument.
     FerraJson(body): FerraJson&lt;PublishRequest&gt;,
-) -&gt; Result&lt;Json&lt;PublishedFilm&gt;, FerraError&gt; {
+) -&gt; Result&lt;Response, FerraError&gt; {
     // Same rules as `PUT /films/{id}`: another caller's film is a 404 and
     // the row is unchanged. Only `published` and `release_date` are written.
     let patch = film::ModelPatch {
@@ -318,7 +323,10 @@ async fn publish_film(
         release_date: body.release_date.map(Some),
         ..Default::default()
     };
-    let film = films.update(id, patch).await?;
+    let Some(film) = films.update(id, patch).await? else {
+        // Written, but this caller may not read the row: the route sends no body.
+        return Ok(StatusCode::NO_CONTENT.into_response());
+    };
 
     // Answer with the fields this handler exposes.
     Ok(Json(PublishedFilm {
@@ -326,7 +334,27 @@ async fn publish_film(
         title: film.title,
         published: film.published,
         release_date: film.release_date,
-    }))
+    })
+    .into_response())
+}
+
+// A create is the same shape: `201` and a `Location` for a caller who may read the
+// row, `201` with no body and no `Location` for one who may not.
+async fn create_film(
+    films: Resource&lt;Film&gt;,
+    FerraJson(new): FerraJson&lt;film::ModelWriteProjection&gt;,
+) -&gt; Result&lt;Response, FerraError&gt; {
+    let Some(created) = films.create(new).await? else {
+        // Written, but this caller may not read the row: 201, no body, no `Location`.
+        return Ok(StatusCode::CREATED.into_response());
+    };
+    let location = format!("/films/{}", created.id);
+    Ok((
+        StatusCode::CREATED,
+        [(header::LOCATION, location)],
+        Json(created),
+    )
+        .into_response())
 }
 
 // --- Composition with Foundry --------------------------------------
@@ -357,6 +385,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // handle. `ResourceHandle&lt;M&gt;: Clone` (reference counts only).
     let custom = Router::new()
         .route("/films/{id}/publish", post(publish_film))
+        .route("/films/add", post(create_film))
         .with_state(films);
 
     let app = api.merge(custom);
@@ -367,8 +396,9 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
 <p><code>film::ModelPatch</code> is the struct <code>#[derive(FerraModel)]</code> generates next to <code>Model</code> (<code>{Model}Patch</code>, one <code>Option&lt;T&gt;</code> per writable field, <code>None</code> leaving the column; also <code>&lt;Film as FerraViews&gt;::Patch</code>); the struct is unchanged by the <code>PATCH</code> route of 0.14.0, which reads the same <code>Value</code> it serializes to. The owner column is compared with the token’s <code>sub</code> rendered as a string, so a <code>Uuid</code> <code>owner_id</code> matches a <code>sub</code> holding that UUID (<a href="ferra-auth.html"><code>ferra-auth.md</code></a>).</p>
+<p><code>create</code> and <code>update</code> return an <code>Option</code> of the read view. <code>Some</code> is the row, written and readable by this caller: <code>publish_film</code> answers <code>200</code> with it, <code>create_film</code> answers <code>201</code> with a <code>Location</code> and the row. <code>None</code> is a row written that this caller may not read, under the rule of the generated route (the <code>get</code> rule, then the authority’s <code>can(Get)</code>): <code>publish_film</code> answers <code>204</code> with no body, and <code>create_film</code> answers <code>201</code> with no body, no <code>Location</code> and no id in any header, as the generated routes do for that caller. The <code>Location</code> is built in the <code>Some</code> arm only, so a caller who may not read the row learns nothing of its key. <code>None</code> is never an error: a refused or invalid write stays an <code>Err</code>, and the absent row’s <code>404</code> with it (<a href="ferra-http.html#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a>).</p>
 <p><code>update</code> does what <code>PATCH /films/{id}</code> does (RFC 7396): <code>None</code> leaves the column, and a JSON object set on a stored JSON object is merged into it instead of replacing it (a <code>null</code> member removes its key). A <code>null</code> set on a field that cannot be null (<code>Some(serde_json::Value::Null)</code> on a required JSON field) is the 422 <code>required</code>.</p>
-<p><code>Resource&lt;Film&gt;</code> has six methods — <code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code> — each of which does what the generated route of the same name does: it runs the authorization checkpoint of the operation, scopes a list to the caller’s rows under <code>IsOwner</code>, stamps the owner on <code>create</code>, validates with the model’s <code>#[field(...)]</code> rules, and writes under the owner’s guard. What it hands back is the model’s <em>read view</em>, <code>&lt;Film as FerraViews&gt;::Read</code>: a <code>#[ferra(write_only)]</code> column is not a member of that type, so a route cannot send it by mistake. <a href="ferra-http.html#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a> is the reference.</p>
+<p><code>Resource&lt;Film&gt;</code> has six methods — <code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code> — each of which does what the generated route of the same name does: it runs the authorization checkpoint of the operation, scopes a list to the caller’s rows under <code>IsOwner</code>, stamps the owner on <code>create</code>, validates with the model’s <code>#[field(...)]</code> rules, and writes under the owner’s guard. What it hands back is the model’s <em>read view</em>, <code>&lt;Film as FerraViews&gt;::Read</code>: a <code>#[ferra(write_only)]</code> column is not a member of that type, so a route cannot send it by mistake. <code>create</code> and <code>update</code> hand back an <code>Option</code> of it: <code>None</code> where the generated route sends no body, because the row is written and the caller may not read it (a create then answers <code>201</code> with no body, no <code>Location</code> and no id in any header). <a href="ferra-http.html#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a> is the reference.</p>
 <blockquote>
 <p><strong>Field rules reach a route of your own (0.13.0).</strong> A field with a
 <code>#[field(read = …, write = …)]</code> rule is judged for the bound caller by <code>Resource&lt;M&gt;</code> as it is
@@ -390,6 +420,19 @@ as the generated routes do (<a href="behaviors.html#hooks">Hooks</a>).</p>
 its three attempts returns <code>Err(FerraError::RetryExhausted)</code>: return it from your route and the client gets the
 <code>503</code> <code>retry_exhausted</code> with <code>Retry-After: 1</code>. Never replay the write in a loop of your own; the retries already
 ran (<a href="ferra-http.html#transient-conflicts-are-retried">Transient conflicts are retried</a>).</p>
+</blockquote>
+<blockquote>
+<p><strong>A route of your own that writes twice (0.17.0).</strong> The <a href="foundry.html#request-time-budget">request budget</a> is one per
+request, not one per write. After the first write has committed, the rest of the request is no longer cut: a second
+write has no deadline before its <code>COMMIT</code>, and its retry is bounded by the three attempts only. The <code>after_commit</code> of
+every write of the request shares one post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code>
+(<a href="behaviors.html#after-commit">After commit</a>). So the <code>after_commit</code> of a later write can be cut at once, and its
+<code>Resource&lt;M&gt;</code> call then returns <code>Err</code> while that write <strong>is committed</strong>. A <code>503</code> <code>service_unavailable</code> (no connection
+in time) or <code>retry_exhausted</code> met by a later write speaks for the operation given up, not for the request: the
+earlier write stands, and a client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2). Keep <strong>one
+write per route of your own</strong>. If a route must write twice, make a replay safe with the
+<a href="computed-fields.html#idempotent-creates">idempotent create</a> recipe, and never send the client an error that tells it
+nothing was written.</p>
 </blockquote>
 <blockquote>
 <p><strong>No response envelope in 0.9.0.</strong> The routes <code>Foundry</code> generates answer with
@@ -543,6 +586,7 @@ let app: Router = api.merge(custom);
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your custom endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
+<p>A route added with <code>.route</code> before <code>.build()</code> is inside the stack, and a panic in its handler, in one of its extractors or in a layer of yours answers <code>500</code> <code>internal</code> (no payload, no <code>Access-Control-Allow-Origin</code>) instead of ending the connection. The panic message reaches no body, label, span field or <code>tracing</code> line, but the process’s panic hook still prints it. A row your handler committed before it panicked stands, and <code>panic = "abort"</code> defeats the catch. A route merged into the router after <code>build()</code>, as above, is outside the stack: its panic is yours to catch. See <a href="migrating-to-0.17.html#a-handler-panic-answers-500-internal-not-a-closed-connection">Migrating to 0.17</a>.</p>
 <h3 id="2-hand-rolled-router-with-no-ferra-crud-at-all"><a class="header" href="#2-hand-rolled-router-with-no-ferra-crud-at-all">2. Hand-rolled <code>Router</code> with no Ferra CRUD at all</a></h3>
 <pre class="playground"><code class="language-rust">use axum::{Router, routing::{get, post}};
 <span class="boring">use ferra::FerraModel;
@@ -633,8 +677,43 @@ public, no token is needed. To test it behind the layer, sign a token with
 <code>ferra::testing::bearer</code> (see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Testing
 authenticated routes).</p>
 <hr>
+<h2 id="writing-over-several-models"><a class="header" href="#writing-over-several-models">Writing over several models</a></h2>
+<p>A generated write touches one model. A request that must write the rows of several models, all or none, goes through a
+place where Ferra holds the transaction:</p>
+<ul>
+<li><strong>A create that must write rows of other models.</strong> A <code>before_save</code> or <code>after_save</code> hook of the root model, writing
+through <code>tx.resource::&lt;N&gt;()</code> (<code>after_save</code> when a side row needs the new row’s key). The side rows are written in the
+write’s transaction, under the caller’s rules for <code>N</code>, and commit or roll back with the main row
+(<a href="behaviors.html#rows-of-other-models-txresource">Rows of other models</a>).</li>
+<li><strong>A change to an existing row and its neighbours.</strong> A declared action on that row, whose handler writes through
+<code>tx.resource::&lt;N&gt;()</code> (<a href="actions.html">Actions</a>); it has the same <code>HookTx</code> as a hook.</li>
+<li><strong>A hand-written route.</strong> Ferra has no transaction-taking method on <code>Resource&lt;M&gt;</code>: each call on it is its own
+transaction, so two calls are two transactions. If the second fails, or gets no connection (a <code>503</code>, see
+<a href="ferra-db.html#when-no-connection-can-be-had">When no connection can be had</a>), the first stands. A method that takes a
+transaction is on the post-1.0 list, not promised. Until then, put the writes in a hook or an action.</li>
+<li><strong>A search route</strong> (a join, a full-text query) is raw access today: see below.</li>
+</ul>
+<hr>
+<h2 id="what-ferra-does-not-do-in-one-request"><a class="header" href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a></h2>
+<p>Ferra does not write a nested structure. An order and its lines are a create, then the lines’ creates (or an action
+that does both). That is a scope choice, not a limit of the database: Sea-ORM 2.0’s nested ActiveModels
+(<code>ActiveModelEx</code>, which Sea-ORM documents as unstable) can persist an order and its lines in one call, on your own
+<code>DatabaseConnection</code>. On that path, “outside Ferra’s guarantees” means this:</p>
+<ul>
+<li><strong>No authorization, first.</strong> Not the <code>#[authorize]</code> checkpoint and its <code>404</code>-first answer, not the owner scope or the
+owner and blame stamps, not the field read and write rules, not the authority’s <code>can</code> and <code>filter</code>. Nothing checks
+who is calling.</li>
+<li><strong>No validation</strong>, and no parent check or its locks (a child written under a parent it may not touch is written).</li>
+<li><strong>No hooks and no <code>after_commit</code></strong>: an invariant kept in a hook does not hold for these rows.</li>
+<li><strong>No soft-delete filter</strong>: a soft-deleted row is a row like any other.</li>
+<li><strong>No retry</strong> of <code>40001</code> or <code>40P01</code>, and <strong>none of the budget’s phases</strong>: Ferra’s repository tells the budget that a
+<code>COMMIT</code> has started, and the budget then waits for it. Your connection does not, so a route under the budget answers
+<code>503</code> <code>timeout</code> at the deadline even while your <code>COMMIT</code> runs, and that write’s outcome is unknown.</li>
+<li><strong>No preconditions and no <code>ETag</code></strong>: a stale write is not refused.</li>
+</ul>
+<hr>
 <h2 id="raw-database-access-outside-the-contract"><a class="header" href="#raw-database-access-outside-the-contract">Raw database access, outside the contract</a></h2>
-<p>Ferra hands out no repository: <code>ResourceHandle&lt;M&gt;</code> and <code>Resource&lt;M&gt;</code> are the only way to a model’s rows through Ferra, and they apply the generated routes’ rules. A query they do not cover (a join, an aggregate, a report) is yours to write against <strong>your own</strong> <code>DatabaseConnection</code>. That connection is not Ferra’s: nothing checks the caller, scopes the owner or filters soft-deleted rows for you, and it is outside Ferra’s stability contract.</p>
+<p>Ferra hands out no repository: <code>ResourceHandle&lt;M&gt;</code> and <code>Resource&lt;M&gt;</code> are the only way to a model’s rows through Ferra, and they apply the generated routes’ rules. A query they do not cover (a join, an aggregate, a report) is yours to write against <strong>your own</strong> <code>DatabaseConnection</code>. That connection is not Ferra’s: nothing checks the caller, scopes the owner or filters soft-deleted rows for you, and it is outside Ferra’s stability contract. <a href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a> lists the rest.</p>
 <p>Keep both in one state and let Axum derive each part:</p>
 <pre class="playground"><code class="language-rust">use axum::{Json, Router, extract::{FromRef, State}, http::StatusCode, routing::get};
 use ferra::{DatabaseConnection, Foundry, ResourceHandle};
@@ -684,7 +763,7 @@ let app: Router = builder.build().merge(
 </span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>A transaction is the same: <code>conn.begin()</code> on your connection, outside Ferra. Ferra has no transaction-taking method on <code>Resource&lt;M&gt;</code>.</p>
+<p>A transaction is the same: <code>conn.begin()</code> on your connection, outside Ferra.</p>
 <hr>
 <h2 id="cross-references-for-the-curious-reader"><a class="header" href="#cross-references-for-the-curious-reader">Cross-references (for the curious reader)</a></h2>
 <p>Pointers below trace decisions back to their arbitration. They are <em>not</em> required reading for correct use of the APIs above — every guarantee stated on this page stands on its own.</p>

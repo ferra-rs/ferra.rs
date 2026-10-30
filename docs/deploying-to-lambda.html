@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,11 +199,20 @@ async fn connection(url: &amp;str) -&gt; Result&lt;DatabaseConnection, DbErr&gt;
         .acquire_timeout(Duration::from_secs(10))
         .test_before_acquire(true)
         .max_lifetime(Duration::from_secs(300))
-        .idle_timeout(Duration::from_secs(60));
+        .idle_timeout(Duration::from_secs(60))
+        .sqlx_logging(false)
+        .record_stmt_in_spans(false);
     Database::connect(options).await
 }
 <span class="boring">}</span></code></pre>
-<p>Construction performs no network connection. A request can fail while Neon is
+<p><code>sqlx_logging(false)</code> cuts sqlx’s statement lines, and <code>record_stmt_in_spans(false)</code>
+cuts the statement text from a span (it matters only under sea-orm’s <code>tracing-spans</code>
+feature); neither ever carried a bound value
+(<a href="ferra-db.html#logging-and-tracing-of-database-activity">Logging and tracing of database activity</a>).
+sea-orm’s <code>debug-print</code> feature logs every statement with its values whatever these
+setters say; never enable it outside development. Never enable TRACE for <code>sea_orm</code>
+in production either: its connect span records the URL, password included.
+Construction performs no network connection. A request can fail while Neon is
 resuming; a subsequent acquisition reconnects. Two connections bound each
 execution environment’s pool; the maximum across concurrent Lambda environments
 still needs to fit the database’s capacity. <code>test_before_acquire</code> detects a
@@ -220,14 +229,20 @@ Neon service; the ordinary test suite exercises PostgreSQL directly, and the <co
 transaction’s <code>ROLLBACK</code> then waits for the thaw, and the transaction keeps its
 locks and a pooler server connection. Bound it on the server, once, for the
 role the application connects as:</p>
-<pre><code class="language-sql">ALTER ROLE CURRENT_USER SET statement_timeout = '27s';
+<pre><code class="language-sql">ALTER ROLE CURRENT_USER SET lock_timeout = '10s';
+ALTER ROLE CURRENT_USER SET statement_timeout = '27s';
 ALTER ROLE CURRENT_USER SET idle_in_transaction_session_timeout = '30s';
 </code></pre>
-<p><code>statement_timeout</code> sits just above the request budget (24 s). Below it,
+<p><code>statement_timeout</code> sits 4 s above the request budget (23 s). Below it,
 Postgres would cancel a statement Ferra is still waiting for and the client
 would get a 500 <code>internal</code> instead of the 503 <code>timeout</code>; above it, the budget
 answers first, and the server timeout only reaps a statement left running by a
-frozen environment. <code>idle_in_transaction_session_timeout</code>
+frozen environment. <code>lock_timeout</code> sits the other way, below the budget: a wait
+for a row lock ends on the server after 10 s, while the request is alive:
+Postgres aborts the transaction and the client’s <code>ROLLBACK</code> ends it. The client
+gets a 500 <code>internal</code>, never retried; the SQLSTATE (<code>55P03</code>) is in the log only. See
+<a href="ferra-db.html#a-connection-for-a-permanent-server">A connection for a permanent server</a>.
+<code>idle_in_transaction_session_timeout</code>
 closes a session left idle inside a transaction. Role settings apply when a
 session starts, so they reach the pooled endpoint, where a session-level <code>SET</code>
 does not hold; they apply to new sessions only. The operator canary must confirm that Neon
@@ -238,13 +253,26 @@ on these bounds.</p>
 Ferra’s limiter has a separate bucket in each Lambda execution environment.
 The template sets burst 20 and rate 10 requests per second. Configure a body
 limit of 5,500,000 bytes, below Lambda’s synchronous 6 MB event limit, and a
-request budget of 24 seconds: the first data request also waits up to 4 seconds
-for secret loading, and 24 + 4 stays below the template’s 29-second API Gateway
-integration timeout, so the client gets Ferra’s 503 <code>timeout</code>, not a gateway 504.
-The function timeout is 30 seconds. A started database commit is awaited rather
-than canceled, and the <code>after_commit</code> hook after it is bounded by the remaining
-budget (a 500 when cut, the commit standing); the raw connection escape is
-outside the rollback guarantee.</p>
+request budget of 23 seconds. The function timeout is 30 seconds.</p>
+<p>The budget has three phases (the detail is in
+<a href="behaviors.html#after-commit">Behaviors</a>): until a <code>COMMIT</code> starts it cuts, with a 503
+<code>timeout</code> and nothing written; a started <code>COMMIT</code> is awaited, never canceled; after a confirmed
+commit, the <code>after_commit</code> hooks and the computed fields share one post-commit deadline,
+<code>max(deadline, first post-commit work + 1 s)</code> (a 500 when cut, the commit standing). The raw
+connection escape is outside the rollback guarantee.</p>
+<p><strong>Choose the budget under every timeout in front of it.</strong> A gateway or function timeout that fires
+before the response leaves the client with the outcome unknown: the write may be committed, so
+make a create safe to replay (the <a href="computed-fields.html#idempotent-creates">idempotent create</a>). The
+margin here is the first data request’s secret loading (up to 4 seconds), plus the budget, plus the
+1-second post-commit floor: 4 + 23 + 1 = 28 seconds, under the template’s 29-second API Gateway
+integration timeout. It is a margin, not a guaranteed maximum: a <code>COMMIT</code> that overruns the budget
+is awaited and is not bounded, and the time it takes past the budget adds to the 28.
+For a model with a <code>BelongsTo</code>, the read of the written row’s parents after the commit
+is outside that 28-second margin and under no deadline of its own: <code>acquire_timeout</code>
+bounds the wait for the connection and <code>statement_timeout</code> bounds the query, so the read
+can add up to <code>acquire_timeout</code> + <code>statement_timeout</code>. On a create with a <code>BelongsTo</code>, a
+saturated pool can therefore push the answer past the gateway’s 29 seconds, and the gateway
+answers <code>504</code>. The recipe keeps its 10-second <code>acquire_timeout</code>, which Neon cold connects need.</p>
 <p>Keep <code>DATABASE_URL</code>, <code>JWT_SECRET</code> and <code>ETAG_KEY</code> (the entity-tag key, at least 32
 bytes, never the JWT secret) in SSM Parameter Store <code>SecureString</code>
 parameters. The template carries only their names and ARNs. The operator sets
@@ -282,7 +310,7 @@ acceptance step. The canary feature should be disabled in production images.</p>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="ferra-error-handling.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="observability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -296,7 +324,7 @@ acceptance step. The canary feature should be disabled in production images.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="ferra-error-handling.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="observability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -297,13 +297,13 @@ Both are off by default.</p>
 </thead>
 <tbody>
 <tr><td><em>(default)</em></td><td>The whole framework, with <code>tracing</code> events</td><td>Always.</td></tr>
-<tr><td><code>observability</code></td><td>A <code>metrics</code> counter, <code>ferra.sunset.post_sunset_hits</code>, for the requests that reach a deprecated API version after its sunset date</td><td>You run a <code>metrics</code> recorder.</td></tr>
+<tr><td><code>observability</code></td><td>Two <code>metrics</code> histograms, <code>http.server.request.duration</code> for every response and <code>ferra.db.transaction.duration</code> for each attempt of a write that owns its transaction, and three <code>metrics</code> counters: <code>ferra.db.retries</code> (a write run again), <code>ferra.after_commit.failures</code> (an <code>after_commit</code> that failed) and <code>ferra.sunset.post_sunset_hits</code> (the requests that reach a deprecated API version after its sunset date)</td><td>You run a <code>metrics</code> recorder.</td></tr>
 <tr><td><code>test-support</code></td><td><code>MountedRoute</code> and <code>FoundryBuilder::route_table</code>, to enumerate the mounted routes in a test</td><td><code>[dev-dependencies]</code> only.</td></tr>
 </tbody>
 </table>
 </div>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["observability"] }
 </code></pre>
 <p>The implementation crates have features of their own that you do not set:</p>
 <ul>
@@ -342,7 +342,7 @@ Rust ecosystem.</p>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <p>A complete Ferra application written the re-export way, with no <code>sea-orm</code> of its
 own, demonstrating both halves of the principle:</p>
-<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 // (plus tokio, axum and serde, as in Getting started)
 
 // Direct re-export (half A): upstream `sea_orm` reached without renaming.
@@ -387,7 +387,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     .await?;
     Ok(())
 }</code></pre>
-<p>The <code>observability</code> feature (a <code>metrics</code> counter for post-sunset requests) is
+<p>The <code>observability</code> feature (the <code>metrics</code> histograms of the request duration and of each write attempt, and the counters of
+retries, failed <code>after_commit</code> hooks and post-sunset requests) is
 off by default: without it, the <code>metrics</code> crate is not in the dependency graph.</p>
 <hr>
 <h2 id="when-you-need-a-ferra-wrapper-that-does-not-yet-exist"><a class="header" href="#when-you-need-a-ferra-wrapper-that-does-not-yet-exist">When you need a Ferra wrapper that does not yet exist</a></h2>

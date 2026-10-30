@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,7 +202,7 @@ Transactions are the same: begin one on your own connection with <code>conn.begi
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -241,23 +241,22 @@ assert_eq!(newest_first.direction, SortDirection::Desc);
 <tr><th>Setting</th><th>Default</th><th>What it emits</th></tr>
 </thead>
 <tbody>
-<tr><td><code>sqlx_logging</code></td><td><code>true</code></td><td>Every executed SQL statement is logged via the <code>log</code>/<code>tracing</code> bridge, at the level below.</td></tr>
+<tr><td><code>sqlx_logging</code></td><td><code>true</code></td><td>The SQL text of every executed statement, with its placeholders and not its bound values, is logged via the <code>log</code>/<code>tracing</code> bridge, at the level below.</td></tr>
 <tr><td><code>sqlx_logging_level</code></td><td><code>log::LevelFilter::Info</code></td><td>The level statements above are logged at (ignored if <code>sqlx_logging</code> is <code>false</code>).</td></tr>
-<tr><td><code>record_stmt_in_spans</code></td><td><code>true</code></td><td>The rendered SQL statement — <strong>including its bound parameter values</strong> — is attached to the <code>tracing</code> span for that query.</td></tr>
+<tr><td><code>record_stmt_in_spans</code></td><td><code>true</code></td><td>The SQL text of the statement, with its placeholders and not its bound values, is attached to the <code>tracing</code> span for that query. Only under sea-orm’s non-default <code>tracing-spans</code> feature; without it the setting does nothing.</td></tr>
 <tr><td><code>sqlx_slow_statements_logging_settings</code></td><td><code>(LevelFilter::Off, _)</code></td><td>Off by default; when enabled, statements slower than a threshold you set log at a separate level.</td></tr>
 </tbody>
 </table>
 </div>
-<p>The bound-parameter detail on <code>record_stmt_in_spans</code> is the one to read twice: if a query binds a user’s email address, a password-reset token, or any other sensitive field value, that value reaches whatever sink your <code>tracing-subscriber</code> <code>Layer</code> forwards spans to — by default, with no opt-in step. This is a real disclosure surface, not a hypothetical one; treat it exactly like any other case where sensitive data could reach a log line.</p>
-<p><strong>A reader of this section alone can now answer: does query text reach my logs and traces by default, and how do I change that?</strong> Yes, by default, on both counts (statement logging and span recording independently). To change it, build a <code>ConnectOptions</code> explicitly instead of passing a bare URL string, and connect with that:</p>
+<p>Neither setter logs a bound value (sea-orm 2.0.4, sqlx-core 0.9.0): sqlx’s statement log and the span field carry the SQL text with its placeholders, so a query binding a user’s email address or a password-reset token logs <code>$1</code>, not the address or the token. The text still tells a reader of your logs which tables, columns and filters your API touches, which is what the two setters cut. Bound values reach a log by one path: sea-orm’s <code>debug-print</code> feature, which logs every statement with its values at <code>debug</code> level whatever these setters say. It is off by default; never enable it outside development.</p>
+<p><strong>A reader of this section alone can now answer: does query text reach my logs and traces by default, and how do I change that?</strong> Yes for statement logging; for spans, only if sea-orm’s <code>tracing-spans</code> feature is on. To change it, build a <code>ConnectOptions</code> explicitly instead of passing a bare URL string, and connect with that:</p>
 <pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database};
 
 <span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let mut opt = ConnectOptions::new(database_url);
 opt.sqlx_logging(false)           // stop logging statements entirely, or...
    .record_stmt_in_spans(false);  // ...keep statement-shape logging but never
-                                   // attach the rendered SQL (with bound values)
-                                   // to a span.
+                                   // attach the SQL text to a span.
 
 let conn = Database::connect(opt).await?;
 <span class="boring">let _ = conn;
@@ -265,7 +264,92 @@ let conn = Database::connect(opt).await?;
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p><code>ConnectOptions</code>’s setters take <code>&amp;mut self</code> and return <code>&amp;mut Self</code>, so they chain on an existing <code>let mut</code> binding as shown — they are not a consuming builder, and <code>ConnectOptions::new(url)</code> must be bound to a variable before you call a setter on it.</p>
-<p><strong>Recommended production posture.</strong> Disable <code>sqlx_logging</code> (or drop the level to a value your production log pipeline filters out) and disable <code>record_stmt_in_spans</code> for any connection that will ever execute a query with sensitive bound parameters — which, in a typical Ferra API, is most of them. Keep both enabled in local development, where seeing the generated SQL is a debugging aid and the log sink is your own terminal. There is no framework-level override that does this for you today — <code>ferra-db</code> accepts whatever <code>sea_orm::DatabaseConnection</code> you construct and does not itself configure <code>ConnectOptions</code> — so the setting is entirely in your hands at the <code>Database::connect(...)</code> call site.</p>
+<p><strong>Recommended production posture.</strong> Disable <code>sqlx_logging</code> (or drop the level to a value your production log pipeline filters out) and disable <code>record_stmt_in_spans</code> to keep statement text out of your logs and spans. Never enable sea-orm’s <code>debug-print</code> feature outside development: it logs every statement with its values whatever these setters say. Keep both settings enabled in local development, where seeing the generated SQL is a debugging aid and the log sink is your own terminal. There is no framework-level override that does this for you today — <code>ferra-db</code> accepts whatever <code>sea_orm::DatabaseConnection</code> you construct and does not itself configure <code>ConnectOptions</code> — so the setting is entirely in your hands at the <code>Database::connect(...)</code> call site.</p>
+<hr>
+<h2 id="a-connection-for-a-permanent-server"><a class="header" href="#a-connection-for-a-permanent-server">A connection for a permanent server</a></h2>
+<p>Ferra configures no <code>ConnectOptions</code> itself, so a server that stays up chooses its own. This recipe takes the URL from the
+environment, bounds the pool under the request budget, and keeps statement text out of the logs and spans (it never
+carries a bound value; see the <code>debug-print</code> bullet below):</p>
+<pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use std::time::Duration;
+
+/// `budget` is the value you give `FoundryBuilder::request_budget`.
+fn options(url: String, budget: Duration) -&gt; ConnectOptions {
+    let mut options = ConnectOptions::new(url);
+    options
+        .max_connections(20) // under the database's `max_connections`, divided by your instances
+        .acquire_timeout(budget / 3) // under the budget: a full pool answers its own 503
+        .idle_timeout(Duration::from_secs(300))
+        .sqlx_logging(false) // no statement text in sqlx's logs
+        .record_stmt_in_spans(false); // no statement text in a span (`tracing-spans` feature only)
+    options
+}
+
+async fn connect(budget: Duration) -&gt; Result&lt;DatabaseConnection, Box&lt;dyn std::error::Error&gt;&gt; {
+    // From the environment or a secret store, never a literal, test fixtures included.
+    let url = std::env::var("DATABASE_URL")?;
+    Ok(Database::connect(options(url, budget)).await?)
+}
+<span class="boring">fn main() {
+</span><span class="boring">    let budget = Duration::from_secs(10);
+</span><span class="boring">    let o = options("postgres://db.internal/app".to_owned(), budget);
+</span><span class="boring">    assert_eq!(o.get_max_connections(), Some(20));
+</span><span class="boring">    assert!(o.get_acquire_timeout().is_some_and(|t| t &lt; budget));
+</span><span class="boring">    assert!(!o.get_sqlx_logging() &amp;&amp; !o.get_record_stmt_in_spans());
+</span><span class="boring">    let _ = connect;
+</span><span class="boring">}</span></code></pre>
+<ul>
+<li>
+<p><strong><code>acquire_timeout</code> under the budget.</strong> A bare URL leaves it at sqlx’s 30 s, past a 10 s budget, so a full pool would
+answer the budget’s <code>503</code> <code>timeout</code>. Under the budget, it answers <code>503</code> <code>service_unavailable</code> (see
+<a href="#when-no-connection-can-be-had">When no connection can be had</a>). A third of the budget leaves room for a request that
+needs a connection more than once.</p>
+</li>
+<li>
+<p><strong>Logging off.</strong> Both setters default to <code>true</code>; the table above says what each one emits and cuts: the statement
+text in sqlx’s log lines and, under the <code>tracing-spans</code> feature, in a span. Neither carries a bound value. Turn them
+back on in local development to see the SQL. sea-orm’s <code>debug-print</code> feature logs every statement with its values
+whatever these setters say; never enable it outside development.</p>
+</li>
+<li>
+<p><strong>Never enable TRACE for <code>sea_orm</code> in production.</strong> sea-orm 2.0.4’s Postgres connect function is
+<code>#[instrument(level = "trace")]</code> with no skip, so its span records the <code>ConnectOptions</code> through their <code>Debug</code>
+output, and the <code>url</code> field has no debug skip: a subscriber that enables TRACE for <code>sea_orm</code> records the URL,
+password included. <code>Database::connect</code> also puts the URL in the <code>DbErr</code> it returns when the URL cannot be parsed.
+Prefer a password from a secret store over a URL that carries credentials.</p>
+</li>
+<li>
+<p><strong>A lock wait ends on the server, below the budget, set once per role</strong> (the role your application connects as; here
+<code>app_user</code>, 5 s under a 10 s budget):</p>
+<pre><code class="language-sql">ALTER ROLE app_user SET lock_timeout = '5s';
+</code></pre>
+<p>Postgres applies a role setting when the role starts a session, and only then, so it reaches every server
+connection a pooler opens for that role and no session already open. A <code>SET</code> in your own connect hook lands on one
+server connection: in transaction mode PgBouncer releases the server connection after each transaction
+(<a href="https://www.pgbouncer.org/config.html#pool_mode">PgBouncer <code>pool_mode</code></a>) and says clients must not use any
+session-based features (<a href="https://www.pgbouncer.org/config.html#server_reset_query">PgBouncer <code>server_reset_query</code></a>),
+and Neon lists <code>SET</code>/<code>RESET</code> as unsupported on its pooled endpoint and recommends a role-level setting instead
+(<a href="https://neon.com/docs/connect/connection-pooling">Neon connection pooling</a>). A <code>lock_timeout</code> sent as a startup
+parameter is refused by PgBouncer unless <code>track_extra_parameters</code> lists it (then PgBouncer restores it, a
+pooler-side setup this recipe does not rely on) or <code>ignore_startup_parameters</code> does (then it is ignored and never
+applies). Below the budget, the wait ends while the request is alive: Postgres aborts the statement and the client’s
+<code>ROLLBACK</code> ends the transaction (the SQLSTATE is in the log only; the client gets a <code>500</code> <code>internal</code>), and the
+connection goes back to the pool clean.
+<a href="#behind-a-transaction-pooler">Behind a transaction pooler</a> says what else a pooler forbids.</p>
+</li>
+<li>
+<p><strong>Keep <code>lock_timeout</code> above <code>deadlock_timeout</code></strong> (1 s by default). Otherwise a deadlock surfaces as a <code>55P03</code> <code>500</code>
+that is never retried, instead of the <code>40P01</code> that is.</p>
+</li>
+<li>
+<p><strong>What a timeout answers.</strong> A lock wait cut by <code>lock_timeout</code> (<code>55P03</code>) and a statement cut by <code>statement_timeout</code>
+(<code>57014</code>) are a <code>500</code> <code>internal</code>, logged once with the SQLSTATE, never retried (only <code>40001</code> and <code>40P01</code> are), and
+never the <code>503</code> <code>timeout</code>. A <code>COMMIT</code> refused with either code is classed as rolled back, and is the same <code>500</code>. The
+repository pins both answers in <code>crates/ferra-http/tests/lock_timeout.rs</code>; the role form itself is not run there, as
+it would change a role every test shares. The Lambda page sets <code>lock_timeout</code> the same way:
+<a href="deploying-to-lambda.html#server-side-timeouts-on-the-application-role">Server-side timeouts</a>.</p>
+</li>
+</ul>
 <hr>
 <h2 id="the-pagem-shape"><a class="header" href="#the-pagem-shape">The <code>Page&lt;M&gt;</code> shape</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -560,6 +644,50 @@ it for <code>server_idle_timeout</code> after the client left (10 s in the repos
 test ends those sessions itself, and a run that fails before that leaves its database undroppable (55006) until
 they expire.</p>
 <hr>
+<h2 id="when-no-connection-can-be-had"><a class="header" href="#when-no-connection-can-be-had">When no connection can be had</a></h2>
+<p>A generated route, or a <code>Resource&lt;M&gt;</code> call, that gets no connection from your pool within its <code>acquire_timeout</code> answers
+<code>503</code> <code>service_unavailable</code> (0.17.0). The answer comes before the operation: nothing of it was applied, no hook ran, and
+the client may retry it. The <code>detail</code> is one fixed text; it names neither the pool, the database nor a delay
+(<a href="ferra-error-handling.html#service_unavailable--503"><code>service_unavailable</code></a> shows the body). It is a <code>503</code> and not a
+<code>500</code> because the service could not handle the request in time, whatever the cause: a saturated pool, and also a
+database that is down or still starting, since sqlx retries a refused connection until the <code>acquire_timeout</code> and the
+pool then reports a timeout. Say “a connection could not be had”, not “the pool is full”, when you read it. A
+connection the database refuses at once (a wrong password, an unknown database) stays a <code>500</code>. Ferra does not retry
+it: only <code>40001</code> and <code>40P01</code> are retried, and a retry would add to the saturation.</p>
+<ul>
+<li><strong>Set <code>acquire_timeout</code> under the request budget.</strong> The deadline that comes first answers. With the pool’s timeout at
+or past the budget left, the budget’s <code>503</code> <code>timeout</code> wins; under it, the pool’s <code>503</code> <code>service_unavailable</code> wins,
+and that is the one an operator wants to see, because it says what is saturated. For a write made through Ferra (a
+generated route or a <code>Resource&lt;M&gt;</code> call), both mean nothing was written; a write on your own connection is outside
+this (<a href="custom-handlers.html#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a>). The
+budget’s side of this is in <a href="behaviors.html#after-commit">Behaviors</a>.</li>
+</ul>
+<pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database};
+use std::time::Duration;
+
+<span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let mut opt = ConnectOptions::new(database_url);
+opt.acquire_timeout(Duration::from_secs(5)); // under a `.request_budget(Duration::from_secs(10))`
+let conn = Database::connect(opt).await?;
+<span class="boring">let _ = conn;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<ul>
+<li><strong>No <code>Retry-After</code> is sent</strong>, because no delay is known. A client or a gateway backs off with full jitter on a <code>503</code>
+without <code>Retry-After</code> and caps its attempts; a fixed delay makes every client retry in step.</li>
+<li><strong>After a commit it is a <code>500</code>.</strong> A pool that gives no connection once the write is durable (the read of a written
+row’s parents) is a <code>500</code> <code>internal</code> with the write standing, never this <code>503</code>
+(<a href="ferra-error-handling.html#service_unavailable--503"><code>service_unavailable</code></a>).</li>
+<li><strong>API keys.</strong> An API key request whose store shares the saturated pool is a <code>503</code> <code>identity_unavailable</code>, not a
+<code>service_unavailable</code>: the credential could not be checked, so the handler never runs
+(<a href="ferra-auth.html">API keys</a>). The key store does not go through the path above, so it writes one <code>warn</code> line per
+refused request, target <code>ferra_http::credential</code>, <code>reason = "store_unavailable"</code>, and no <code>ferra_db::pool</code> line.
+Under a flood of requests that is one line each. Give the key store its own small pool when its <code>503</code> must stay
+distinct from the rest, and, for the volume, put a de-duplicating <code>tracing</code> layer in your subscriber (<code>tracing-throttle</code>
+or Vector’s <code>tracing_limit</code>) besides the <code>acquire_timeout</code> and the pool size. Ferra does not de-duplicate for you.</li>
+</ul>
+<hr>
 <h2 id="blameable-models-and-the-repository"><a class="header" href="#blameable-models-and-the-repository">Blameable models and the repository</a></h2>
 <p>The public <code>FerraRepository</code> write methods (<code>insert</code>, <code>update</code>, <code>soft_delete</code>, <code>restore</code> and their <code>_in_tx</code> forms) take no subject, so on a <code>#[behavior(blameable)]</code> model they return an error and write nothing: the author comes from the caller’s identity, which only the generated routes and <code>Resource&lt;M&gt;</code> hold (0.13.0).</p>
 <hr>
@@ -568,7 +696,7 @@ they expire.</p>
 <h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
 <p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>

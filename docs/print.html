@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -492,14 +492,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
 serde   = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["test-support"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["test-support"] }
 </code></pre>
 <p><code>ferra</code> is the only Ferra crate you declare: <code>ferra-core</code>, <code>ferra-db</code>,
 <code>ferra-forge</code>, <code>ferra-http</code> and <code>ferra-openapi</code> are reached through it, and the
@@ -573,7 +573,12 @@ impl FerraIdentity for Claims {
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    let conn = sea_orm::Database::connect(std::env::var("DATABASE_URL")?).await?;
+    // A bare URL leaves `acquire_timeout` at sqlx's 30 s, past the 10 s request
+    // budget below. Under the budget, a full pool answers 503
+    // `service_unavailable` (see ferra-db.md) instead of the budget's 503 `timeout`.
+    let mut options = sea_orm::ConnectOptions::new(std::env::var("DATABASE_URL")?);
+    options.acquire_timeout(std::time::Duration::from_secs(3));
+    let conn = sea_orm::Database::connect(options).await?;
 
     // Development only: create the table when it is missing. A real
     // application owns its schema with `sea-orm-migration`.
@@ -594,10 +599,19 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     )?;
 
     // The key that signs the entity tags: at least 32 bytes, the same on every
-    // replica, and never the JWT secret.
+    // replica, and never the JWT secret. The request budget is off unless you
+    // set it: choose a value under your infrastructure's timeout (a gateway,
+    // a proxy, a platform limit). 10 s plus the 1 s Ferra may spend after a
+    // commit stays under the lowest common default, Envoy's 15 s route
+    // timeout (API Gateway allows 29 s, Heroku 30 s, ALB and nginx 60 s). It is
+    // a margin, not a maximum: a slow `COMMIT` is not cut, and with a
+    // `BelongsTo` the read of the written row's parents after the commit is
+    // under no deadline either (`acquire_timeout` bounds the wait for the
+    // connection, `statement_timeout` the query).
     let app = Foundry::new(conn)
         .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;Claims&gt;(jwt)
+        .request_budget(std::time::Duration::from_secs(10))
         .mount::&lt;film::Model&gt;()
         // Public in development: /docs needs no token (see `with_docs_protected` in ferra-openapi.md).
         .with_docs()
@@ -849,13 +863,13 @@ Both are off by default.</p>
 </thead>
 <tbody>
 <tr><td><em>(default)</em></td><td>The whole framework, with <code>tracing</code> events</td><td>Always.</td></tr>
-<tr><td><code>observability</code></td><td>A <code>metrics</code> counter, <code>ferra.sunset.post_sunset_hits</code>, for the requests that reach a deprecated API version after its sunset date</td><td>You run a <code>metrics</code> recorder.</td></tr>
+<tr><td><code>observability</code></td><td>Two <code>metrics</code> histograms, <code>http.server.request.duration</code> for every response and <code>ferra.db.transaction.duration</code> for each attempt of a write that owns its transaction, and three <code>metrics</code> counters: <code>ferra.db.retries</code> (a write run again), <code>ferra.after_commit.failures</code> (an <code>after_commit</code> that failed) and <code>ferra.sunset.post_sunset_hits</code> (the requests that reach a deprecated API version after its sunset date)</td><td>You run a <code>metrics</code> recorder.</td></tr>
 <tr><td><code>test-support</code></td><td><code>MountedRoute</code> and <code>FoundryBuilder::route_table</code>, to enumerate the mounted routes in a test</td><td><code>[dev-dependencies]</code> only.</td></tr>
 </tbody>
 </table>
 </div>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["observability"] }
 </code></pre>
 <p>The implementation crates have features of their own that you do not set:</p>
 <ul>
@@ -894,7 +908,7 @@ Rust ecosystem.</p>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <p>A complete Ferra application written the re-export way, with no <code>sea-orm</code> of its
 own, demonstrating both halves of the principle:</p>
-<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 // (plus tokio, axum and serde, as in Getting started)
 
 // Direct re-export (half A): upstream `sea_orm` reached without renaming.
@@ -939,7 +953,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     .await?;
     Ok(())
 }</code></pre>
-<p>The <code>observability</code> feature (a <code>metrics</code> counter for post-sunset requests) is
+<p>The <code>observability</code> feature (the <code>metrics</code> histograms of the request duration and of each write attempt, and the counters of
+retries, failed <code>after_commit</code> hooks and post-sunset requests) is
 off by default: without it, the <code>metrics</code> crate is not in the dependency graph.</p>
 <hr>
 <h2 id="when-you-need-a-ferra-wrapper-that-does-not-yet-exist"><a class="header" href="#when-you-need-a-ferra-wrapper-that-does-not-yet-exist">When you need a Ferra wrapper that does not yet exist</a></h2>
@@ -1021,7 +1036,7 @@ returned router land outside the framework’s Tower stack.</p>
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -1305,7 +1320,7 @@ is configured the same way.</p>
 <p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
 When the <code>observability</code> feature is enabled:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["observability"] }
 </code></pre>
 <p>the framework also advances a <code>metrics::counter!</code> named
 <code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,
@@ -1424,7 +1439,7 @@ Use the <strong><code>FerraLayer</code></strong> builder for those.</p>
 <tr><td>CORS</td><td><code>CorsLayer::new()</code> (deny by default)</td><td><code>.cors(cors_layer)</code></td></tr>
 <tr><td>Body cap</td><td>1 MiB</td><td><code>.body_limit(bytes)</code></td></tr>
 <tr><td>Rate-limit (mutations only)</td><td>2/sec, burst 5</td><td><code>.rate_limit(RateLimitRule::new(per_second, burst_size)?)</code></td></tr>
-<tr><td>Tracing</td><td>one <code>INFO</code> event per request: method, path, status, latency, and the <code>credential</code> (<code>token</code> or <code>api_key</code>) and <code>api_key.prefix</code> of an accepted request; never the query string, headers or body</td><td><code>.trace_layer(layer)</code></td></tr>
+<tr><td>Tracing</td><td>none by default: the request span and the <code>ferra_http::request</code> line come from <code>build()</code>’s observation layer and are not set here; your own <code>TraceLayer</code> runs beside them</td><td><code>.trace_layer(layer)</code></td></tr>
 <tr><td>Base path for <code>_links</code></td><td>none</td><td><code>.base_path("/api")</code></td></tr>
 </tbody>
 </table>
@@ -1713,13 +1728,15 @@ let layer = FerraLayer::new().trace_layer(custom_trace).build();
 <p>Two consequences of the erasure worth knowing:</p>
 <ul>
 <li><strong><code>FerraLayer</code> carries no static evidence of which trace shape is
-mounted.</strong> Reading the type alone will not tell you whether the
-framework default or your layer is in the slot. <code>Debug</code> renders the
-slot as <code>Some("&lt;trace closure&gt;")</code> or <code>None</code>.</li>
-<li><strong>The framework default is not stored in the slot.</strong> It defaults to
-<code>None</code>, and the default layer (one <code>INFO</code> event per request: method, path
-without query string, status, latency) is produced on demand at router-construction time. That is what
-keeps <code>build()</code> callable from a <code>const</code> context:</li>
+mounted.</strong> Reading the type alone will not tell you whether your
+layer is in the slot. <code>Debug</code> renders the slot as <code>Some("&lt;trace closure&gt;")</code>
+or <code>None</code>.</li>
+<li><strong>The slot is empty by default, and an empty slot adds nothing.</strong> It
+defaults to <code>None</code>: the request span and the one <code>ferra_http::request</code>
+line of every response are written by the observation layer of <code>build()</code>,
+outside the whole stack, not by this slot. Your layer is an addition, with
+its own span and events inside the request span. An empty slot is also
+what keeps <code>build()</code> callable from a <code>const</code> context:</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1736,17 +1753,18 @@ literal, not a panic on the first request.</p>
 <h3 id="composition-order--preserved"><a class="header" href="#composition-order--preserved">Composition order — preserved</a></h3>
 <p>The constitutional Tower stack order is preserved regardless of
 which knobs are overridden:</p>
-<pre><code class="language-text">CorsLayer                                       (outermost)
-  body_limit_mapper   (413 → problem+json with verbatim detail)
-    RequestBodyLimitLayer({bytes})
-      TraceLayer
-        DefaultBodyLimit::disable
-          [on mutation sub-router only:]
-            rate_limit_mapper   (429 → problem+json)
-              GovernorLayer(per_second, burst_size)
-                &lt;handlers&gt;
-          [on read sub-router:]
-            &lt;handlers&gt;
+<pre><code class="language-text">CorsLayer                                       (outermost of these; the whole stack: ferra-http.md § Layer ordering)
+  JWT / API key layer (when the model's rules need one)
+    body_limit_mapper   (413 → problem+json with verbatim detail)
+      RequestBodyLimitLayer({bytes})
+        trace slot          (empty unless `trace_layer` fills it)
+          DefaultBodyLimit::disable
+            [on mutation sub-router only:]
+              rate_limit_mapper   (429 → problem+json)
+                GovernorLayer(per_second, burst_size)
+                  &lt;handlers&gt;
+            [on read sub-router:]
+              &lt;handlers&gt;
 </code></pre>
 <p><code>FerraLayer</code> does not reorder, add, or remove layers — only swaps
 the parameters / values that flow into the existing slots.</p>
@@ -1759,9 +1777,16 @@ above.</p>
 rule as <code>.mount::&lt;M&gt;()</code>.</p>
 <hr>
 <h2 id="request-time-budget"><a class="header" href="#request-time-budget">Request time budget</a></h2>
-<p>Call <code>.request_budget(Duration::from_secs(25))</code> before the first mount.
+<p>Call <code>.request_budget(Duration::from_secs(10))</code> before the first mount.
 No budget applies by default. The setting survives <code>.with_auth()</code> and
-<code>.api_version()</code> in either order.</p>
+<code>.api_version()</code> in either order. Choose a value under your
+infrastructure’s timeout (a gateway, a proxy, a platform limit): 10 s plus
+the 1 s Ferra may spend after a commit stays under the lowest common
+default, Envoy’s 15 s route timeout (API Gateway allows 29 s, Heroku 30 s,
+ALB and nginx 60 s). It is a margin, not a maximum: a slow <code>COMMIT</code> is not
+cut, and for a model with a <code>BelongsTo</code> the read of the written row’s parents
+after the commit is under no deadline either (<code>acquire_timeout</code> bounds the wait
+for the connection, <code>statement_timeout</code> the query).</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::Foundry;
@@ -1769,7 +1794,7 @@ use std::time::Duration;
 
 fn configure(conn: sea_orm::DatabaseConnection) {
     let _router = Foundry::new(conn)
-        .request_budget(Duration::from_secs(25))
+        .request_budget(Duration::from_secs(10))
         .route("/live", axum::routing::get(|| async { "ok" }))
         .build();
 }
@@ -1792,10 +1817,13 @@ bound the work, and the answer past them is the 503 <code>retry_exhausted</code>
 <p>Once any commit starts, the commit is never cancelled and never answered
 503 <code>timeout</code>: the handler finishes and returns its own response. The gate
 stays set until the request ends, so your own work in that handler is not cut.
-One thing is bounded: a model’s <code>after_commit</code> hook, which runs after the
-commit and before the response, gets the budget that is left. When that runs
-out the hook is dropped and the request answers 500 <code>internal</code>; the commit
-stands (see <a href="#after-commit">Behaviors</a>). A gateway or process
+The work Ferra itself runs after the commit is bounded: a model’s <code>after_commit</code>
+hook, which runs after the commit and before the response, and the computed
+fields served after it, share one post-commit deadline per request,
+<code>max(deadline, first post-commit work + 1 s)</code>, so a slow <code>COMMIT</code> does not
+leave them no time. When it runs out the work is dropped and the request
+answers 500 <code>internal</code>; the commit stands (see
+<a href="#after-commit">Behaviors</a>). A gateway or process
 timeout can still interrupt the connection; choose a budget below that
 infrastructure timeout.</p>
 <p>Generated routes use the budget automatically. To include your own
@@ -1839,9 +1867,10 @@ only when no credential was sent: an invalid one is still a 401, never
 an anonymous request.</li>
 <li>The credential is verified once per request: <code>Resource&lt;M&gt;</code> and
 <code>Principal&lt;Claims&gt;</code> in one handler share one API key lookup.</li>
-<li>The request span’s <code>credential</code> field is set on model routes only: on a declared
-route the credential is checked at extraction, after any span was created, so the
-span does not carry it.</li>
+<li>The request span’s <code>credential</code> field is recorded where Ferra verifies the credential:
+by the credential layer on a model route, and by the <code>Principal&lt;Claims&gt;</code> or
+<code>Resource&lt;M&gt;</code> extractor on a declared route. A declared route that extracts neither
+verifies nothing, so the span carries no <code>credential</code>, whatever the request sent.</li>
 </ul>
 <p>On a chain without <code>.with_auth()</code> there is no credential to read:
 <code>Principal</code> and <code>CurrentUser</code> answer 401 and their <code>Option</code> forms are
@@ -1931,7 +1960,7 @@ use std::time::Duration;
 
 fn configure(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;axum::Router, BuildError&gt; {
     Foundry::new(conn)
-        .request_budget(Duration::from_secs(25))
+        .request_budget(Duration::from_secs(10))
         .route("/live", axum::routing::get(|| async { "ok" }))
         .try_build()
 }
@@ -2588,7 +2617,7 @@ Transactions are the same: begin one on your own connection with <code>conn.begi
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -2627,23 +2656,22 @@ assert_eq!(newest_first.direction, SortDirection::Desc);
 <tr><th>Setting</th><th>Default</th><th>What it emits</th></tr>
 </thead>
 <tbody>
-<tr><td><code>sqlx_logging</code></td><td><code>true</code></td><td>Every executed SQL statement is logged via the <code>log</code>/<code>tracing</code> bridge, at the level below.</td></tr>
+<tr><td><code>sqlx_logging</code></td><td><code>true</code></td><td>The SQL text of every executed statement, with its placeholders and not its bound values, is logged via the <code>log</code>/<code>tracing</code> bridge, at the level below.</td></tr>
 <tr><td><code>sqlx_logging_level</code></td><td><code>log::LevelFilter::Info</code></td><td>The level statements above are logged at (ignored if <code>sqlx_logging</code> is <code>false</code>).</td></tr>
-<tr><td><code>record_stmt_in_spans</code></td><td><code>true</code></td><td>The rendered SQL statement — <strong>including its bound parameter values</strong> — is attached to the <code>tracing</code> span for that query.</td></tr>
+<tr><td><code>record_stmt_in_spans</code></td><td><code>true</code></td><td>The SQL text of the statement, with its placeholders and not its bound values, is attached to the <code>tracing</code> span for that query. Only under sea-orm’s non-default <code>tracing-spans</code> feature; without it the setting does nothing.</td></tr>
 <tr><td><code>sqlx_slow_statements_logging_settings</code></td><td><code>(LevelFilter::Off, _)</code></td><td>Off by default; when enabled, statements slower than a threshold you set log at a separate level.</td></tr>
 </tbody>
 </table>
 </div>
-<p>The bound-parameter detail on <code>record_stmt_in_spans</code> is the one to read twice: if a query binds a user’s email address, a password-reset token, or any other sensitive field value, that value reaches whatever sink your <code>tracing-subscriber</code> <code>Layer</code> forwards spans to — by default, with no opt-in step. This is a real disclosure surface, not a hypothetical one; treat it exactly like any other case where sensitive data could reach a log line.</p>
-<p><strong>A reader of this section alone can now answer: does query text reach my logs and traces by default, and how do I change that?</strong> Yes, by default, on both counts (statement logging and span recording independently). To change it, build a <code>ConnectOptions</code> explicitly instead of passing a bare URL string, and connect with that:</p>
+<p>Neither setter logs a bound value (sea-orm 2.0.4, sqlx-core 0.9.0): sqlx’s statement log and the span field carry the SQL text with its placeholders, so a query binding a user’s email address or a password-reset token logs <code>$1</code>, not the address or the token. The text still tells a reader of your logs which tables, columns and filters your API touches, which is what the two setters cut. Bound values reach a log by one path: sea-orm’s <code>debug-print</code> feature, which logs every statement with its values at <code>debug</code> level whatever these setters say. It is off by default; never enable it outside development.</p>
+<p><strong>A reader of this section alone can now answer: does query text reach my logs and traces by default, and how do I change that?</strong> Yes for statement logging; for spans, only if sea-orm’s <code>tracing-spans</code> feature is on. To change it, build a <code>ConnectOptions</code> explicitly instead of passing a bare URL string, and connect with that:</p>
 <pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database};
 
 <span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let mut opt = ConnectOptions::new(database_url);
 opt.sqlx_logging(false)           // stop logging statements entirely, or...
    .record_stmt_in_spans(false);  // ...keep statement-shape logging but never
-                                   // attach the rendered SQL (with bound values)
-                                   // to a span.
+                                   // attach the SQL text to a span.
 
 let conn = Database::connect(opt).await?;
 <span class="boring">let _ = conn;
@@ -2651,7 +2679,92 @@ let conn = Database::connect(opt).await?;
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p><code>ConnectOptions</code>’s setters take <code>&amp;mut self</code> and return <code>&amp;mut Self</code>, so they chain on an existing <code>let mut</code> binding as shown — they are not a consuming builder, and <code>ConnectOptions::new(url)</code> must be bound to a variable before you call a setter on it.</p>
-<p><strong>Recommended production posture.</strong> Disable <code>sqlx_logging</code> (or drop the level to a value your production log pipeline filters out) and disable <code>record_stmt_in_spans</code> for any connection that will ever execute a query with sensitive bound parameters — which, in a typical Ferra API, is most of them. Keep both enabled in local development, where seeing the generated SQL is a debugging aid and the log sink is your own terminal. There is no framework-level override that does this for you today — <code>ferra-db</code> accepts whatever <code>sea_orm::DatabaseConnection</code> you construct and does not itself configure <code>ConnectOptions</code> — so the setting is entirely in your hands at the <code>Database::connect(...)</code> call site.</p>
+<p><strong>Recommended production posture.</strong> Disable <code>sqlx_logging</code> (or drop the level to a value your production log pipeline filters out) and disable <code>record_stmt_in_spans</code> to keep statement text out of your logs and spans. Never enable sea-orm’s <code>debug-print</code> feature outside development: it logs every statement with its values whatever these setters say. Keep both settings enabled in local development, where seeing the generated SQL is a debugging aid and the log sink is your own terminal. There is no framework-level override that does this for you today — <code>ferra-db</code> accepts whatever <code>sea_orm::DatabaseConnection</code> you construct and does not itself configure <code>ConnectOptions</code> — so the setting is entirely in your hands at the <code>Database::connect(...)</code> call site.</p>
+<hr>
+<h2 id="a-connection-for-a-permanent-server"><a class="header" href="#a-connection-for-a-permanent-server">A connection for a permanent server</a></h2>
+<p>Ferra configures no <code>ConnectOptions</code> itself, so a server that stays up chooses its own. This recipe takes the URL from the
+environment, bounds the pool under the request budget, and keeps statement text out of the logs and spans (it never
+carries a bound value; see the <code>debug-print</code> bullet below):</p>
+<pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use std::time::Duration;
+
+/// `budget` is the value you give `FoundryBuilder::request_budget`.
+fn options(url: String, budget: Duration) -&gt; ConnectOptions {
+    let mut options = ConnectOptions::new(url);
+    options
+        .max_connections(20) // under the database's `max_connections`, divided by your instances
+        .acquire_timeout(budget / 3) // under the budget: a full pool answers its own 503
+        .idle_timeout(Duration::from_secs(300))
+        .sqlx_logging(false) // no statement text in sqlx's logs
+        .record_stmt_in_spans(false); // no statement text in a span (`tracing-spans` feature only)
+    options
+}
+
+async fn connect(budget: Duration) -&gt; Result&lt;DatabaseConnection, Box&lt;dyn std::error::Error&gt;&gt; {
+    // From the environment or a secret store, never a literal, test fixtures included.
+    let url = std::env::var("DATABASE_URL")?;
+    Ok(Database::connect(options(url, budget)).await?)
+}
+<span class="boring">fn main() {
+</span><span class="boring">    let budget = Duration::from_secs(10);
+</span><span class="boring">    let o = options("postgres://db.internal/app".to_owned(), budget);
+</span><span class="boring">    assert_eq!(o.get_max_connections(), Some(20));
+</span><span class="boring">    assert!(o.get_acquire_timeout().is_some_and(|t| t &lt; budget));
+</span><span class="boring">    assert!(!o.get_sqlx_logging() &amp;&amp; !o.get_record_stmt_in_spans());
+</span><span class="boring">    let _ = connect;
+</span><span class="boring">}</span></code></pre>
+<ul>
+<li>
+<p><strong><code>acquire_timeout</code> under the budget.</strong> A bare URL leaves it at sqlx’s 30 s, past a 10 s budget, so a full pool would
+answer the budget’s <code>503</code> <code>timeout</code>. Under the budget, it answers <code>503</code> <code>service_unavailable</code> (see
+<a href="#when-no-connection-can-be-had">When no connection can be had</a>). A third of the budget leaves room for a request that
+needs a connection more than once.</p>
+</li>
+<li>
+<p><strong>Logging off.</strong> Both setters default to <code>true</code>; the table above says what each one emits and cuts: the statement
+text in sqlx’s log lines and, under the <code>tracing-spans</code> feature, in a span. Neither carries a bound value. Turn them
+back on in local development to see the SQL. sea-orm’s <code>debug-print</code> feature logs every statement with its values
+whatever these setters say; never enable it outside development.</p>
+</li>
+<li>
+<p><strong>Never enable TRACE for <code>sea_orm</code> in production.</strong> sea-orm 2.0.4’s Postgres connect function is
+<code>#[instrument(level = "trace")]</code> with no skip, so its span records the <code>ConnectOptions</code> through their <code>Debug</code>
+output, and the <code>url</code> field has no debug skip: a subscriber that enables TRACE for <code>sea_orm</code> records the URL,
+password included. <code>Database::connect</code> also puts the URL in the <code>DbErr</code> it returns when the URL cannot be parsed.
+Prefer a password from a secret store over a URL that carries credentials.</p>
+</li>
+<li>
+<p><strong>A lock wait ends on the server, below the budget, set once per role</strong> (the role your application connects as; here
+<code>app_user</code>, 5 s under a 10 s budget):</p>
+<pre><code class="language-sql">ALTER ROLE app_user SET lock_timeout = '5s';
+</code></pre>
+<p>Postgres applies a role setting when the role starts a session, and only then, so it reaches every server
+connection a pooler opens for that role and no session already open. A <code>SET</code> in your own connect hook lands on one
+server connection: in transaction mode PgBouncer releases the server connection after each transaction
+(<a href="https://www.pgbouncer.org/config.html#pool_mode">PgBouncer <code>pool_mode</code></a>) and says clients must not use any
+session-based features (<a href="https://www.pgbouncer.org/config.html#server_reset_query">PgBouncer <code>server_reset_query</code></a>),
+and Neon lists <code>SET</code>/<code>RESET</code> as unsupported on its pooled endpoint and recommends a role-level setting instead
+(<a href="https://neon.com/docs/connect/connection-pooling">Neon connection pooling</a>). A <code>lock_timeout</code> sent as a startup
+parameter is refused by PgBouncer unless <code>track_extra_parameters</code> lists it (then PgBouncer restores it, a
+pooler-side setup this recipe does not rely on) or <code>ignore_startup_parameters</code> does (then it is ignored and never
+applies). Below the budget, the wait ends while the request is alive: Postgres aborts the statement and the client’s
+<code>ROLLBACK</code> ends the transaction (the SQLSTATE is in the log only; the client gets a <code>500</code> <code>internal</code>), and the
+connection goes back to the pool clean.
+<a href="#behind-a-transaction-pooler">Behind a transaction pooler</a> says what else a pooler forbids.</p>
+</li>
+<li>
+<p><strong>Keep <code>lock_timeout</code> above <code>deadlock_timeout</code></strong> (1 s by default). Otherwise a deadlock surfaces as a <code>55P03</code> <code>500</code>
+that is never retried, instead of the <code>40P01</code> that is.</p>
+</li>
+<li>
+<p><strong>What a timeout answers.</strong> A lock wait cut by <code>lock_timeout</code> (<code>55P03</code>) and a statement cut by <code>statement_timeout</code>
+(<code>57014</code>) are a <code>500</code> <code>internal</code>, logged once with the SQLSTATE, never retried (only <code>40001</code> and <code>40P01</code> are), and
+never the <code>503</code> <code>timeout</code>. A <code>COMMIT</code> refused with either code is classed as rolled back, and is the same <code>500</code>. The
+repository pins both answers in <code>crates/ferra-http/tests/lock_timeout.rs</code>; the role form itself is not run there, as
+it would change a role every test shares. The Lambda page sets <code>lock_timeout</code> the same way:
+<a href="#server-side-timeouts-on-the-application-role">Server-side timeouts</a>.</p>
+</li>
+</ul>
 <hr>
 <h2 id="the-pagem-shape"><a class="header" href="#the-pagem-shape">The <code>Page&lt;M&gt;</code> shape</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2946,6 +3059,50 @@ it for <code>server_idle_timeout</code> after the client left (10 s in the repos
 test ends those sessions itself, and a run that fails before that leaves its database undroppable (55006) until
 they expire.</p>
 <hr>
+<h2 id="when-no-connection-can-be-had"><a class="header" href="#when-no-connection-can-be-had">When no connection can be had</a></h2>
+<p>A generated route, or a <code>Resource&lt;M&gt;</code> call, that gets no connection from your pool within its <code>acquire_timeout</code> answers
+<code>503</code> <code>service_unavailable</code> (0.17.0). The answer comes before the operation: nothing of it was applied, no hook ran, and
+the client may retry it. The <code>detail</code> is one fixed text; it names neither the pool, the database nor a delay
+(<a href="#service_unavailable--503"><code>service_unavailable</code></a> shows the body). It is a <code>503</code> and not a
+<code>500</code> because the service could not handle the request in time, whatever the cause: a saturated pool, and also a
+database that is down or still starting, since sqlx retries a refused connection until the <code>acquire_timeout</code> and the
+pool then reports a timeout. Say “a connection could not be had”, not “the pool is full”, when you read it. A
+connection the database refuses at once (a wrong password, an unknown database) stays a <code>500</code>. Ferra does not retry
+it: only <code>40001</code> and <code>40P01</code> are retried, and a retry would add to the saturation.</p>
+<ul>
+<li><strong>Set <code>acquire_timeout</code> under the request budget.</strong> The deadline that comes first answers. With the pool’s timeout at
+or past the budget left, the budget’s <code>503</code> <code>timeout</code> wins; under it, the pool’s <code>503</code> <code>service_unavailable</code> wins,
+and that is the one an operator wants to see, because it says what is saturated. For a write made through Ferra (a
+generated route or a <code>Resource&lt;M&gt;</code> call), both mean nothing was written; a write on your own connection is outside
+this (<a href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a>). The
+budget’s side of this is in <a href="#after-commit">Behaviors</a>.</li>
+</ul>
+<pre class="playground"><code class="language-rust">use ferra::sea_orm::{ConnectOptions, Database};
+use std::time::Duration;
+
+<span class="boring">async fn demo(database_url: String) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let mut opt = ConnectOptions::new(database_url);
+opt.acquire_timeout(Duration::from_secs(5)); // under a `.request_budget(Duration::from_secs(10))`
+let conn = Database::connect(opt).await?;
+<span class="boring">let _ = conn;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<ul>
+<li><strong>No <code>Retry-After</code> is sent</strong>, because no delay is known. A client or a gateway backs off with full jitter on a <code>503</code>
+without <code>Retry-After</code> and caps its attempts; a fixed delay makes every client retry in step.</li>
+<li><strong>After a commit it is a <code>500</code>.</strong> A pool that gives no connection once the write is durable (the read of a written
+row’s parents) is a <code>500</code> <code>internal</code> with the write standing, never this <code>503</code>
+(<a href="#service_unavailable--503"><code>service_unavailable</code></a>).</li>
+<li><strong>API keys.</strong> An API key request whose store shares the saturated pool is a <code>503</code> <code>identity_unavailable</code>, not a
+<code>service_unavailable</code>: the credential could not be checked, so the handler never runs
+(<a href="#authentication--authorization">API keys</a>). The key store does not go through the path above, so it writes one <code>warn</code> line per
+refused request, target <code>ferra_http::credential</code>, <code>reason = "store_unavailable"</code>, and no <code>ferra_db::pool</code> line.
+Under a flood of requests that is one line each. Give the key store its own small pool when its <code>503</code> must stay
+distinct from the rest, and, for the volume, put a de-duplicating <code>tracing</code> layer in your subscriber (<code>tracing-throttle</code>
+or Vector’s <code>tracing_limit</code>) besides the <code>acquire_timeout</code> and the pool size. Ferra does not de-duplicate for you.</li>
+</ul>
+<hr>
 <h2 id="blameable-models-and-the-repository"><a class="header" href="#blameable-models-and-the-repository">Blameable models and the repository</a></h2>
 <p>The public <code>FerraRepository</code> write methods (<code>insert</code>, <code>update</code>, <code>soft_delete</code>, <code>restore</code> and their <code>_in_tx</code> forms) take no subject, so on a <code>#[behavior(blameable)]</code> model they return an error and write nothing: the author comes from the caller’s identity, which only the generated routes and <code>Resource&lt;M&gt;</code> hold (0.13.0).</p>
 <hr>
@@ -2954,7 +3111,7 @@ they expire.</p>
 <h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
 <p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>
@@ -3116,7 +3273,7 @@ not public in 0.9: a route of your own answers with a struct of its own
 <p>The examples on this page assume the dependencies of <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -3296,7 +3453,7 @@ let app = Foundry::new(conn)
 <tr><td><code>FerraError::Internal(InternalError)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code> (the cause stays in <code>source()</code>, never on the wire; see <code>ferra-error-handling.md</code> § Rust errors and their causes)</td></tr>
 <tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
 <tr><td><code>FerraError::IdentityUnavailable</code></td><td>503</td><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td><code>Identity Unavailable</code> (a key set out of reach with no fresh key cached; no <code>Retry-After</code>; see <code>ferra-auth.md</code> § Key set)</td></tr>
-<tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>; the detail is yours; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
+<tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>, with your detail, or, from 0.17.0, no database connection in time, with a fixed detail and nothing applied; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § <code>service_unavailable</code>)</td></tr>
 <tr><td><code>FerraError::RetryExhausted</code></td><td>503</td><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td><code>Retries Exhausted</code> (a <code>Resource&lt;M&gt;</code> write aborted on each of its three attempts; <code>Retry-After: 1</code>; answer it as a transient 503, never replay it in a loop; 0.16.0; see <code>ferra-error-handling.md</code> § <code>retry_exhausted</code>)</td></tr>
 <tr><td><em>(middleware)</em></td><td>413</td><td><code>https://ferra.rs/errors/payload_too_large</code></td><td><code>Payload Too Large</code> <sup class="footnote-reference" id="fr-middleware-1"><a href="#footnote-middleware">1</a></sup></td></tr>
 <tr><td><em>(middleware)</em></td><td>429</td><td><code>https://ferra.rs/errors/rate_limited</code></td><td><code>Too Many Requests</code> <sup class="footnote-reference" id="fr-middleware-2"><a href="#footnote-middleware">1</a></sup></td></tr>
@@ -3322,7 +3479,7 @@ let app = Foundry::new(conn)
   ]
 }
 </code></pre>
-<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the cause (a <code>sea_orm::DbErr</code>, a failed hook) is kept in the error’s <code>source()</code> chain for your logs and never reaches the HTTP body. The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
+<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the cause (a <code>sea_orm::DbErr</code>, a failed hook) is kept in the error’s <code>source()</code> chain for your logs and never reaches the HTTP body. A failed <code>COMMIT</code> is the exception: its chain carries only the SQLSTATE and the outcome (rolled back or unknown), never the database error, and its message stays out of the logs (the <code>ferra_db::commit</code> line). The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
 <p>Worked body for a 429 from the rate-limit mapper:</p>
 <pre><code class="language-json">{
   "type":   "https://ferra.rs/errors/rate_limited",
@@ -3592,8 +3749,8 @@ let app: Router = foundry
 <li>Your route’s own extractors (<code>FerraPath</code>, <code>FerraJson</code>) run before you call a method, so a malformed path or body can be answered <code>400</code> before the access answers <code>401</code> or <code>403</code>. What the access then refuses — <code>401</code>, <code>403</code>, <code>404</code>, <code>422</code> — is what the generated route refuses, because it is the same code: another caller’s row under <code>IsOwner</code> is a <code>404</code>, indistinguishable from a missing row.</li>
 </ol>
 <h3 id="what-it-hands-back"><a class="header" href="#what-it-hands-back">What it hands back</a></h3>
-<p><code>get</code>, <code>list</code> and <code>create</code> return the model’s <em>read view</em>, <code>&lt;M as FerraViews&gt;::Read</code>: the <code>{Model}ReadProjection</code> struct <code>#[derive(FerraModel)]</code> generates (or the projection promoted with <code>default = true</code>). A <code>#[ferra(write_only)]</code> or <code>#[ferra(skip)]</code> field is not a member of that type, so a route that serializes it cannot leak it. <code>update</code> takes <code>&lt;M as FerraViews&gt;::Patch</code>, the generated <code>{Model}Patch</code>: one <code>Option&lt;T&gt;</code> per field of the write projection, <code>None</code> meaning “leave the column” (and <code>Option&lt;Option&lt;T&gt;&gt;</code> for a nullable column, <code>Some(None)</code> writing null). Only the set columns reach the <code>UPDATE</code>; a write-only column is writable and never read back.</p>
-<p><code>create</code> and <code>update</code> return the row they wrote with the field read rules applied, but without the <code>can(Get)</code> check of the model’s <code>#[ferra(authority)]</code> that the generated routes make before they send a body (a caller who may write a row but not read it gets no body from the route). A handler of yours must not echo that value to a caller who may not read the row: check with <code>get</code> first, or send nothing. The same holds for the rows <code>tx.resource::&lt;N&gt;()</code> returns inside a hook. Their computed fields are computed only for a caller who may <code>Get</code> the row (see <a href="#when-the-hooks-run">Computed fields</a>); for one who may not, the field stays at its default and the view is meaningless.</p>
+<p><code>get</code> and <code>list</code> return the model’s <em>read view</em>, <code>&lt;M as FerraViews&gt;::Read</code> (<code>create</code> and <code>update</code> return an <code>Option</code> of it, below): the <code>{Model}ReadProjection</code> struct <code>#[derive(FerraModel)]</code> generates (or the projection promoted with <code>default = true</code>). A <code>#[ferra(write_only)]</code> or <code>#[ferra(skip)]</code> field is not a member of that type, so a route that serializes it cannot leak it. <code>update</code> takes <code>&lt;M as FerraViews&gt;::Patch</code>, the generated <code>{Model}Patch</code>: one <code>Option&lt;T&gt;</code> per field of the write projection, <code>None</code> meaning “leave the column” (and <code>Option&lt;Option&lt;T&gt;&gt;</code> for a nullable column, <code>Some(None)</code> writing null). Only the set columns reach the <code>UPDATE</code>; a write-only column is writable and never read back.</p>
+<p><code>create</code> and <code>update</code> return <code>Result&lt;Option&lt;Read&gt;, FerraError&gt;</code>. <code>Some</code> is the row they wrote with the field read rules applied. <code>None</code> means the row is written and the caller may not read it under the generated route’s rule (the <code>get</code> rule on the row, then the <code>can(Get)</code> of the model’s <code>#[ferra(authority)]</code>; an authority that panics or fails counts as “may not read”, with one <code>error!</code> on <code>ferra_http::policy</code>, and <code>panic = "abort"</code> defeats that catch): the route sends such a caller no body, and a handler of yours should send none either, with no <code>Location</code> and no id. The authority’s <code>filter</code> is not consulted, as for the body of the generated write: keep <code>filter</code> equal to <code>can(Get)</code>. <code>None</code> comes only after a successful write: a refusal, a validation error or a row the caller cannot reach for update is an <code>Err</code>, the absent row’s 404 included. A caller allowed to update but not to read tells <code>None</code> from that 404, so it learns the row exists, as it does from the route’s bodiless <code>204</code>. The same holds for <code>tx.resource::&lt;N&gt;()</code> inside a hook, mounted or not. Computed fields are computed only for a caller who may read the row (see <a href="#when-the-hooks-run">Computed fields</a>); for one who may not, nothing is computed.</p>
 <p>Limits, by design:</p>
 <ul>
 <li>The access serves the bare route’s projections. Selecting a named projection comes with per-projection authorization, later.</li>
@@ -3618,9 +3775,9 @@ let app: Router = foundry
 <tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin; with <code>JwtConfig::with_cookie</code>, the listed origins only, with credentials, exposing <code>ETag</code> and <code>Location</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td><td><code>FerraLayer::cors(...)</code>, refused with the cookie</td></tr>
 <tr><td>413 body-limit mapper</td><td>Rewrites stock <code>text/plain</code> → <code>application/problem+json</code> with <code>type: .../payload_too_large</code></td><td>— (permanent)</td></tr>
 <tr><td><code>tower_http::limit::RequestBodyLimitLayer</code></td><td>1 MiB</td><td><code>FerraLayer::body_limit(...)</code></td></tr>
-<tr><td><code>tower_http::trace::TraceLayer</code></td><td>One <code>INFO</code> event per request: method, path (no query string), status, latency in ms, and for an accepted request the kind of credential (<code>credential</code> = <code>token</code>, <code>cookie</code> or <code>api_key</code>) and a key’s <code>api_key.prefix</code>. Never headers, bodies, a token or a key secret.</td><td><code>FerraLayer::trace_layer</code></td></tr>
+<tr><td>Trace slot</td><td>Empty: it adds nothing. A request has one span (<code>request</code>) and one <code>INFO</code>/<code>WARN</code>/<code>ERROR</code> event (target <code>ferra_http::request</code>: method, route, status, <code>ferra.error.type</code>, latency in ms), both written by the observation layer, outside everything below; the span records the kind of credential Ferra verified (<code>credential</code> = <code>token</code>, <code>cookie</code> or <code>api_key</code>) and <code>url.path</code> without the query. Never headers, bodies, a token, a key or its prefix.</td><td><code>FerraLayer::trace_layer</code> (your own <code>TraceLayer</code>, beside them)</td></tr>
 <tr><td><code>tower_governor::GovernorLayer</code> on mutation endpoints</td><td>2 mutations per second, burst 5 (<code>RateLimitRule::new(2, 5)</code>) + peer-socket-IP key</td><td><code>FerraLayer::rate_limit(RateLimitRule::new(per_second, burst))</code></td></tr>
-<tr><td>Cache default (outermost layer of <code>build()</code>)</td><td><code>Cache-Control: no-store</code> when the response has none; <code>Vary</code> merged with <code>Accept</code>, <code>Authorization</code>, <code>Cookie</code></td><td>a route’s own <code>Cache-Control</code>, see <a href="#caching">Caching</a></td></tr>
+<tr><td>Cache default (outermost layer of <code>build()</code> but the observation layer, which adds no header)</td><td><code>Cache-Control: no-store</code> when the response has none; <code>Vary</code> merged with <code>Accept</code>, <code>Authorization</code>, <code>Cookie</code></td><td>a route’s own <code>Cache-Control</code>, see <a href="#caching">Caching</a></td></tr>
 <tr><td><code>per_page</code> clamp (FR-017)</td><td>Clamped to <code>[1, 100]</code>; the body’s <code>per_page</code> is the applied value (no <code>Warning</code> header since 0.12.0)</td><td>— (constitutional)</td></tr>
 </tbody>
 </table>
@@ -3712,24 +3869,34 @@ let layer = FerraLayer::new().cors(cors).build();
 </span><span class="boring">}</span></code></pre>
 <h3 id="layer-ordering--how-layer-composes"><a class="header" href="#layer-ordering--how-layer-composes">Layer ordering — how <code>.layer()</code> composes</a></h3>
 <p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>Foundry::…build()</code> therefore wraps every Ferra-provided layer from the outside.</p>
-<p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>Foundry::…build()</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
-<pre><code class="language-text">CONCEPTUAL stack (request top→bottom):        LITERAL call sequence (first→last in source):
-
- outer → cache defaults (Cache-Control, Vary)   (chain level, outside everything below)
-         request budget
-         CorsLayer                              .layer(DefaultBodyLimit::disable())   ← first call (innermost)
-         JWT / API key authentication
-         body_limit_mapper                      .layer(TraceLayer::new_for_http())
-         RequestBodyLimitLayer(1 MiB)           .layer(RequestBodyLimitLayer::new(1 MiB))
-         TraceLayer                             .layer(middleware::from_fn(body_limit_mapper))
-         DefaultBodyLimit::disable              .layer(CorsLayer::new())              ← last call (outermost)
-         (on mutation sub-router:)             
-           rate_limit_mapper                    [on mutation sub-router:]
-           GovernorLayer                          .layer(GovernorLayer { ... })       ← first call on mutations
- inner → handlers                                .layer(middleware::from_fn(rate_limit_mapper))  ← last (outer)
-</code></pre>
-<p><strong>Reading it:</strong> on the generated routes the order, outermost first, is cache defaults, request budget, CORS, JWT (and API key) authentication, body limit, trace, then the rate limiter on mutations. A request enters at the cache defaults (outermost), traverses down to the handler, and the response retraces the stack back out. In the source, the call order is <strong>inverted</strong> — the first <code>.layer()</code> call is the innermost layer on the merged router, and the last <code>.layer()</code> call is the outermost.</p>
-<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a custom observability layer is a decision about which sub-router you wrap — consumers who want to observe only mutations attach to a sub-router; consumers who want to observe everything attach to the merged router returned by <code>Foundry::…build()</code>.</p>
+<p>The stack <code>Foundry::…build()</code> returns, from the outermost layer (a request enters here) to the handler. Rows 1 to 5 wrap the whole application once; rows 6 to 15 are built for each mounted model:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Layer</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>Observation layer</td><td>Records the request (span, request line, metrics under <code>observability</code>); adds and changes no header. See <a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a></td></tr>
+<tr><td>2</td><td>Cache defaults</td><td><code>Cache-Control</code> and <code>Vary</code> on every response</td></tr>
+<tr><td>3</td><td>Request budget</td><td>The 503 <code>timeout</code>, when a budget is set</td></tr>
+<tr><td>4</td><td>ETag layer, and the extensions</td><td>The ETag key, the base URL, the default representation and the mounted models, which the handlers read</td></tr>
+<tr><td>5</td><td>Version prefix (with <code>.api_version</code>)</td><td>The <code>VersionPrefix</code> extension and, with <code>.deprecated</code>, the middleware that adds <code>Sunset</code>/<code>Deprecation</code> and the post-sunset warn and counter</td></tr>
+<tr><td>6</td><td>Base path</td><td>The <code>FerraLayer::base_path</code> prefix of hypermedia links</td></tr>
+<tr><td>7</td><td>Cookie origin check</td><td>Only with <code>JwtConfig::with_cookie</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td></tr>
+<tr><td>8</td><td>CORS</td><td><code>FerraLayer::cors</code>, or the cookie origins</td></tr>
+<tr><td>9</td><td>JWT / API key authentication</td><td>Also the <code>ApiKeyHeader</code> extension (innermost on the chain), which tells the handlers which header carries API keys</td></tr>
+<tr><td>10</td><td><code>body_limit_mapper</code></td><td>Rewrites the 413 to <code>application/problem+json</code></td></tr>
+<tr><td>11</td><td><code>RequestBodyLimitLayer</code></td><td>1 MiB by default</td></tr>
+<tr><td>12</td><td>Trace slot</td><td>Empty: it holds a layer only if you passed <code>trace_layer</code></td></tr>
+<tr><td>13</td><td><code>DefaultBodyLimit::disable</code></td><td></td></tr>
+<tr><td>14</td><td><code>rate_limit_mapper</code> (mutations only)</td><td>Rewrites the 429 to <code>application/problem+json</code></td></tr>
+<tr><td>15</td><td><code>GovernorLayer</code> (mutations only)</td><td>The rate limit</td></tr>
+<tr><td>16</td><td>Handler</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<p>A request enters at row 1 and traverses down to the handler; the response retraces the stack back out. In the source, the call order is <strong>inverted</strong>: the first <code>.layer()</code> call is the innermost layer, and the last <code>.layer()</code> call is the outermost.</p>
+<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a layer of your own that watches requests is a decision about which sub-router you wrap — consumers who want to watch only mutations attach to a sub-router; consumers who want to watch everything attach to the merged router returned by <code>Foundry::…build()</code>.</p>
 <p><strong>Worked consumer example.</strong> A consumer appending two custom layers on top of the framework stack:</p>
 <pre class="playground"><code class="language-rust">use ferra::Foundry;
 <span class="boring">use ferra::FerraModel;
@@ -3751,17 +3918,17 @@ let layer = FerraLayer::new().cors(cors).build();
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">use axum::{extract::Request, middleware::{from_fn, Next}, response::Response};
-</span><span class="boring">async fn observe(request: Request, next: Next) -&gt; Response { next.run(request).await }
+</span><span class="boring">async fn audit(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">async fn shed_load(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Film&gt;().build()
-    .layer(from_fn(observe))      // outer: sees requests before the framework
+    .layer(from_fn(audit))        // outer: sees requests before the framework
     .layer(from_fn(shed_load));   // appended AFTER → now the TRUE outermost
 <span class="boring">let _ = app;
 </span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>On incoming requests: <code>shed_load</code> runs first, then <code>observe</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
+<p>On incoming requests: <code>shed_load</code> runs first, then <code>audit</code>, then the framework stack (the table above, from the observation layer to the handler). Ferra’s observation layer does not see what the two layers you appended answer: a 503 from <code>shed_load</code> is not in the metrics, the request line or a span. On the way back out, responses traverse the stack in reverse.</p>
 <p>See also §“RFC 7807 error taxonomy” for the 429 wire body the <code>rate_limit_mapper</code> produces.</p>
 <hr>
 <h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
@@ -5323,11 +5490,36 @@ committed: the answer is a <code>500</code> and the row stands, and a replayed <
 <a href="#idempotent-creates">Idempotent creates</a>).</li>
 <li><strong>A <code>5xx</code> after a <code>POST</code> invites a duplicate retry.</strong> On a non-idempotent write, log inside <code>after_commit</code> and
 return <code>Ok(())</code>; keep <code>Err</code> for the failures a client may safely hear about.</li>
-<li><strong>The request budget cuts it.</strong> With <a href="#request-time-budget"><code>.request_budget(..)</code></a>, Ferra runs
-<code>after_commit</code> under a timeout of the budget that is left (never a <code>503</code> <code>timeout</code> after a commit). There is no
-call that reads the time left. When it runs out the hook’s future is dropped where it waits (at an <code>.await</code>), the
-answer is a <code>500</code> and the commit stands. A slow <code>COMMIT</code> can use up the whole budget: the timeout is then zero, and
-the hook is dropped at its first <code>.await</code>. Without a budget nothing bounds it.</li>
+<li><strong>The request budget cuts it.</strong> With <a href="#request-time-budget"><code>.request_budget(..)</code></a>, after a
+confirmed commit, the post-commit work Ferra runs for the request (every <code>after_commit</code>, and every <a href="#when-the-hooks-run">computed
+field</a> served after the commit) is attempted once, guaranteeing neither
+completion nor durable delivery, under one post-commit deadline per request,
+<code>max(deadline, first post-commit work + 1 s)</code>; when it expires the work is dropped and the answer is <code>500</code>
+<code>internal</code>, the commit standing. The budget has thus three phases: until a <code>COMMIT</code> starts it cuts (<code>503</code> <code>timeout</code>, nothing written); a started <code>COMMIT</code> is
+not cancelled; after a confirmed commit the post-commit deadline bounds that work. A cut after a commit is never a
+<code>503</code> <code>timeout</code>. The hook’s future is dropped where it waits (at an <code>.await</code>); there is no call that reads the
+time left. The deadline is the request’s, not the hook’s: every <code>after_commit</code> call of the request, the rows of a
+collection action included, and the computed fields share it, so, without a <code>BelongsTo</code>, a response is held at most for the budget + the
+overrun of the <code>COMMIT</code> + 1 s, whatever the number of events. The overrun is the time the <code>COMMIT</code> took past the
+budget; a slow <code>COMMIT</code> can use up the whole budget, and the hook still has its second. For a model with a
+<code>BelongsTo</code>, the read of the written row’s parents after the commit is under no deadline either: <code>acquire_timeout</code>
+bounds the wait for the connection and <code>statement_timeout</code> bounds the query; a connection not had in time for that
+read answers <code>500</code>, the commit standing. Each call cut is one
+<code>error!</code> line; a call that starts after the deadline is polled once and cut at its first <code>.await</code>. Without a
+budget nothing bounds it. A gateway or process timeout that fires before the response leaves the client with the
+outcome unknown: the write may be committed. Choose a budget below that timeout, and make a create safe to
+replay (the <a href="#idempotent-creates">idempotent create</a>).
+Before the <code>COMMIT</code>, the budget and the pool’s <code>acquire_timeout</code> can meet: the deadline that comes first answers, a
+<code>503</code> <code>timeout</code> for the budget, a <code>503</code> <code>service_unavailable</code> for the pool, and nothing is written in either case.
+Set the <code>acquire_timeout</code> under the budget so the pool’s answer is the one you see
+(<a href="#when-no-connection-can-be-had">When no connection can be had</a>).
+A <code>COMMIT</code> the database fails is told the same way, in the log. The answer is a <code>500</code> and no <code>after_commit</code> runs.
+Ferra writes one <code>error!</code> line, target <code>ferra_db::commit</code>, with the fields <code>resource</code>, <code>outcome</code> and
+<code>db.response.status_code</code>. <code>outcome = "rolled_back"</code> says the server refused the <code>COMMIT</code> (a deferred constraint, a
+<code>statement_timeout</code>, a trigger’s own error): nothing was written. <code>outcome = "unknown"</code> says the connection was
+lost or the server went away (a terminated backend, a closed socket): the write may be committed, and replaying
+the <code>POST</code> can create a duplicate, so make it idempotent. Only a <code>40001</code> or <code>40P01</code> is run again; a deferred unique
+or foreign-key violation is a <code>409</code> and writes no such line.</li>
 <li><strong>The <code>503</code> detail is served as it is</strong>, whatever the caller may read: put no value in it that the caller may not
 read.</li>
 </ul>
@@ -5478,8 +5670,9 @@ impl FerraHooks for Model {
 <li><strong>A hook is not a write boundary.</strong> A write made through <code>tx.resource</code> runs no hook of <code>N</code>, and none of <code>M</code>’s own
 when <code>N</code> is <code>M</code>: there is no re-entry. An invariant that <code>N</code> keeps in its own hooks does not hold for a write made
 from another hook; enforce it with a database constraint.</li>
-<li><strong>The rows it returns are not read-checked.</strong> A row that a <code>tx.resource</code> write returns is not checked against <code>N</code>’s
-read authority (<code>can(Get)</code>). Do not echo it to the caller.</li>
+<li><strong>A write returns <code>None</code> for a row the caller may not read.</strong> <code>tx.resource::&lt;N&gt;().create(..)</code> and <code>.update(..)</code> return
+<code>Result&lt;Option&lt;Read&gt;, FerraError&gt;</code>: <code>None</code> when the row is written and the caller may not read it under <code>N</code>’s rules
+(the <code>get</code> rule, then <code>can(Get)</code>), mounted or not. The side row stays written; <code>None</code> is never an error.</li>
 </ul>
 <hr>
 <h2 id="system-grant"><a class="header" href="#system-grant">System grant</a></h2>
@@ -5567,8 +5760,9 @@ shape of <code>T</code>, <code>{Model}WriteProjection</code> (<code>audit_entry:
 carry, so not the key), as for <code>tx.resource::&lt;N&gt;().create(..)</code> <a href="#rows-of-other-models-txresource">above</a>. Ferra
 hashes nothing: the hook computes the chain hash from the head.</li>
 </ul>
-<p>Both fail with a <code>HookError</code>, the type a hook returns, so a <code>?</code> inside a hook needs no conversion. The example drops
-the row that <code>insert</code> returns because the response carries nothing of the target.</p>
+<p>Both fail with a <code>HookError</code>, the type a hook returns, so a <code>?</code> inside a hook needs no conversion. The row that <code>insert</code>
+and <code>latest</code> return is the whole model, read-checked by nothing: never put it in a response. The example drops the row
+that <code>insert</code> returns because the response carries nothing of the target.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use ferra::FerraModel;
@@ -6058,7 +6252,9 @@ new row, and a stale <code>If-Match</code> is a <code>412</code>.</li>
 </ul>
 <p>Set a <a href="#request-time-budget">request budget</a>. Without one, only the three attempts bound the work. With
 one, the deadline cuts a handler at its next <code>.await</code> before the commit starts (<code>503</code> <code>timeout</code>, nothing written);
-a handler that blocks the thread without awaiting is not cut, and neither is a commit once it has started.</p>
+a handler that blocks the thread without awaiting is not cut, and neither is a commit once it has started. After
+the commit, the <code>after_commit</code> hooks run under the request’s one post-commit deadline, shared by every row of a
+batch (<a href="#after-commit">the three phases</a>).</p>
 <h2 id="sending-the-same-request-twice"><a class="header" href="#sending-the-same-request-twice">Sending the same request twice</a></h2>
 <p>Ferra does not deduplicate a request, and there is no <code>Idempotency-Key</code>. <code>If-Match</code> is the guard against running an
 action twice:</p>
@@ -6731,9 +6927,8 @@ as written. It computes only when it serves a body: not for
 <code>Resource::update</code> compute the row they return the same way.</p>
 <p>A value is <strong>never computed for a caller who may not <code>Get</code> the row</strong>: whether the <code>get</code> rule
 refuses it or the authority’s <code>can(Get)</code> does, the hook is not called for that caller. That holds
-for <code>Resource::create</code> and <code>Resource::update</code> too, where the view is still returned: the field
-stays at its default (<code>None</code> where the view types it <code>Option</code>) and the view is meaningless, so do
-not echo it to a caller who may not read the row (an <code>Option&lt;Read&gt;</code> is planned for 0.17.0).</p>
+for <code>Resource::create</code> and <code>Resource::update</code> too: for a caller who may not read the row they
+return <code>None</code>, the row written, and no hook is called.</p>
 <p>A write made by <code>tx.resource</code> computes <strong>inside the open transaction</strong>, as its reads do: a hook
 sees its own transaction’s state, which may still roll back. The after-commit rule governs only
 what is served to a client.</p>
@@ -6823,15 +7018,16 @@ values the logs must not hold. Ferra adds no row value of its own. A panic is lo
 <tr><td>on a read (<code>GET</code>, a list, <code>/me</code>)</td><td><code>500</code></td><td><code>computed field failed</code></td></tr>
 <tr><td>on a read, the request budget runs out</td><td><code>503</code> <code>timeout</code>, no partial body</td><td>nothing from the compute</td></tr>
 <tr><td>on a write response, after the commit</td><td><code>500</code>; <strong>the write is committed</strong></td><td><code>computed field failed; the write is committed</code></td></tr>
-<tr><td>on a write response, the budget runs out</td><td><code>500</code>; <strong>the write is committed</strong></td><td><code>committed; computed field cut by the request budget</code></td></tr>
+<tr><td>on a write response, the post-commit deadline runs out</td><td><code>500</code>; <strong>the write is committed</strong></td><td><code>committed; computed field cut by the request budget</code></td></tr>
 </tbody>
 </table>
 </div>
 <p>On a write the <code>500</code> does not undo anything: the row exists, the same as when
 <a href="#behaviors-1"><code>after_commit</code></a> fails. A client that replays the request can create a
-duplicate. From the first commit of the request on, every hook runs under what is left of the
-request budget (without a budget, nothing bounds it) and a cut answers <code>500</code>, never <code>503</code>
-<code>timeout</code>, because that answer says that nothing was written. That holds for a write response, and
+duplicate. From the first commit of the request on, every hook runs under the request’s one
+post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code>, shared with <code>after_commit</code>
+(without a budget, nothing bounds it; see <a href="#after-commit">Behaviors</a>) and a cut
+answers <code>500</code>, never <code>503</code> <code>timeout</code>, because that answer says that nothing was written. That holds for a write response, and
 also for a read of a hand-written route after a <code>Resource::create</code> or an <code>update</code> of the same
 request, and for a <code>tx.resource</code> write in the hook of a later write. Before any commit the budget
 layer cuts the request itself with <code>503</code> <code>timeout</code>, and the transaction rolls back.</p>
@@ -6955,7 +7151,7 @@ your own needs its own key and its own constraint.</p>
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -7183,6 +7379,12 @@ pub struct Model {
 </table>
 </div>
 <p>The omitted-sort default is deterministic: <code>ORDER BY &lt;primary-key-col&gt; ASC</code>. Repeated identical requests return rows in identical order. Two rows whose sort-column values are equal are tiebroken by the primary-key default. Composite-PK models tiebreak on <code>primary_key_fields[0]</code> per the declaration-order rule pinned in ADR-0029.</p>
+<h3 id="where-null-sorts"><a class="header" href="#where-null-sorts">Where <code>NULL</code> sorts</a></h3>
+<p>Ferra writes no <code>NULLS FIRST</code> or <code>NULLS LAST</code>, so a nullable sortable field (<code>Option&lt;T&gt;</code>) sorts as PostgreSQL sorts: a row whose value is <code>NULL</code> comes <strong>last</strong> for <code>?sort=year</code> and <strong>first</strong> for <code>?sort=-year</code>. Rows with equal values, <code>NULL</code> included, are then ordered by primary key ascending. A test pins both directions, so changing this later is a listed change, not a silent one.</p>
+<p>A cursor key is never nullable (<code>FRG-352</code>), so a cursor walk has no <code>NULL</code> to place; the rule above is the page-mode one.</p>
+<h3 id="one-sort-criterion"><a class="header" href="#one-sort-criterion">One sort criterion</a></h3>
+<p><code>sort</code> names <strong>one</strong> field. <code>?sort=title,year</code> is not a list of two criteria: the whole string <code>title,year</code> is looked up as a field name, is not one, and the answer is the 400 <code>not_sortable</code> of the next section. Ties are broken by the primary key, never by a second field of yours.</p>
+<p><code>Resource&lt;M&gt;::list</code> in a route of your own has no 400 to give for a <code>sort</code> the generated route would refuse: a <code>sort</code> on a field that is not <code>#[field(sortable)]</code>, or that the caller may not read, keeps the default order (primary key ascending). Name the field by its Rust name there.</p>
 <h3 id="rejection-shape"><a class="header" href="#rejection-shape">Rejection shape</a></h3>
 <p>A request naming a non-safelisted sort field (<code>?sort=director</code> when <code>director</code> is not marked sortable) returns HTTP 400 with <code>application/problem+json</code>:</p>
 <pre><code class="language-json">{
@@ -7272,6 +7474,8 @@ pub struct Model {
 <li><code>?cursor=…&amp;page=2</code> on a <code>both</code>-mode model →
 <code>detail: "cursor and page are mutually exclusive on this collection"</code>.</li>
 </ul>
+<h3 id="page-size"><a class="header" href="#page-size">Page size</a></h3>
+<p><code>per_page</code> defaults to 20 and is held to 1..100 <strong>silently</strong>: <code>?per_page=500</code> answers 200 with at most 100 rows, <code>?per_page=0</code> answers one row per page, and neither answers a 400 or a <code>Warning</code> header (RFC 9111 §5.5 obsoletes <code>Warning</code>). The applied size is the one to read: a <code>page</code>-mode body carries <code>per_page: 100</code>, and, in the HAL representation, each of its links (<code>self</code>, <code>first</code>, <code>prev</code>, <code>next</code>, <code>last</code>) repeats <code>per_page=100</code>. Only a <code>per_page</code> that is not a non-negative integer, or does not fit 32 bits (above 4294967295), is refused (<code>invalid_parameter</code>, see Edge cases). <code>Resource&lt;M&gt;::list</code> and <code>list_cursor</code> hold the same bounds.</p>
 <hr>
 <h2 id="cursor-pagination"><a class="header" href="#cursor-pagination">Cursor pagination</a></h2>
 <p>Cursor pagination (also called <strong>keyset</strong> pagination) tracks the boundary of the previous page via an opaque cursor token instead of an offset. It has two qualities <code>page</code> pagination lacks:</p>
@@ -7441,7 +7645,7 @@ is no separate auth dependency to add.</p>
 majors of Sea-ORM does not compile: <code>FRG-400</code>):</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -7841,12 +8045,17 @@ only and answers 401 on a key request: a handler that must accept both extracts
 malformed key are the same 401 as a bad token: same body, same headers. A malformed
 key (not exactly <code>ferra_&lt;16 hex&gt;_&lt;64 hex&gt;</code>) never reaches the database.</li>
 <li><strong>When the store fails</strong> (database down, pool timeout) on a well-formed key, the answer
-is 503 <code>identity_unavailable</code>, the same body as an unreachable key set; the failure
+is 503 <code>identity_unavailable</code>, the same body as an unreachable key set. It fails closed:
+the handler never runs, and the answer is never a 401 or a pass-through, a saturated
+pool included (0.17.0). The key store does not answer <code>service_unavailable</code>, which
+speaks for the operation, not the credential. The failure
 goes to a <code>warn</code> trace (<code>credential refused</code>, <code>reason = "store_unavailable"</code>, the
 key’s prefix), never to the response. The trace holds no text of the database error (no
 host name, no message): when the store’s error is a Sea-ORM database error, or one wrapping a
 <code>DbErr</code> as its <code>source</code>, that carries a SQLSTATE, the five characters are in the field <code>db.response.status_code</code>; any other
-store error logs no such field.</li>
+store error logs no such field. A store that shares a saturated pool writes that one line
+per refused request, and no <code>ferra_db::pool</code> line; give it a small pool of its own (see
+<a href="#when-no-connection-can-be-had">When no connection can be had</a>).</li>
 <li><strong>Last use</strong> (<code>ApiKeyConfig::track_last_use()</code>, off by default) records <code>last_used_at</code>
 without slowing the request: after a verified request whose key has no last use, or one
 older than a minute, the write is spawned and never awaited. At most eight such writes
@@ -8033,11 +8242,13 @@ route that reads no caller. A CORS preflight is exempt from authentication, as b
 <code>ferra_http::credential</code>, with <code>credential</code> (<code>token</code>, <code>api_key</code> or <code>cookie</code>), <code>api_key.prefix</code>
 when the key is well formed, and a <code>reason</code>. The secret, the token and any cookie
 value are never logged.</li>
-<li><strong>Accepted requests are traced.</strong> The request span of the default trace layer carries
-<code>credential</code> and, for a key, <code>api_key.prefix</code>: a trace says which key acted. A custom
-<code>trace_layer(...)</code> builds its own span and does not get these fields; it also sees the
-request headers, so mark <code>Authorization</code>, <code>Cookie</code> and your key header sensitive in it
-(<code>tower_http::sensitive_headers</code>) before logging any header.</li>
+<li><strong>Accepted requests are traced.</strong> The request span (<code>request</code>, opened once per request
+by <code>Foundry::build()</code>) carries <code>credential</code> (<code>token</code>, <code>cookie</code> or <code>api_key</code>) for a
+credential Ferra verified, and no other attribute about it: not the key’s prefix, which
+only the <code>warn</code> of a refused key carries. A custom <code>trace_layer(...)</code> builds its own span
+and does not get this field; it also sees the request headers, so mark <code>Authorization</code>,
+<code>Cookie</code> and your key header sensitive in it (<code>tower_http::sensitive_headers</code>) before
+logging any header.</li>
 <li><strong>Throttle at the platform.</strong> The mutation rate limiter covers writes only and runs
 after the credential layer; reads are never throttled. A well-formed key that does not
 exist costs one indexed <code>SELECT</code>, and on a scaled-to-zero database it can wake the
@@ -8884,9 +9095,11 @@ refuses gets the 404 first (see Projections and authorization). A soft-deleted r
 and <code>delete</code>; <code>restore</code> reads it on purpose and applies the same 404 rule.</p>
 <h2 id="where-auth-sits-in-the-request-pipeline"><a class="header" href="#where-auth-sits-in-the-request-pipeline">Where auth sits in the request pipeline</a></h2>
 <p>Outermost first, as a request traverses it:</p>
-<pre><code class="language-text">CORS  →  auth  →  body-size limit  →  tracing  →  route  →  rate limit (mutations)
-      →  handler: #[authorize] check  →  body parse  →  validation  →  database
+<pre><code class="language-text">observation (request span, request line, metrics)  →  cache defaults  →  request budget
+      →  CORS  →  auth  →  body-size limit  →  trace slot (empty unless trace_layer)  →  route
+      →  rate limit (mutations)  →  handler: #[authorize] check  →  body parse  →  validation  →  database
 </code></pre>
+<p>The full stack, layer by layer, is in <a href="#layer-ordering--how-layer-composes"><code>ferra-http.md</code> § Layer ordering</a>.</p>
 <p>Two consequences worth planning around:</p>
 <ul>
 <li><strong>Authentication precedes body parsing and validation.</strong> An unauthenticated caller
@@ -9027,7 +9240,7 @@ variants below), and the way out is the running router: you read the document at
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -9042,16 +9255,17 @@ serde   = { version = "1", features = ["derive"] }
 can return for it — 400; 401 when the model reads tokens; 403 when the rule needs an
 identity; 404 on item routes; 409 on writes; 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
 <code>restore</code> and the actions; 413 and 422 on bodies (422 on every action too); 429 on
-mutations (not under <code>no_rate_limit()</code>); 503 on writes; 500 — each an <code>application/problem+json</code> body.
-Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) declares a 503, whatever the chain: the
-database may abort it on each of its attempts (<code>retry_exhausted</code>, 0.14.0, with <code>Retry-After: 1</code>). A chain
-with <code>request_budget</code> adds a 503 to every operation, and a chain whose JWT
+mutations (not under <code>no_rate_limit()</code>); 503; 500 — each an <code>application/problem+json</code> body.
+Every operation, a read as well as a write, declares a 503, whatever the chain (0.17.0): the pool may give
+no connection in time (<code>service_unavailable</code>). Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) can
+also end in <code>retry_exhausted</code> (0.14.0, with <code>Retry-After: 1</code>). A chain
+with <code>request_budget</code> adds <code>timeout</code>, and a chain whose JWT
 source is a key set (<code>JwtConfig::key_set</code>), or that accepts API keys (<code>with_api_keys</code>),
-adds it to the operations of the models that read tokens: all are the one named response <code>ServiceUnavailable</code> of
-<code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>retry_exhausted</code>, <code>timeout</code>,
-<code>identity_unavailable</code> or <code>service_unavailable</code>, the last being a hook’s or an action handler’s
-<code>unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
-sends <code>Retry-After: 1</code> and the other three send none, so the header is named in words, not declared
+adds <code>identity_unavailable</code> to the operations of the models that read tokens: all are the one named response
+<code>ServiceUnavailable</code> of <code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>service_unavailable</code>
+(the pool, or a hook’s or an action handler’s <code>unavailable</code>), <code>retry_exhausted</code>, <code>timeout</code> or
+<code>identity_unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
+sends <code>Retry-After: 1</code> and the others send none, so the header is named in words, not declared
 in the component (it would then be declared for answers that do not send it). What the retry does:
 <a href="#transient-conflicts-are-retried"><code>ferra-http.md</code> § Transient conflicts are retried</a>.</li>
 <li><strong>Entity tags and preconditions are declared (0.14.0).</strong> Every response that serves one
@@ -9748,7 +9962,7 @@ neither replaces the other; both read the struct.</p>
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -19198,12 +19412,12 @@ copies.</p>
 </code></pre>
 <p><strong>Bad.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" } # built with sea-orm 2.x
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" } # built with sea-orm 2.x
 sea-orm = "1"                                                           # another major
 </code></pre>
 <p><strong>Good.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p><strong>Fix.</strong> Give <code>sea-orm</code> the same major version as Ferra, in <code>[dependencies]</code>,
@@ -19226,7 +19440,7 @@ there is one copy, is shown by <code>crates/ferra/tests/sea_orm_direct_style.rs<
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -19246,7 +19460,12 @@ serde   = { version = "1", features = ["derive"] }
 <hr>
 <h2 id="the-worked-example-post-filmsidpublish"><a class="header" href="#the-worked-example-post-filmsidpublish">The worked example: <code>POST /films/{id}/publish</code></a></h2>
 <p>The complete shape of a custom handler for a verb on one row — model declaration, handler signature, composition with <code>Foundry</code> — in one file. The route reaches the <code>films</code> table through <code>Resource&lt;Film&gt;</code>: it is judged by the rules of <code>PUT /films/{id}</code>, not by whatever the handler remembers to check. Drop this into a fresh <code>src/main.rs</code> whose <code>Cargo.toml</code> declares the canonical dependency set (<code>ferra</code>, <code>tokio</code>, <code>serde</code>, <code>sea-orm</code> as in <a href="#getting-started-with-ferra">Getting Started</a>, and <code>axum</code> with its <code>macros</code> feature, which <code>#[axum::debug_handler]</code> needs) and it compiles. The route is a custom handler, not a declared action: for a verb that Ferra serves itself, with its own rule, the row lock and the preconditions, see <a href="#declared-actions">Declared actions</a>.</p>
-<pre class="playground"><code class="language-rust no_run">use axum::{Json, Router, routing::post};
+<pre class="playground"><code class="language-rust no_run">use axum::{
+    Json, Router,
+    http::{StatusCode, header},
+    response::{IntoResponse, Response},
+    routing::post,
+};
 use ferra::{
     ClaimCheck, Date, FerraError, FerraIdentity, FerraJson, FerraModel, FerraPath, Foundry,
     HmacAlgorithm, JwtConfig, Resource, ResourceHandle,
@@ -19348,7 +19567,7 @@ async fn publish_film(
     // FromRequest — `FerraJson` consumes the request body. Body-
     //              consuming extractors MUST be the LAST argument.
     FerraJson(body): FerraJson&lt;PublishRequest&gt;,
-) -&gt; Result&lt;Json&lt;PublishedFilm&gt;, FerraError&gt; {
+) -&gt; Result&lt;Response, FerraError&gt; {
     // Same rules as `PUT /films/{id}`: another caller's film is a 404 and
     // the row is unchanged. Only `published` and `release_date` are written.
     let patch = film::ModelPatch {
@@ -19356,7 +19575,10 @@ async fn publish_film(
         release_date: body.release_date.map(Some),
         ..Default::default()
     };
-    let film = films.update(id, patch).await?;
+    let Some(film) = films.update(id, patch).await? else {
+        // Written, but this caller may not read the row: the route sends no body.
+        return Ok(StatusCode::NO_CONTENT.into_response());
+    };
 
     // Answer with the fields this handler exposes.
     Ok(Json(PublishedFilm {
@@ -19364,7 +19586,27 @@ async fn publish_film(
         title: film.title,
         published: film.published,
         release_date: film.release_date,
-    }))
+    })
+    .into_response())
+}
+
+// A create is the same shape: `201` and a `Location` for a caller who may read the
+// row, `201` with no body and no `Location` for one who may not.
+async fn create_film(
+    films: Resource&lt;Film&gt;,
+    FerraJson(new): FerraJson&lt;film::ModelWriteProjection&gt;,
+) -&gt; Result&lt;Response, FerraError&gt; {
+    let Some(created) = films.create(new).await? else {
+        // Written, but this caller may not read the row: 201, no body, no `Location`.
+        return Ok(StatusCode::CREATED.into_response());
+    };
+    let location = format!("/films/{}", created.id);
+    Ok((
+        StatusCode::CREATED,
+        [(header::LOCATION, location)],
+        Json(created),
+    )
+        .into_response())
 }
 
 // --- Composition with Foundry --------------------------------------
@@ -19395,6 +19637,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // handle. `ResourceHandle&lt;M&gt;: Clone` (reference counts only).
     let custom = Router::new()
         .route("/films/{id}/publish", post(publish_film))
+        .route("/films/add", post(create_film))
         .with_state(films);
 
     let app = api.merge(custom);
@@ -19405,8 +19648,9 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
 <p><code>film::ModelPatch</code> is the struct <code>#[derive(FerraModel)]</code> generates next to <code>Model</code> (<code>{Model}Patch</code>, one <code>Option&lt;T&gt;</code> per writable field, <code>None</code> leaving the column; also <code>&lt;Film as FerraViews&gt;::Patch</code>); the struct is unchanged by the <code>PATCH</code> route of 0.14.0, which reads the same <code>Value</code> it serializes to. The owner column is compared with the token’s <code>sub</code> rendered as a string, so a <code>Uuid</code> <code>owner_id</code> matches a <code>sub</code> holding that UUID (<a href="#authentication--authorization"><code>ferra-auth.md</code></a>).</p>
+<p><code>create</code> and <code>update</code> return an <code>Option</code> of the read view. <code>Some</code> is the row, written and readable by this caller: <code>publish_film</code> answers <code>200</code> with it, <code>create_film</code> answers <code>201</code> with a <code>Location</code> and the row. <code>None</code> is a row written that this caller may not read, under the rule of the generated route (the <code>get</code> rule, then the authority’s <code>can(Get)</code>): <code>publish_film</code> answers <code>204</code> with no body, and <code>create_film</code> answers <code>201</code> with no body, no <code>Location</code> and no id in any header, as the generated routes do for that caller. The <code>Location</code> is built in the <code>Some</code> arm only, so a caller who may not read the row learns nothing of its key. <code>None</code> is never an error: a refused or invalid write stays an <code>Err</code>, and the absent row’s <code>404</code> with it (<a href="#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a>).</p>
 <p><code>update</code> does what <code>PATCH /films/{id}</code> does (RFC 7396): <code>None</code> leaves the column, and a JSON object set on a stored JSON object is merged into it instead of replacing it (a <code>null</code> member removes its key). A <code>null</code> set on a field that cannot be null (<code>Some(serde_json::Value::Null)</code> on a required JSON field) is the 422 <code>required</code>.</p>
-<p><code>Resource&lt;Film&gt;</code> has six methods — <code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code> — each of which does what the generated route of the same name does: it runs the authorization checkpoint of the operation, scopes a list to the caller’s rows under <code>IsOwner</code>, stamps the owner on <code>create</code>, validates with the model’s <code>#[field(...)]</code> rules, and writes under the owner’s guard. What it hands back is the model’s <em>read view</em>, <code>&lt;Film as FerraViews&gt;::Read</code>: a <code>#[ferra(write_only)]</code> column is not a member of that type, so a route cannot send it by mistake. <a href="#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a> is the reference.</p>
+<p><code>Resource&lt;Film&gt;</code> has six methods — <code>get</code>, <code>list</code>, <code>list_cursor</code>, <code>create</code>, <code>update</code>, <code>delete</code> — each of which does what the generated route of the same name does: it runs the authorization checkpoint of the operation, scopes a list to the caller’s rows under <code>IsOwner</code>, stamps the owner on <code>create</code>, validates with the model’s <code>#[field(...)]</code> rules, and writes under the owner’s guard. What it hands back is the model’s <em>read view</em>, <code>&lt;Film as FerraViews&gt;::Read</code>: a <code>#[ferra(write_only)]</code> column is not a member of that type, so a route cannot send it by mistake. <code>create</code> and <code>update</code> hand back an <code>Option</code> of it: <code>None</code> where the generated route sends no body, because the row is written and the caller may not read it (a create then answers <code>201</code> with no body, no <code>Location</code> and no id in any header). <a href="#resourcem--a-models-rows-from-a-route-of-your-own"><code>ferra-http.md</code></a> is the reference.</p>
 <blockquote>
 <p><strong>Field rules reach a route of your own (0.13.0).</strong> A field with a
 <code>#[field(read = …, write = …)]</code> rule is judged for the bound caller by <code>Resource&lt;M&gt;</code> as it is
@@ -19428,6 +19672,19 @@ as the generated routes do (<a href="#hooks">Hooks</a>).</p>
 its three attempts returns <code>Err(FerraError::RetryExhausted)</code>: return it from your route and the client gets the
 <code>503</code> <code>retry_exhausted</code> with <code>Retry-After: 1</code>. Never replay the write in a loop of your own; the retries already
 ran (<a href="#transient-conflicts-are-retried">Transient conflicts are retried</a>).</p>
+</blockquote>
+<blockquote>
+<p><strong>A route of your own that writes twice (0.17.0).</strong> The <a href="#request-time-budget">request budget</a> is one per
+request, not one per write. After the first write has committed, the rest of the request is no longer cut: a second
+write has no deadline before its <code>COMMIT</code>, and its retry is bounded by the three attempts only. The <code>after_commit</code> of
+every write of the request shares one post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code>
+(<a href="#after-commit">After commit</a>). So the <code>after_commit</code> of a later write can be cut at once, and its
+<code>Resource&lt;M&gt;</code> call then returns <code>Err</code> while that write <strong>is committed</strong>. A <code>503</code> <code>service_unavailable</code> (no connection
+in time) or <code>retry_exhausted</code> met by a later write speaks for the operation given up, not for the request: the
+earlier write stands, and a client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2). Keep <strong>one
+write per route of your own</strong>. If a route must write twice, make a replay safe with the
+<a href="#idempotent-creates">idempotent create</a> recipe, and never send the client an error that tells it
+nothing was written.</p>
 </blockquote>
 <blockquote>
 <p><strong>No response envelope in 0.9.0.</strong> The routes <code>Foundry</code> generates answer with
@@ -19581,6 +19838,7 @@ let app: Router = api.merge(custom);
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>The framework’s Tower stack (CORS, body-limit, tracing, rate-limit on mutation routes) wraps every Ferra-mounted resource. Routes you append on the outer <code>Router</code> see the framework’s outer layers but not the per-resource inner layers — your custom endpoint does NOT inherit the rate-limit layer that mounts on the CRUD mutation sub-router. Add your own where needed.</p>
+<p>A route added with <code>.route</code> before <code>.build()</code> is inside the stack, and a panic in its handler, in one of its extractors or in a layer of yours answers <code>500</code> <code>internal</code> (no payload, no <code>Access-Control-Allow-Origin</code>) instead of ending the connection. The panic message reaches no body, label, span field or <code>tracing</code> line, but the process’s panic hook still prints it. A row your handler committed before it panicked stands, and <code>panic = "abort"</code> defeats the catch. A route merged into the router after <code>build()</code>, as above, is outside the stack: its panic is yours to catch. See <a href="#a-handler-panic-answers-500-internal-not-a-closed-connection">Migrating to 0.17</a>.</p>
 <h3 id="2-hand-rolled-router-with-no-ferra-crud-at-all"><a class="header" href="#2-hand-rolled-router-with-no-ferra-crud-at-all">2. Hand-rolled <code>Router</code> with no Ferra CRUD at all</a></h3>
 <pre class="playground"><code class="language-rust">use axum::{Router, routing::{get, post}};
 <span class="boring">use ferra::FerraModel;
@@ -19671,8 +19929,43 @@ public, no token is needed. To test it behind the layer, sign a token with
 <code>ferra::testing::bearer</code> (see <a href="#authentication--authorization"><code>ferra-auth.md</code></a> § Testing
 authenticated routes).</p>
 <hr>
+<h2 id="writing-over-several-models"><a class="header" href="#writing-over-several-models">Writing over several models</a></h2>
+<p>A generated write touches one model. A request that must write the rows of several models, all or none, goes through a
+place where Ferra holds the transaction:</p>
+<ul>
+<li><strong>A create that must write rows of other models.</strong> A <code>before_save</code> or <code>after_save</code> hook of the root model, writing
+through <code>tx.resource::&lt;N&gt;()</code> (<code>after_save</code> when a side row needs the new row’s key). The side rows are written in the
+write’s transaction, under the caller’s rules for <code>N</code>, and commit or roll back with the main row
+(<a href="#rows-of-other-models-txresource">Rows of other models</a>).</li>
+<li><strong>A change to an existing row and its neighbours.</strong> A declared action on that row, whose handler writes through
+<code>tx.resource::&lt;N&gt;()</code> (<a href="#declared-actions">Actions</a>); it has the same <code>HookTx</code> as a hook.</li>
+<li><strong>A hand-written route.</strong> Ferra has no transaction-taking method on <code>Resource&lt;M&gt;</code>: each call on it is its own
+transaction, so two calls are two transactions. If the second fails, or gets no connection (a <code>503</code>, see
+<a href="#when-no-connection-can-be-had">When no connection can be had</a>), the first stands. A method that takes a
+transaction is on the post-1.0 list, not promised. Until then, put the writes in a hook or an action.</li>
+<li><strong>A search route</strong> (a join, a full-text query) is raw access today: see below.</li>
+</ul>
+<hr>
+<h2 id="what-ferra-does-not-do-in-one-request"><a class="header" href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a></h2>
+<p>Ferra does not write a nested structure. An order and its lines are a create, then the lines’ creates (or an action
+that does both). That is a scope choice, not a limit of the database: Sea-ORM 2.0’s nested ActiveModels
+(<code>ActiveModelEx</code>, which Sea-ORM documents as unstable) can persist an order and its lines in one call, on your own
+<code>DatabaseConnection</code>. On that path, “outside Ferra’s guarantees” means this:</p>
+<ul>
+<li><strong>No authorization, first.</strong> Not the <code>#[authorize]</code> checkpoint and its <code>404</code>-first answer, not the owner scope or the
+owner and blame stamps, not the field read and write rules, not the authority’s <code>can</code> and <code>filter</code>. Nothing checks
+who is calling.</li>
+<li><strong>No validation</strong>, and no parent check or its locks (a child written under a parent it may not touch is written).</li>
+<li><strong>No hooks and no <code>after_commit</code></strong>: an invariant kept in a hook does not hold for these rows.</li>
+<li><strong>No soft-delete filter</strong>: a soft-deleted row is a row like any other.</li>
+<li><strong>No retry</strong> of <code>40001</code> or <code>40P01</code>, and <strong>none of the budget’s phases</strong>: Ferra’s repository tells the budget that a
+<code>COMMIT</code> has started, and the budget then waits for it. Your connection does not, so a route under the budget answers
+<code>503</code> <code>timeout</code> at the deadline even while your <code>COMMIT</code> runs, and that write’s outcome is unknown.</li>
+<li><strong>No preconditions and no <code>ETag</code></strong>: a stale write is not refused.</li>
+</ul>
+<hr>
 <h2 id="raw-database-access-outside-the-contract"><a class="header" href="#raw-database-access-outside-the-contract">Raw database access, outside the contract</a></h2>
-<p>Ferra hands out no repository: <code>ResourceHandle&lt;M&gt;</code> and <code>Resource&lt;M&gt;</code> are the only way to a model’s rows through Ferra, and they apply the generated routes’ rules. A query they do not cover (a join, an aggregate, a report) is yours to write against <strong>your own</strong> <code>DatabaseConnection</code>. That connection is not Ferra’s: nothing checks the caller, scopes the owner or filters soft-deleted rows for you, and it is outside Ferra’s stability contract.</p>
+<p>Ferra hands out no repository: <code>ResourceHandle&lt;M&gt;</code> and <code>Resource&lt;M&gt;</code> are the only way to a model’s rows through Ferra, and they apply the generated routes’ rules. A query they do not cover (a join, an aggregate, a report) is yours to write against <strong>your own</strong> <code>DatabaseConnection</code>. That connection is not Ferra’s: nothing checks the caller, scopes the owner or filters soft-deleted rows for you, and it is outside Ferra’s stability contract. <a href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a> lists the rest.</p>
 <p>Keep both in one state and let Axum derive each part:</p>
 <pre class="playground"><code class="language-rust">use axum::{Json, Router, extract::{FromRef, State}, http::StatusCode, routing::get};
 use ferra::{DatabaseConnection, Foundry, ResourceHandle};
@@ -19722,7 +20015,7 @@ let app: Router = builder.build().merge(
 </span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>A transaction is the same: <code>conn.begin()</code> on your connection, outside Ferra. Ferra has no transaction-taking method on <code>Resource&lt;M&gt;</code>.</p>
+<p>A transaction is the same: <code>conn.begin()</code> on your connection, outside Ferra.</p>
 <hr>
 <h2 id="cross-references-for-the-curious-reader-1"><a class="header" href="#cross-references-for-the-curious-reader-1">Cross-references (for the curious reader)</a></h2>
 <p>Pointers below trace decisions back to their arbitration. They are <em>not</em> required reading for correct use of the APIs above — every guarantee stated on this page stands on its own.</p>
@@ -19767,7 +20060,7 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/timeout</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Request Timeout Budget Exceeded</td><td><code>FerraError::Timeout</code> (request budget expired before a repository commit started)</td></tr>
 <tr><td><code>https://ferra.rs/errors/multiple_credentials</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Multiple Credentials</td><td><code>FerraError::MultipleCredentials</code> (0.12.0: a request that presents more than one credential: <code>Authorization</code>, the API key header and the cookie in any combination, and any of them twice; refused before any verification, whatever they hold)</td></tr>
 <tr><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Identity Unavailable</td><td><code>FerraError::IdentityUnavailable</code> (0.12.0: a credential could not be verified because the identity source is out of reach: the key set of the identity provider could not be fetched with no fresh key cached, or the API key store failed; no <code>Retry-After</code>)</td></tr>
-<tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (0.13.0: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach; unlike <code>timeout</code>, it can follow a commit; no <code>Retry-After</code>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (two causes, no <code>Retry-After</code>: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach (0.13.0; unlike <code>timeout</code>, it can follow a commit); or, on a generated route or a <code>Resource&lt;M&gt;</code> call, no database connection could be had in time (0.17.0): nothing of the operation was applied, so the client may retry it (an earlier write of a route of your own stands))</td></tr>
 <tr><td><code>https://ferra.rs/errors/precondition_failed</code></td><td style="text-align: right"><code>412 Precondition Failed</code></td><td>Precondition Failed</td><td>the generated <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> and <code>restore</code> routes (0.14.0: an <code>If-Match</code> or <code>If-None-Match</code> that does not hold on the row, or is no list of entity tags; the row is unchanged, the <code>detail</code> is one fixed text that echoes nothing and names no tag, and the response carries no <code>ETag</code>; a row the caller may not see is a <code>404</code> first, a wrong <code>Content-Type</code> a <code>415</code>; see <a href="#preconditions-on-a-write"><code>ferra-http.md</code> § Preconditions on a write</a>)</td></tr>
 <tr><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Retries Exhausted</td><td>the generated write routes and <code>Resource&lt;M&gt;</code> writes (0.14.0: the database aborted the write’s transaction with <code>40001</code> or <code>40P01</code> on each of its three attempts; the write given up was not applied, so the client may retry it (an earlier write of a route of your own stands); carries <code>Retry-After: 1</code>, a <code>detail</code> that is one fixed text naming no SQLSTATE, table or constraint, and <code>FerraError::RetryExhausted</code> for a <code>Resource&lt;M&gt;</code> write (0.16.0); while a request budget is set, a deadline that leaves no room for the next attempt is the <code>timeout</code> above instead)</td></tr>
 </tbody>
@@ -19869,6 +20162,11 @@ literal <code>"internal server error"</code> — no internal path fragment, no
 crate name, no underlying-library substring leaks (constitution §I). A stored
 typed JSON document that no longer decodes into its struct makes the row
 unreadable: a <code>GET</code> of it and a <code>PATCH</code> of it are a <code>500</code>, whatever the patch sets.</p>
+<p>A panic in a handler, an extractor or a layer inside the stack (a route added with <code>.route</code> before <code>.build()</code>
+included) is the same <code>500</code>, with <code>Cache-Control</code> and <code>Vary</code> but no <code>Access-Control-Allow-Origin</code>: a browser on
+another origin sees a CORS failure, not the body. Its message is in no body, label, span field or <code>tracing</code> line (the
+process’s panic hook still prints it), and one <code>error</code> line, target <code>ferra_http::observe</code>, says a handler panicked.
+A row committed before the panic stands. <code>panic = "abort"</code> defeats the catch.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/internal",
   "title": "Internal Server Error",
@@ -19902,8 +20200,9 @@ such as <code>charset</code> are ignored). Nothing is read or written.</p>
 repository commit starts. The unfinished transaction rolls back, and no
 <code>Retry-After</code> header is sent. Once a commit starts, the handler completes
 and returns its own response, never this <code>503</code>; only a model’s <code>after_commit</code>
-hook is still bounded by the remaining budget, and when it is cut the answer is
-a <code>500</code> <code>internal</code> with the commit standing. See <a href="#request-time-budget">Request time budget</a>.</p>
+hook, and the computed fields served after the commit, are still bounded, by the
+request’s one post-commit deadline (<code>max(deadline, first post-commit work + 1 s)</code>), and when
+it is cut the answer is a <code>500</code> <code>internal</code> with the commit standing. See <a href="#request-time-budget">Request time budget</a>.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/timeout",
   "title": "Request Timeout Budget Exceeded",
@@ -19938,14 +20237,13 @@ cause goes to a <code>warn</code> trace. New in 0.12.0.</p>
 }
 </code></pre>
 <h3 id="service_unavailable--503"><a class="header" href="#service_unavailable--503"><code>service_unavailable</code> — <code>503</code></a></h3>
-<p>Returned when a hook of yours returns <code>HookError::unavailable(detail)</code>: something the
-hook depends on (a queue, a payment provider) is out of reach. The <code>detail</code> is yours.
-No <code>Retry-After</code> header is sent. New in 0.13.0.</p>
-<p><strong>After a commit the write stands.</strong> The same type answers an <code>unavailable</code> returned by
-<code>after_commit</code>, which runs once the row is committed: the response is a 503, and the row
-is written. A client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2):
-read the resource first, or send an idempotency key. <code>timeout</code> says the opposite (nothing
-was committed); <code>identity_unavailable</code> is about the credential, never about your code.</p>
+<p>Two causes share the type. Neither sends a <code>Retry-After</code> header.</p>
+<p><strong>A hook of yours</strong> returns <code>HookError::unavailable(detail)</code>: something the hook depends
+on (a queue, a payment provider) is out of reach. The <code>detail</code> is yours. New in 0.13.0.
+After a commit the write stands: the same type answers an <code>unavailable</code> returned by
+<code>after_commit</code>, which runs once the row is committed, so the response is a 503 and the
+row is written. A client must not retry a non-idempotent request blindly (RFC 9110
+§ 9.2.2): read the resource first, or send an idempotency key.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/service_unavailable",
   "title": "Service Unavailable",
@@ -19953,6 +20251,43 @@ was committed); <code>identity_unavailable</code> is about the credential, never
   "detail": "the payment provider is not reachable"
 }
 </code></pre>
+<p><strong>The database connection</strong> (0.17.0): a generated route or a <code>Resource&lt;M&gt;</code> call got no
+connection from the pool within its <code>acquire_timeout</code>. The answer comes before the
+operation: nothing of it was applied, no hook ran, and the client may retry it. In a route
+of your own, an earlier write of the same handler through <code>Resource&lt;M&gt;</code> stands: do not
+retry a non-idempotent request blindly (RFC 9110 § 9.2.2). The
+<code>detail</code> is one fixed text that names neither the pool, nor the database, nor a delay:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/service_unavailable",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "the service could not handle the request in time; this operation was not applied"
+}
+</code></pre>
+<p>A saturated pool is one trigger; a database that is down or starting is the other:
+sqlx retries a refused TCP connection, and the server’s <code>53300</code> and <code>57P03</code>, until the
+<code>acquire_timeout</code>, and then the pool reports a timeout. A connection the database
+refuses at once, a wrong password (<code>28P01</code>), an unknown database (<code>3D000</code>) or a failed
+TLS handshake (a refused handshake, a bad certificate), is not this 503: sqlx does not
+retry it, Sea-ORM reports it as a connection error, not as a pool timeout, and it stays a
+500 <code>internal</code>. One <code>warn</code> line, target <code>ferra_db::pool</code>, with the
+<code>resource</code> and a fixed text, is written per refused attempt; it names no host, user,
+database or pool size. The pool is not retried by Ferra (only <code>40001</code> and <code>40P01</code> are).</p>
+<p>No <code>Retry-After</code> is sent, because no delay is known: the wait has already elapsed and
+depends on other requests. A client or a gateway backs off with full jitter on a 503
+without <code>Retry-After</code>; <code>retry_exhausted</code> is the only 503 that sends one. Set the pool’s
+<code>acquire_timeout</code> under the request budget, so that the pool answers this 503 and not the
+budget’s <a href="#timeout--503"><code>timeout</code></a>.</p>
+<p><strong>After a commit it is a 500, not this 503.</strong> On a model with a <code>BelongsTo</code>, a generated create, update, restore or item action answered with a
+representation, and a <code>Resource&lt;M&gt;</code> write, read the row’s parents once the write is
+durable. If the pool gives no connection for that read, the write stands and the answer is
+a 500 <code>internal</code> with one <code>error</code> line, <code>committed; the response could not be completed</code>, that
+carries the <code>resource</code> and the <code>operation</code>: this 503 says “not applied”, which would then be false. Read the resource before you
+retry. A plain <code>GET</code> meets the 503.</p>
+<p>For a write made through Ferra (a generated route or a <code>Resource&lt;M&gt;</code> call), <code>timeout</code> says nothing was committed; a
+write on your own connection is outside this
+(<a href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a>).
+<code>identity_unavailable</code> is about the credential, never about your code.</p>
 <h3 id="retry_exhausted--503"><a class="header" href="#retry_exhausted--503"><code>retry_exhausted</code> — <code>503</code></a></h3>
 <p>Returned when the database aborted a write’s transaction with <code>40001</code> (serialization
 failure) or <code>40P01</code> (deadlock) on each of its three attempts, a refused <code>COMMIT</code>
@@ -20267,7 +20602,7 @@ not read.</p>
 as a failure (unless <code>panic = "abort"</code>). On a read, a request budget that runs out is the
 budget’s own <code>503</code> <code>timeout</code>, with no partial body. Ferra logs one <code>error!</code> line for the request with the model, the operation and
 your message, and no row value. On a write response the row is already committed and the line
-says so; if the request budget runs out during that compute the answer is the same <code>500</code>, not
+says so; if the post-commit deadline runs out during that compute the answer is the same <code>500</code>, not
 <code>503</code> <code>timeout</code>. See <a href="#when-a-hook-fails">When a hook fails</a>.</p>
 <hr>
 <h2 id="rust-errors-and-their-causes"><a class="header" href="#rust-errors-and-their-causes">Rust errors and their causes</a></h2>
@@ -20283,7 +20618,10 @@ message, and the response body never does.</li>
 (<code>40001</code>, <code>55P03</code>…) when the database’s own answer carried one, and <code>None</code> otherwise.
 Ferra logs a database cause as its SQLSTATE and nothing else, because a Postgres
 message can quote the request’s values. The full chain stays reachable through
-<code>source()</code> for your own subscriber, which then owns the question of what it may print.</li>
+<code>source()</code> for your own subscriber, which then owns the question of what it may print.
+One exception: for a failed <code>COMMIT</code> the chain carries only the SQLSTATE and the outcome
+(rolled back or unknown), never the database error, and its message stays out of the logs
+(the <code>ferra_db::commit</code> line holds the SQLSTATE and the outcome).</li>
 <li>The same holds for a <code>HookError</code>: after a <code>?</code> on a <code>FerraError</code>, its <code>source()</code> returns that
 error, so the <code>Debug</code> of a <code>HookError</code> can quote the Postgres error, row values included.
 Do not log a <code>HookError</code> with <code>{:?}</code> where row values are sensitive.</li>
@@ -20418,6 +20756,12 @@ advances a <code>metrics::counter!</code> named <code>ferra.sunset.post_sunset_h
 on every post-sunset hit (regardless of the once-per-process dedup
 that gates the warn-event). See <a href="#foundry"><code>foundry.md</code> § “Post-sunset
 warn-event”</a> for the full surface.</p>
+<p><strong>The slug on the metrics, the span and the request line.</strong> <code>ferra.error.type</code> is the
+slug of a Ferra problem answer: the last segment of its <code>type</code> URI, one of the
+<code>ERROR_TYPES</code> above (<code>not_found</code>, <code>validation_failed</code>, <code>internal</code>…). Ferra writes it
+on the request histogram, on the request span and on the request line
+(<code>ferra_http::request</code>) of every problem answer it builds, and an answer of your own that
+carries a <code>problem+json</code> body has none. See <a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a>.</p>
 <hr>
 <h2 id="adding-a-new-uri"><a class="header" href="#adding-a-new-uri">Adding a new URI</a></h2>
 <p>The framework’s URI namespace is closed by design: a new variant
@@ -20440,6 +20784,344 @@ for the new variant.</li>
 contract is not load-bearing for consumer correctness — the URI
 table above is self-contained.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="observability-metrics-spans-and-the-request-line"><a class="header" href="#observability-metrics-spans-and-the-request-line">Observability: metrics, spans and the request line</a></h1>
+<p>What an operator can watch: five metrics, a request span with four phase spans, and one
+log line per response. The metrics need the <code>observability</code> feature of <code>ferra</code>; the spans
+and the line are always on, and cost nothing without a subscriber. Ferra ships no
+exporter and no <code>/metrics</code> route: you choose where the numbers go, and
+<a href="#who-may-read-the-scrape">Who may read the scrape</a> says where they must not.</p>
+<p>Ferra’s names are the dotted OpenTelemetry names (<code>http.server.request.duration</code>).
+Translating them is the exporter’s job: <a href="#two-prometheus-spellings">Two Prometheus spellings</a>.
+What is frozen across releases is in <a href="#stability-policy"><code>stability.md</code></a>: a metric’s name, unit
+and label set never change from 0.18.0 (a new label is a new metric), a new value of a closed label is
+an addition, and span attributes are add-only.</p>
+<hr>
+<h2 id="the-metrics"><a class="header" href="#the-metrics">The metrics</a></h2>
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["observability"] }
+metrics-exporter-prometheus = { version = "0.18", default-features = false }  # built on metrics 0.24, Ferra's copy
+# The recipe's test also uses `tokio`, `tower` with `util`, `sea-orm` with `mock`.
+</code></pre>
+<p>The exporter must record through the same <code>metrics</code> minor as Ferra (0.24, <a href="#stability-policy"><code>stability.md</code></a>): an exporter built on another copy installs a recorder Ferra never reaches, and the scrape stays empty (<code>cargo tree -d -i metrics</code> shows two copies).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Name</th><th>Kind, unit</th><th>Labels</th></tr>
+</thead>
+<tbody>
+<tr><td><code>http.server.request.duration</code></td><td>histogram, seconds</td><td><code>http.request.method</code>, <code>http.route</code>, <code>http.response.status_code</code>, <code>network.protocol.version</code>, <code>error.type</code>, <code>ferra.error.type</code></td></tr>
+<tr><td><code>ferra.db.transaction.duration</code></td><td>histogram, seconds</td><td><code>http.request.method</code>, <code>http.route</code>, <code>db.response.status_code</code></td></tr>
+<tr><td><code>ferra.db.retries</code></td><td>counter</td><td><code>http.request.method</code>, <code>http.route</code>, <code>db.response.status_code</code></td></tr>
+<tr><td><code>ferra.after_commit.failures</code></td><td>counter</td><td><code>http.request.method</code>, <code>http.route</code></td></tr>
+<tr><td><code>ferra.sunset.post_sunset_hits</code></td><td>counter</td><td><code>version</code>, <code>sunset</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Every label has a closed set of values, and none carries an id, a raw path, a query, a
+key prefix, a body, a hook’s text or a field of a model:</p>
+<ul>
+<li><code>http.request.method</code> is one of <code>GET</code>, <code>HEAD</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>, <code>CONNECT</code>,
+<code>OPTIONS</code>, <code>TRACE</code>, <code>PATCH</code>, or <code>_OTHER</code>. <strong>An extension method is recorded as <code>_OTHER</code>,
+never as its text.</strong> The list (RFC 9110’s plus <code>PATCH</code>) is closed, and Ferra offers no
+way to override it.</li>
+<li><code>http.route</code> is the route template, <code>/films/{id}</code>, never the path that was asked: a
+request for <code>/films/42</code> and one for <code>/films/43</code> are one series. It is absent when no
+route matched (an unknown path, whatever its text, is one series), and a <code>405</code> carries
+the template of the route that refused the method.</li>
+<li><code>http.response.status_code</code> is the status of the answer.</li>
+<li><code>network.protocol.version</code> is one of <code>1.0</code>, <code>1.1</code>, <code>2</code>, <code>3</code>, and absent for any other version (HTTP/0.9).</li>
+<li><code>error.type</code> is the status as a string (<code>"500"</code>, <code>"503"</code>), on a <code>5xx</code> only. It is the
+signal for a <code>5xx</code> your own handler answers, a <code>502</code> included.</li>
+<li><code>ferra.error.type</code> is the slug of a Ferra problem answer, the last segment of its type
+URI (<code>not_found</code>, <code>validation_failed</code>, <code>rate_limited</code>, <code>timeout</code>, <code>internal</code>; the
+closed list is <a href="#error-handling">Error handling</a>). It is absent on a success.
+Ferra sets it on the answers it builds and nothing else can: <strong>an answer of your own
+that carries an <code>application/problem+json</code> body has no <code>ferra.error.type</code></strong>, and an
+application layer that rewrites a Ferra answer into a success records that success
+with no slug. A layer that rewrites a Ferra error into <em>another</em> error status keeps the
+slug of the original.</li>
+<li><code>db.response.status_code</code> is <code>40001</code>, <code>40P01</code> or <code>_OTHER</code>, and absent on an attempt
+that committed. A write whose transaction ended for any other reason (a refusal, a hook
+that failed, a row that was not there) is <code>_OTHER</code>.</li>
+</ul>
+<p>What each one measures:</p>
+<ul>
+<li><strong>The request histogram</strong> runs from the entry into Ferra’s stack to the response head,
+retries and <code>after_commit</code> included. It is recorded once per response, whatever the
+answer: a <code>401</code>, a <code>404</code> for an unknown route, a <code>405</code>, the request budget’s <code>503</code> and
+the response of one of your own <code>.route</code> handlers (added before <code>build()</code>) are all in it.</li>
+<li><strong>The transaction histogram</strong> has one sample per attempt of a write that owns its
+transaction: from the opening of the transaction to the end of its <code>COMMIT</code>, or to the
+attempt’s error. The wait for a connection, the queued <code>ROLLBACK</code> and the retry’s jitter
+are not in it, and an attempt the request budget drops is not recorded.</li>
+<li><strong><code>ferra.db.retries</code></strong> counts the writes run again after the database aborted an
+attempt, with the class of that attempt. A conflict that is not transient is one
+<code>_OTHER</code> attempt and no retry.</li>
+<li><strong><code>ferra.after_commit.failures</code></strong> counts one per <code>after_commit</code> that failed on a
+committed write (an <code>Err</code>, a panic, the post-commit deadline), so a batch that fails on
+three rows counts three.</li>
+<li><strong><code>ferra.sunset.post_sunset_hits</code></strong> is the counter of a deprecated API version that
+went past its sunset date (<a href="#foundry">Foundry</a>).</li>
+</ul>
+<p>A write that a task of your own spawned has no request to name, so its transaction
+metrics carry no <code>http.request.method</code> and no <code>http.route</code>.</p>
+<p>A row the caller may not read and a row that does not exist give the same series with
+the same counts on every metric, so the scrape cannot tell them apart (contention aside:
+a concurrent writer, or an authority that is not pure, can make the hidden row record one
+more <code>_OTHER</code> attempt, or a lock wait, or a deadlock (a <code>40P01</code> attempt and a <code>ferra.db.retries</code> count)). The <em>durations</em> differ, and a scrape serves them: see
+<a href="#who-may-read-the-scrape">Who may read the scrape</a>.</p>
+<p>Not recorded, and without a knob: pool metrics, a counter of budget cuts or of
+rate-limit rejections (read them from <code>ferra.error.type</code>: <code>timeout</code>, <code>rate_limited</code>),
+<code>url.scheme</code>, and a route merged after <code>build()</code>.</p>
+<hr>
+<h2 id="two-prometheus-spellings"><a class="header" href="#two-prometheus-spellings">Two Prometheus spellings</a></h2>
+<p>An OpenTelemetry exporter turns <code>http.server.request.duration</code> into
+<code>http_server_request_duration_seconds</code> by default. <code>metrics-exporter-prometheus</code> gives
+the same name with <code>with_recommended_naming(true)</code>, which also adds <code>_total</code> to the
+counters (<code>ferra_db_retries_total</code>, <code>ferra_after_commit_failures_total</code>), and gives
+<code>http_server_request_duration</code> without it. Alert rules and dashboards are written against
+one spelling: pick it when you wire the exporter, not after.</p>
+<p>The exporter also turns the dots of the labels into underscores. The scrape of the recipe
+below has this line:</p>
+<pre><code class="language-text">http_server_request_duration_seconds_count{http_request_method="GET",http_response_status_code="404",http_route="/films/{id}",network_protocol_version="1.1",ferra_error_type="not_found"} 1
+</code></pre>
+<p><code>url.scheme</code> is not a label and not a span attribute. Ferra reads no <code>X-Forwarded-Proto</code>,
+and the scheme of the peer’s connection says nothing behind a TLS terminator. Likewise
+<code>url.query</code>, <code>http.request.method_original</code> and <code>server.address</code> are never recorded.</p>
+<hr>
+<h2 id="the-prometheus-recipe"><a class="header" href="#the-prometheus-recipe">The Prometheus recipe</a></h2>
+<p>The block below is the whole wiring, and it runs: <code>ferra-doc-playground</code> compiles and
+executes it with the rest of the guide, so a change that breaks the names it asserts
+breaks the guide’s tests. It installs a recorder, builds the application, sends one
+request and reads the scrape.</p>
+<pre class="playground"><code class="language-rust standalone_crate">use axum::{body::Body, http::Request};
+use ferra::{FerraModel, Foundry};
+use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
+use sea_orm::{DatabaseBackend, MockDatabase, entity::prelude::*};
+use serde::{Deserialize, Serialize};
+use tower::ServiceExt;
+
+mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub title: String,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // 1. The recorder, installed BEFORE `build()`: Ferra describes its metrics
+    //    (their units and help texts) while it builds.
+    let handle = PrometheusBuilder::new()
+        // `_seconds` on the histograms, `_total` on the counters.
+        .with_recommended_naming(true)
+        // Without buckets the exporter renders a summary, not a histogram. The
+        // matcher is the dotted name, not the Prometheus spelling.
+        .set_buckets_for_metric(
+            Matcher::Full("http.server.request.duration".to_owned()),
+            &amp;[0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0],
+        )?
+        .install_recorder()?;
+
+    // 2. The exporter runs no task of its own: call `run_upkeep` at an interval.
+    let upkeep = handle.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(5));
+        loop {
+            tick.tick().await;
+            upkeep.run_upkeep();
+        }
+    });
+
+    // 3. Your application. The key comes from ETAG_KEY in a real one.
+<span class="boring">    let etag_key = "e".repeat(32);
+</span>    let conn = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results([Vec::&lt;film::Model&gt;::new()])
+        .into_connection();
+    let app = Foundry::new(conn).etag_key(etag_key)?.mount::&lt;film::Model&gt;().build();
+
+    // 4. One request (no film 42 in the mock: a 404 is observed like any answer).
+    let request = Request::get("/films/42").body(Body::empty())?;
+    assert_eq!(app.oneshot(request).await?.status(), 404);
+
+    // 5. The scrape: the series is labelled with the template, not with `/films/42`.
+    let scrape = handle.render();
+    let series = |name: &amp;str| {
+        scrape
+            .lines()
+            .filter(|line| line.starts_with(name) &amp;&amp; line.contains(r#"http_route="/films/{id}""#))
+            .collect::&lt;Vec&lt;_&gt;&gt;()
+    };
+    assert!(!series("http_server_request_duration_seconds_bucket{").is_empty(), "{scrape}");
+    let count = series("http_server_request_duration_seconds_count{");
+    assert!(count.len() == 1 &amp;&amp; count[0].ends_with(" 1"), "{scrape}");
+    Ok(())
+}</code></pre>
+<p>What the recipe settles:</p>
+<ul>
+<li><strong>Install the recorder before <code>build()</code>.</strong> Ferra describes the four metrics of ADR-0085
+(units and help texts; the sunset counter carries none) when <code>build()</code> runs; a recorder installed after it never receives them, and
+the exporter takes <code>_seconds</code> from the unit.</li>
+<li><strong><code>set_buckets_for_metric</code> on the dotted name.</strong> The exporter compares the matcher with
+the metric name before it adds a suffix, so <code>Matcher::Full</code> takes
+<code>http.server.request.duration</code>, not <code>http_server_request_duration_seconds</code>. The
+boundaries above are the OpenTelemetry semantic conventions’ for this histogram. Give
+<code>ferra.db.transaction.duration</code> buckets in the same way, or it renders as a summary.</li>
+<li><strong><code>run_upkeep</code>.</strong> <code>install_recorder</code> starts no task; the handle’s <code>run_upkeep</code> drains
+the histograms, and without it they grow without bound.</li>
+<li><strong>No listener.</strong> The recipe declares <code>metrics-exporter-prometheus</code> with
+<code>default-features = false</code>, which leaves out its HTTP listener and its push gateway.
+You serve <code>handle.render()</code> yourself, and where is the next section.</li>
+<li><strong>The recorder is yours.</strong> A recorder that blocks or panics is the application’s fault,
+not Ferra’s. The transaction metrics and the <code>ferra.after_commit.failures</code> counter are
+recorded inside the handler: a recorder that panics only there gives a <code>500</code> (the panic
+is caught like a handler’s). The request histogram (<code>http.server.request.duration</code>) is
+recorded outside Ferra’s panic catch: a recorder that panics there leaves the catch
+behind, and the connection closes without a response.</li>
+<li><strong>One recorder per process.</strong> <code>install_recorder</code> installs a process-global recorder; a
+second call fails. This is why the block is <code>standalone_crate</code>: the guide’s other blocks
+run in one process and would share the recorder.</li>
+</ul>
+<hr>
+<h2 id="who-may-read-the-scrape"><a class="header" href="#who-may-read-the-scrape">Who may read the scrape</a></h2>
+<p>The scrape is operational data: routes, status codes, error rates and <em>timings</em>. Serve
+it on a private listener (a port the load balancer does not forward), or behind
+authentication. <strong>Never on the public router.</strong></p>
+<ul>
+<li>A <code>.route("/metrics", handler)</code> declared before <code>build()</code> is observed and under the
+request budget, but it is <strong>neither authenticated nor rate limited</strong>: a <code>.route</code> handler
+checks no credential unless it extracts a principal.</li>
+<li>One merged into the router <em>after</em> <code>build()</code> is neither observed nor under the budget,
+and is no more authenticated than the first.</li>
+<li>The distributions answer a question the counts do not. A row the caller may not read and
+a row that does not exist give the same series, but the time to refuse them can differ,
+and a histogram records time. Whoever reads the histograms can see that difference.</li>
+</ul>
+<hr>
+<h2 id="spans"><a class="header" href="#spans">Spans</a></h2>
+<p>Every response has one <strong>request span</strong>, opened by the observation layer that <code>build()</code>
+puts outermost, so it exists for a <code>401</code>, a <code>404</code> for an unknown route and the request
+budget’s <code>503</code> too. It is named <code>request</code>, at level <code>INFO</code>, and holds a closed set of
+fields:</p>
+<ul>
+<li><code>otel.name</code>: <code>{method} {http.route}</code>, or <code>{method}</code> when no route matched, with <code>HTTP</code>
+in place of <code>_OTHER</code>; and <code>otel.kind = "server"</code>.</li>
+<li><code>http.request.method</code>, <code>http.route</code>, <code>network.protocol.version</code>.</li>
+<li><code>url.path</code>: the path as received (percent-encoded, no query), also on an unmatched
+route. It is text the caller chose and Ferra does not truncate it: never put a secret in
+a path.</li>
+<li>On the response: <code>http.response.status_code</code>; on a <code>5xx</code>, <code>error.type</code> and
+<code>otel.status_code = "error"</code>; <code>ferra.error.type</code> on a Ferra problem answer.</li>
+<li><code>credential</code>, <code>token</code>, <code>cookie</code> or <code>api_key</code>: the credential Ferra <em>verified</em>, and only
+that one. A refused credential, two credentials, or a <code>.route</code> handler that extracts no
+principal leave it empty (the refused one is on the <code>warn</code> of <code>ferra_http::credential</code>).</li>
+</ul>
+<p>Never on a span: a query, a header, a client or server address (nor anything taken from
+<code>X-Forwarded-*</code>, <code>Forwarded</code> or <code>Host</code>), <code>http.request.method_original</code>, a claim, a
+token, a row value, an API key prefix. A layer of yours that clears the request
+extensions removes <code>credential</code> from the span, without a panic.</p>
+<p>Inside the request, four <strong>phase spans</strong> (<code>INFO</code>) are its children. Each carries
+<code>resource</code> and <code>operation</code>, and nothing else but the hook’s name on the second: no outcome,
+no attempt number, no SQLSTATE, no error text, no id.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Span</th><th>When</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ferra.authorize</code></td><td>an authorization checkpoint: on <code>get</code>, <code>list</code> and <code>me</code>, and on writes; a collection action opens one per row it checks</td></tr>
+<tr><td><code>ferra.hook</code></td><td>one per hook call, with <code>hook</code> the name of the hook method. An action handler is not a hook and has no span</td></tr>
+<tr><td><code>ferra.db.write</code></td><td>one per attempt of a write that owns its transaction, so the number of these children is the number of attempts</td></tr>
+<tr><td><code>ferra.after_commit</code></td><td>the <code>after_commit</code> of a write</td></tr>
+</tbody>
+</table>
+</div>
+<p>The slot of <code>FerraLayerBuilder::trace_layer</code> is empty by default: a request has one span and one
+line. A layer you pass there still runs, inside the request span.</p>
+<hr>
+<h2 id="the-request-line"><a class="header" href="#the-request-line">The request line</a></h2>
+<p>Each response writes one <code>tracing</code> event, target <code>ferra_http::request</code>, inside the request
+span. Its fields are <code>http.request.method</code>, <code>http.route</code>, <code>http.response.status_code</code>,
+<code>ferra.error.type</code> and <code>latency_ms</code>, and nothing else (the route is absent when none
+matched, the slug when the answer is not a Ferra problem). The level follows the status:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Status</th><th>Level</th></tr>
+</thead>
+<tbody>
+<tr><td><code>500</code></td><td><code>error</code></td></tr>
+<tr><td><code>503</code></td><td><code>warn</code></td></tr>
+<tr><td>everything else</td><td><code>info</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Ferra itself answers no other <code>5xx</code>. <strong>A <code>502</code> or a <code>504</code> your own handler answers is
+<code>info</code></strong>: read it from <code>error.type</code> on the histogram and the span, and alert there.</p>
+<p>The line is written for every request, <code>GET</code>s included, and an attacker can drive it.
+Filter on its target to keep its volume down (<code>RUST_LOG=ferra_http::request=warn</code> keeps
+the <code>503</code> and the <code>500</code>). A filter on <code>tower_http</code> no longer silences it.</p>
+<p>A <code>2xx</code> writes no <code>warn</code> and no <code>error</code> beyond five operating signals, each with its
+target:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Target</th><th>Signal</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ferra_http::retry</code></td><td>a write ran again after a transient conflict</td></tr>
+<tr><td><code>ferra_http::operations</code></td><td>a foreign key changed under the lock, and the write ran again</td></tr>
+<tr><td><code>ferra_http::sunset</code></td><td>a request reached a version past its sunset date</td></tr>
+<tr><td><code>ferra_http::api_key</code></td><td>the last use of an API key was not recorded</td></tr>
+<tr><td><code>ferra_http::policy</code></td><td>the authority failed on the row that was written</td></tr>
+</tbody>
+</table>
+</div>
+<p>The list covers the answers Ferra gives. A line Ferra writes when it returns an <code>Err</code> to
+<em>your</em> code (a <code>Resource&lt;M&gt;</code> call in a <code>.route</code> handler, a nested <code>tx.resource</code> in a hook)
+is written then; if your code discards the error and answers <code>2xx</code>, that line is
+yours, outside the list.</p>
+<p>Beside the request line, these keep their own target and are unchanged:</p>
+<ul>
+<li>the refusals: <code>ferra_http::credential</code>, <code>ferra_http::auth</code> (<code>kid_unknown</code>) and
+<code>ferra_http::rate_limit</code>;</li>
+<li><code>ferra_db::pool</code> at <code>warn</code>, for a <code>503 service_unavailable</code> (no connection in time): the
+refused request writes two <code>warn</code> lines, this one and the request line;</li>
+<li><code>ferra_db::commit</code> at <code>error</code> (<code>rolled_back</code> or <code>unknown</code>) and <code>ferra_http::error</code> at
+<code>error</code> (“committed; the response could not be completed”): both are a <code>500</code>, and the
+request line is <code>error</code> beside them.</li>
+</ul>
+<p>A handler that panics (and an extractor, or a layer inside the application) answers a
+<code>500 internal</code> with a constant body, observed once with <code>error.type="500"</code>. One <code>error</code>
+line, target <code>ferra_http::observe</code>, says “a handler panicked” with no payload: the
+payload is text the client may have influenced, so it reaches no response, label, span or
+<code>tracing</code> line. The process’s panic hook still prints it. The answer carries
+<code>Cache-Control</code> and <code>Vary</code> and no CORS header, so a browser on another origin sees a CORS
+failure. A row committed before the panic stands. <code>panic = "abort"</code> defeats all of it.</p>
+<hr>
+<h2 id="what-is-not-observed"><a class="header" href="#what-is-not-observed">What is not observed</a></h2>
+<ul>
+<li><strong>A request that ends with no response</strong>: a client that left, an outer timeout that
+drops the future. The contract is every response that leaves the built application, not
+every request that started.</li>
+<li><strong>A response made before the application</strong>: an answer the HTTP server gives
+on its own (to a malformed request line, say) never reaches Ferra.</li>
+<li><strong>A route merged after <code>build()</code>, or a layer you add outside it.</strong></li>
+<li><strong>A <code>COMMIT</code> an outer timeout drops in flight.</strong> Its outcome is unknown to the
+application: the row may or may not be there, and nothing here records it. A client that
+retries a create in that case needs the
+<a href="#idempotent-creates">idempotent create</a>.</li>
+<li><strong>A pool wait, a <code>BEGIN</code> round trip, a queued <code>ROLLBACK</code></strong>: outside the transaction histogram. The pool wait and the <code>BEGIN</code> are in the request histogram.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="deploying-to-lambda-with-neon"><a class="header" href="#deploying-to-lambda-with-neon">Deploying to Lambda with Neon</a></h1>
 <p>The complete application and OpenTofu template are in
 <a href="../../examples/lambda-neon/README.html"><code>examples/lambda-neon</code></a>. It uses Lambda
@@ -20459,11 +21141,20 @@ async fn connection(url: &amp;str) -&gt; Result&lt;DatabaseConnection, DbErr&gt;
         .acquire_timeout(Duration::from_secs(10))
         .test_before_acquire(true)
         .max_lifetime(Duration::from_secs(300))
-        .idle_timeout(Duration::from_secs(60));
+        .idle_timeout(Duration::from_secs(60))
+        .sqlx_logging(false)
+        .record_stmt_in_spans(false);
     Database::connect(options).await
 }
 <span class="boring">}</span></code></pre>
-<p>Construction performs no network connection. A request can fail while Neon is
+<p><code>sqlx_logging(false)</code> cuts sqlx’s statement lines, and <code>record_stmt_in_spans(false)</code>
+cuts the statement text from a span (it matters only under sea-orm’s <code>tracing-spans</code>
+feature); neither ever carried a bound value
+(<a href="#logging-and-tracing-of-database-activity">Logging and tracing of database activity</a>).
+sea-orm’s <code>debug-print</code> feature logs every statement with its values whatever these
+setters say; never enable it outside development. Never enable TRACE for <code>sea_orm</code>
+in production either: its connect span records the URL, password included.
+Construction performs no network connection. A request can fail while Neon is
 resuming; a subsequent acquisition reconnects. Two connections bound each
 execution environment’s pool; the maximum across concurrent Lambda environments
 still needs to fit the database’s capacity. <code>test_before_acquire</code> detects a
@@ -20480,14 +21171,20 @@ Neon service; the ordinary test suite exercises PostgreSQL directly, and the <co
 transaction’s <code>ROLLBACK</code> then waits for the thaw, and the transaction keeps its
 locks and a pooler server connection. Bound it on the server, once, for the
 role the application connects as:</p>
-<pre><code class="language-sql">ALTER ROLE CURRENT_USER SET statement_timeout = '27s';
+<pre><code class="language-sql">ALTER ROLE CURRENT_USER SET lock_timeout = '10s';
+ALTER ROLE CURRENT_USER SET statement_timeout = '27s';
 ALTER ROLE CURRENT_USER SET idle_in_transaction_session_timeout = '30s';
 </code></pre>
-<p><code>statement_timeout</code> sits just above the request budget (24 s). Below it,
+<p><code>statement_timeout</code> sits 4 s above the request budget (23 s). Below it,
 Postgres would cancel a statement Ferra is still waiting for and the client
 would get a 500 <code>internal</code> instead of the 503 <code>timeout</code>; above it, the budget
 answers first, and the server timeout only reaps a statement left running by a
-frozen environment. <code>idle_in_transaction_session_timeout</code>
+frozen environment. <code>lock_timeout</code> sits the other way, below the budget: a wait
+for a row lock ends on the server after 10 s, while the request is alive:
+Postgres aborts the transaction and the client’s <code>ROLLBACK</code> ends it. The client
+gets a 500 <code>internal</code>, never retried; the SQLSTATE (<code>55P03</code>) is in the log only. See
+<a href="#a-connection-for-a-permanent-server">A connection for a permanent server</a>.
+<code>idle_in_transaction_session_timeout</code>
 closes a session left idle inside a transaction. Role settings apply when a
 session starts, so they reach the pooled endpoint, where a session-level <code>SET</code>
 does not hold; they apply to new sessions only. The operator canary must confirm that Neon
@@ -20498,13 +21195,26 @@ on these bounds.</p>
 Ferra’s limiter has a separate bucket in each Lambda execution environment.
 The template sets burst 20 and rate 10 requests per second. Configure a body
 limit of 5,500,000 bytes, below Lambda’s synchronous 6 MB event limit, and a
-request budget of 24 seconds: the first data request also waits up to 4 seconds
-for secret loading, and 24 + 4 stays below the template’s 29-second API Gateway
-integration timeout, so the client gets Ferra’s 503 <code>timeout</code>, not a gateway 504.
-The function timeout is 30 seconds. A started database commit is awaited rather
-than canceled, and the <code>after_commit</code> hook after it is bounded by the remaining
-budget (a 500 when cut, the commit standing); the raw connection escape is
-outside the rollback guarantee.</p>
+request budget of 23 seconds. The function timeout is 30 seconds.</p>
+<p>The budget has three phases (the detail is in
+<a href="#after-commit">Behaviors</a>): until a <code>COMMIT</code> starts it cuts, with a 503
+<code>timeout</code> and nothing written; a started <code>COMMIT</code> is awaited, never canceled; after a confirmed
+commit, the <code>after_commit</code> hooks and the computed fields share one post-commit deadline,
+<code>max(deadline, first post-commit work + 1 s)</code> (a 500 when cut, the commit standing). The raw
+connection escape is outside the rollback guarantee.</p>
+<p><strong>Choose the budget under every timeout in front of it.</strong> A gateway or function timeout that fires
+before the response leaves the client with the outcome unknown: the write may be committed, so
+make a create safe to replay (the <a href="#idempotent-creates">idempotent create</a>). The
+margin here is the first data request’s secret loading (up to 4 seconds), plus the budget, plus the
+1-second post-commit floor: 4 + 23 + 1 = 28 seconds, under the template’s 29-second API Gateway
+integration timeout. It is a margin, not a guaranteed maximum: a <code>COMMIT</code> that overruns the budget
+is awaited and is not bounded, and the time it takes past the budget adds to the 28.
+For a model with a <code>BelongsTo</code>, the read of the written row’s parents after the commit
+is outside that 28-second margin and under no deadline of its own: <code>acquire_timeout</code>
+bounds the wait for the connection and <code>statement_timeout</code> bounds the query, so the read
+can add up to <code>acquire_timeout</code> + <code>statement_timeout</code>. On a create with a <code>BelongsTo</code>, a
+saturated pool can therefore push the answer past the gateway’s 29 seconds, and the gateway
+answers <code>504</code>. The recipe keeps its 10-second <code>acquire_timeout</code>, which Neon cold connects need.</p>
 <p>Keep <code>DATABASE_URL</code>, <code>JWT_SECRET</code> and <code>ETAG_KEY</code> (the entity-tag key, at least 32
 bytes, never the JWT secret) in SSM Parameter Store <code>SecureString</code>
 parameters. The template carries only their names and ARNs. The operator sets
@@ -20549,7 +21259,7 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 </code></pre>
 </li>
 <li>
@@ -20628,6 +21338,14 @@ it, so end the match with <code>_ =&gt; false</code> and name <code>Action(_)</c
 <p><strong>A removed attribute keeps a migration diagnostic for at least one minor
 version</strong>: the compiler says what to write instead (as FRG-105, FRG-106 and
 FRG-335 do for what 0.9.0 removed).</p>
+<h2 id="metrics-and-spans"><a class="header" href="#metrics-and-spans">Metrics and spans</a></h2>
+<p>With the <code>observability</code> feature, Ferra records five metrics. With or without it, each request has a request span and its phase spans (the names and labels are in
+<a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a>). The compatibility rule: from 0.18.0, a metric’s name, unit and label set are frozen (a
+new label is a new metric); a new value of a closed label is an addition; span attributes are add-only; Ferra’s
+names are the dotted OpenTelemetry names and translating them is the exporter’s job, with both Prometheus spellings
+shown: <code>http_server_request_duration_seconds</code> with OpenTelemetry exporters by default and with
+<code>metrics-exporter-prometheus</code> under <code>with_recommended_naming(true)</code>, <code>http_server_request_duration</code> otherwise; and
+the <code>metrics</code> major is in the table of third-party crates in the contract, below.</p>
 <h2 id="third-party-crates-in-the-contract"><a class="header" href="#third-party-crates-in-the-contract">Third-party crates in the contract</a></h2>
 <p>Types of other crates appear in Ferra’s signatures, and two crates are
 re-exported whole. A major version change of one of them is a break of Ferra,
@@ -20635,12 +21353,13 @@ made in a minor release and listed in the changelog.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Crate</th><th>Where you meet it</th><th>In 0.9.x</th></tr>
+<tr><th>Crate</th><th>Where you meet it</th><th>Version</th></tr>
 </thead>
 <tbody>
 <tr><td><code>axum</code></td><td><code>Foundry::build()</code> returns an <code>axum::Router</code>; extractors, middlewares</td><td>0.8</td></tr>
 <tr><td>Sea-ORM</td><td><code>ferra::sea_orm</code>, whole; the entity derives; <code>DatabaseConnection</code></td><td>2.x</td></tr>
 <tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
+<tr><td><code>metrics</code></td><td>with <code>observability</code>, Ferra records through its facade: the recorder you install (<code>metrics-exporter-prometheus</code>, <a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a>) must be built on the same copy</td><td>0.24</td></tr>
 <tr><td><code>tower-http</code></td><td><code>FerraLayerBuilder::cors</code>, <code>trace_layer</code></td><td>0.7</td></tr>
 <tr><td><code>secrecy</code></td><td><code>JwtConfig::single_secret</code> takes <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
 <tr><td><code>serde</code></td><td>every model derives it</td><td>1</td></tr>
@@ -20668,8 +21387,10 @@ with. Each release’s changelog names it and gives the line to change in your
 refuses it with <code>FRG-400</code>, and <code>cargo tree -d -i sea-orm</code> shows it. Declaring no
 <code>sea-orm</code> and writing <code>ferra::sea_orm::…</code> is supported as well.</li>
 <li><strong>A gate pins it.</strong> <code>reexport_pin</code> fails CI when the lockfile holds two copies of
-either crate, or another version than the one documented here; changing the pin
-is a decision made in one change with this page and the changelog.</li>
+<code>sea-orm</code>, <code>garde</code> or <code>metrics</code>, or another version than the one documented here; changing the pin
+is a decision made in one change with this page and the changelog. A new <code>metrics</code>
+minor (<code>0.x</code>) is a breaking change of Ferra too: a recorder built on another copy
+would receive none of Ferra’s metrics.</li>
 </ul>
 <h2 id="sea-orm-in-ferras-signatures"><a class="header" href="#sea-orm-in-ferras-signatures">Sea-ORM in Ferra’s signatures</a></h2>
 <p>Ferra’s own signatures name a Sea-ORM type in four places only:</p>
@@ -20722,11 +21443,118 @@ places listed in “Sea-ORM in Ferra’s signatures”.</li>
 <li><strong><code>reexport_pin</code></strong> — <code>ferra::sea_orm</code> and <code>ferra::garde</code> are the crates
 themselves, and neither of the two gates above can see inside a re-export: this
 one fails when <code>Cargo.lock</code> holds two copies of either, or a version other than
-the documented one (Sea-ORM 2.x, <code>garde</code> 0.23.x).</li>
+the documented one (Sea-ORM 2.x, <code>garde</code> 0.23.x). It pins <code>metrics</code> (0.24.x) the
+same way, the facade Ferra records its metrics through.</li>
 </ul>
 <p>And one test names the contract item by item
 (<code>crates/ferra/tests/contract_surface.rs</code>), so that removing one breaks the
 build on the stable toolchain too.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="migrating-from-016-to-017"><a class="header" href="#migrating-from-016-to-017">Migrating from 0.16 to 0.17</a></h1>
+<p>0.17.0 (Soaking) makes a service under load answer what it can, and says so when it cannot. Each entry below is a
+change you may notice. This page grows with the release: read the entries, then update the application’s git
+dependency to <code>v0.17.0</code>. <a href="../../CHANGELOG.html">CHANGELOG.md</a> lists every change.</p>
+<h2 id="a-pool-that-gives-no-connection-answers-503-not-500"><a class="header" href="#a-pool-that-gives-no-connection-answers-503-not-500">A pool that gives no connection answers 503, not 500</a></h2>
+<p><strong>Before.</strong> A request that waited for a database connection longer than the pool’s <code>acquire_timeout</code> answered <code>500</code>
+<code>internal</code>, the same as any database failure.</p>
+<p><strong>After.</strong> It answers <code>503</code> <code>service_unavailable</code>, with the fixed detail “the service could not handle the request in
+time; this operation was not applied”, and no <code>Retry-After</code>. The answer comes before the operation: nothing was
+applied and no hook ran, so the client may retry (an earlier write of a route of your own stands). A database that is down or starting gives the same <code>503</code> once the
+<code>acquire_timeout</code> elapses, because the pool retries a refused connection until then. A connection the database refuses
+at once (a wrong password, an unknown database) stays a <code>500</code> <code>internal</code>. One <code>warn</code> line, target <code>ferra_db::pool</code>,
+holds the resource and a fixed text. The OpenAPI document now declares the <code>503</code> (the one <code>ServiceUnavailable</code>
+response) on every operation, a read as well as a write. After a commit, if the pool gives no connection for the
+parents of the row just written, the answer is still a <code>500</code> with one <code>error</code> line, because the write stands.</p>
+<p><strong>Who is affected.</strong> A client, a gateway or an alert that treats <code>500</code> as “the service is broken” and <code>503</code> as
+“retry later”, or that matches the <code>500</code> of a saturated pool. A client generated from the OpenAPI document, which now
+sees a <code>503</code> on every operation, must be regenerated.</p>
+<p><strong>Migration.</strong> Treat <code>503</code> <code>service_unavailable</code> as transient: retry it with a backoff and full jitter, since no
+<code>Retry-After</code> is sent. Move any alert on a pool <code>500</code> to the <code>503</code> and to the <code>ferra_db::pool</code> line. Set the pool’s
+<code>acquire_timeout</code> under the request budget, so that the pool answers and not the budget’s <code>timeout</code>. See
+<a href="#service_unavailable--503"><code>service_unavailable</code></a>.</p>
+<h2 id="a-failed-commit-writes-one-ferra_dbcommit-line"><a class="header" href="#a-failed-commit-writes-one-ferra_dbcommit-line">A failed <code>COMMIT</code> writes one <code>ferra_db::commit</code> line</a></h2>
+<p>A <code>COMMIT</code> the database fails no longer writes the generic “a database error answered 500” line (target <code>ferra_http::error</code>); it writes one <code>ferra_db::commit</code> <code>error</code> line with <code>resource</code>, <code>outcome</code> and <code>db.response.status_code</code>, and the answer is still the <code>500</code>. An alert on the old line goes quiet for a failed <code>COMMIT</code>: move it to the new target.</p>
+<h2 id="resource-and-txresource-create-and-update-return-optionread"><a class="header" href="#resource-and-txresource-create-and-update-return-optionread"><code>Resource</code> and <code>TxResource</code> <code>create</code> and <code>update</code> return <code>Option&lt;Read&gt;</code></a></h2>
+<p><strong>Before.</strong> <code>Resource::create</code>, <code>Resource::update</code>, <code>TxResource::create</code> and <code>TxResource::update</code> returned <code>Result&lt;Read, FerraError&gt;</code>: the row the call had written, whether or not the caller could read it. A route that echoed it sent a row the generated route would have kept back.</p>
+<p><strong>After.</strong> They return <code>Result&lt;Option&lt;Read&gt;, FerraError&gt;</code>. <code>None</code> means the row is written and the caller may not read it under the generated route’s rule: the <code>get</code> rule on the row, then the authority’s <code>can(Get)</code>, mounted or not. An authority that panics or fails on the written row counts as “may not read” (one <code>error</code> line on <code>ferra_http::policy</code>; <code>panic = "abort"</code> defeats the catch). When it is <code>None</code> nothing derived from the row leaves the call: no computed field is called. The generated route answers that caller <code>201</code> or <code>204</code> with no body, no <code>Location</code> and no id in any header; your route should too. <code>None</code> comes only after a successful write: a refusal, a validation error and a row the caller cannot reach for update (the absent row’s <code>404</code>) stay an <code>Err</code>, as before. <code>SystemAccess::insert</code> and <code>SystemAccess::latest</code> are unchanged: they return the whole row, read-checked by nothing, and it never belongs in a response.</p>
+<p><strong>Who is affected.</strong> Code that uses the value of one of the four calls: a route of your own, and a hook that reads what <code>tx.resource::&lt;N&gt;().create(..)</code> or <code>.update(..)</code> returns. A call whose value you drop (<code>.await?;</code>) compiles unchanged.</p>
+<p><strong>Migration.</strong> Replace <code>let row = films.update(id, patch).await?;</code> by <code>let Some(row) = films.update(id, patch).await? else { return Ok(StatusCode::NO_CONTENT.into_response()) };</code> (a create answers <code>StatusCode::CREATED</code> there, with no <code>Location</code>). A handler that answers <code>Json(films.create(v).await?)</code> now sends <code>null</code> for <code>None</code>: answer a status with no body instead. See <a href="#custom-handlers">Custom handlers</a>.</p>
+<h2 id="a-handler-panic-answers-500-internal-not-a-closed-connection"><a class="header" href="#a-handler-panic-answers-500-internal-not-a-closed-connection">A handler panic answers 500 <code>internal</code>, not a closed connection</a></h2>
+<p><strong>Before.</strong> A panic in a generated route, in a route of your own added with <code>.route</code> before <code>build()</code>, in an extractor
+or in a layer of the stack ended the connection: the client saw no response, and the operator’s error rate, the
+request metric and the request span omitted the request.</p>
+<p><strong>After.</strong> The panic answers <code>500</code> <code>internal</code> with the constant body, <code>Cache-Control: no-store</code> and <code>Vary</code>. The request
+is observed once, with <code>error.type</code> <code>500</code> and <code>ferra.error.type</code> <code>internal</code> (with the <code>observability</code> feature), and one
+<code>error</code> line, target <code>ferra_http::observe</code>, “a handler panicked”, is written. The panic’s message is client-influenced
+text: it is in no body, label, span field or <code>tracing</code> line. The process’s panic hook (stderr by default) still prints
+it. The answer is made outside the per-model CORS layer, so it carries no <code>Access-Control-Allow-Origin</code>: a browser on
+another origin sees a CORS failure, not the <code>500</code>. A row committed before the panic stands. <code>panic = "abort"</code> in your
+profile defeats the catch: the process ends. A route merged into the router after <code>build()</code> is outside the stack and
+is not caught.</p>
+<p><strong>Who is affected.</strong> A client or a gateway that treated a closed connection as the signal of a handler bug, and an
+alert that counted such closures: the panic is now a <code>500</code> in the metrics and the span.</p>
+<p><strong>Migration.</strong> Alert on <code>500</code> and on the <code>ferra_http::observe</code> line. Do not rely on a panic to cancel a write: a
+panic after a commit leaves the row written. See <a href="#composing-with-foundry">Custom handlers</a> and
+<a href="#internal--500"><code>internal</code></a>.</p>
+<h2 id="every-response-writes-one-ferra_httprequest-line"><a class="header" href="#every-response-writes-one-ferra_httprequest-line">Every response writes one <code>ferra_http::request</code> line</a></h2>
+<p><strong>Before.</strong> The only line a request wrote was the one <code>tower_http</code> wrote in a model’s own stack, so a <code>401</code>, a <code>404</code> for
+an unknown route and the <code>503</code> of <code>.request_budget(..)</code> wrote none, and an operator who set <code>tower_http</code> to a quiet
+level silenced what there was.</p>
+<p><strong>After.</strong> From 0.17.0 each response writes one <code>tracing</code> event, target <code>ferra_http::request</code>, inside the request span.
+Its fields are <code>http.request.method</code>, <code>http.route</code>, <code>http.response.status_code</code>, <code>ferra.error.type</code> and <code>latency_ms</code>,
+and nothing else: no path, query, header, token, claim, body or cookie value. <code>http.route</code> is absent when no route
+matched, and <code>ferra.error.type</code> when the answer is not a Ferra problem. The level follows the status: <code>error</code> for <code>500</code>,
+<code>warn</code> for <code>503</code>, <code>info</code> for everything else, so a <code>502</code> or <code>504</code> your own handler answers is <code>info</code> (alert on
+<code>error.type</code> on the histogram or the span). The refusal events and the lines of 0.17.0’s pool and <code>COMMIT</code> work
+(<code>ferra_http::credential</code>, <code>ferra_http::auth</code>, <code>ferra_http::rate_limit</code>, <code>ferra_db::pool</code>, <code>ferra_db::commit</code>,
+<code>ferra_http::error</code>) are
+unchanged and are written beside it.</p>
+<p><strong>Who is affected.</strong></p>
+<ul>
+<li>An operator who filtered <code>tower_http</code> to keep the logs short: that filter no longer silences the request line, which
+has its own target, and the default trace layer no longer writes its <code>tower_http</code> line. Every request writes one, <code>GET</code>s included, so set <code>ferra_http::request</code> to the level you want
+(<code>RUST_LOG=ferra_http::request=warn</code> keeps the <code>503</code> and the <code>500</code>).</li>
+<li>A test or an alert that counts the <code>error</code> lines of a <code>500</code>: the request line is one more, at <code>error</code>. Select by
+target (<code>ferra_http::request</code> or not) rather than by level alone.</li>
+</ul>
+<p><strong>Migration.</strong> Add <code>ferra_http::request</code> to the log filter, and move an alert on a <code>tower_http</code> access line to it. The
+line, its levels and the other targets are in <a href="#the-request-line"><code>observability.md</code></a>.</p>
+<h2 id="the-request-span-has-one-name-per-attribute-and-api_keyprefix-is-gone"><a class="header" href="#the-request-span-has-one-name-per-attribute-and-api_keyprefix-is-gone">The request span has one name per attribute, and <code>api_key.prefix</code> is gone</a></h2>
+<p><strong>Before.</strong> Each model’s own stack opened a span named <code>request</code> with the fields <code>method</code>, <code>path</code>, <code>credential</code> and, for
+an accepted API key, <code>api_key.prefix</code>. A <code>401</code>, a <code>404</code> for an unknown route and a hand-written route had none, and a
+<code>500</code> also wrote the <code>ERROR</code> event “response failed” from <code>tower_http</code>.</p>
+<p><strong>After.</strong> From 0.17.0 one span per request is opened by the layer <code>build()</code> puts outside everything, so it exists for
+every response, and the per-model span and its <code>INFO</code> line are gone. Its attributes are a closed set, in the names of
+OpenTelemetry’s HTTP semantic conventions:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>method</code></td><td><code>http.request.method</code> (<code>_OTHER</code> for an extension method)</td></tr>
+<tr><td><code>path</code></td><td><code>url.path</code> (the path as received, percent-encoded, no query)</td></tr>
+<tr><td><code>credential</code></td><td><code>credential</code>, unchanged (<code>token</code>, <code>cookie</code> or <code>api_key</code>); recorded only for a credential Ferra verified</td></tr>
+<tr><td><code>api_key.prefix</code></td><td>dropped from the span; the prefix is on the <code>warn</code> of a refused key (<code>ferra_http::credential</code>)</td></tr>
+<tr><td>(none)</td><td><code>otel.name</code>, <code>otel.kind</code>, <code>http.route</code>, <code>network.protocol.version</code>, <code>http.response.status_code</code>, <code>ferra.error.type</code>, and on a <code>5xx</code> <code>error.type</code> and <code>otel.status_code</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>A write also has four child spans: <code>ferra.authorize</code>, <code>ferra.hook</code> (with <code>hook</code>), <code>ferra.db.write</code> (one per attempt, so
+the number of them shows the retries) and <code>ferra.after_commit</code>. Each carries <code>resource</code> and <code>operation</code> and no outcome,
+id, SQLSTATE or error text. The <code>ERROR</code> event “response failed” is gone: a <code>500</code> is the request line at <code>error</code>.</p>
+<p><strong>Who is affected.</strong></p>
+<ul>
+<li>A subscriber or a collector that masks, drops or indexes the field <code>path</code>: it must now name <code>url.path</code>, or the path
+is no longer masked (SEC-047). The same goes for <code>method</code> → <code>http.request.method</code>.</li>
+<li>A dashboard or an alert on <code>api_key.prefix</code> of an accepted request: no span carries it any more. A refused key still
+writes its prefix on the <code>warn</code>.</li>
+<li>A layer you pass to <code>FerraLayer::trace_layer</code> still runs, beside the request span and its line; the default one,
+which wrote the old span and the old line, is gone.</li>
+</ul>
+<p><strong>Migration.</strong> Rename <code>path</code> and <code>method</code> in the masking and indexing rules, move an alert on the old line to
+<code>ferra_http::request</code>, and read the credential kind from <code>credential</code> on the request span. The span and its phase spans
+are in <a href="#spans"><code>observability.md</code></a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="migrating-from-015-to-016"><a class="header" href="#migrating-from-015-to-016">Migrating from 0.15 to 0.16</a></h1>
 <p>0.16.0 (Brazing) serves a model’s relations under each side’s own rules. Each entry below is a change you may

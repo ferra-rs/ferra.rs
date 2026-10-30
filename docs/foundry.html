@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -250,7 +250,7 @@ returned router land outside the framework’s Tower stack.</p>
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -534,7 +534,7 @@ is configured the same way.</p>
 <p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
 When the <code>observability</code> feature is enabled:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["observability"] }
 </code></pre>
 <p>the framework also advances a <code>metrics::counter!</code> named
 <code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,
@@ -653,7 +653,7 @@ Use the <strong><code>FerraLayer</code></strong> builder for those.</p>
 <tr><td>CORS</td><td><code>CorsLayer::new()</code> (deny by default)</td><td><code>.cors(cors_layer)</code></td></tr>
 <tr><td>Body cap</td><td>1 MiB</td><td><code>.body_limit(bytes)</code></td></tr>
 <tr><td>Rate-limit (mutations only)</td><td>2/sec, burst 5</td><td><code>.rate_limit(RateLimitRule::new(per_second, burst_size)?)</code></td></tr>
-<tr><td>Tracing</td><td>one <code>INFO</code> event per request: method, path, status, latency, and the <code>credential</code> (<code>token</code> or <code>api_key</code>) and <code>api_key.prefix</code> of an accepted request; never the query string, headers or body</td><td><code>.trace_layer(layer)</code></td></tr>
+<tr><td>Tracing</td><td>none by default: the request span and the <code>ferra_http::request</code> line come from <code>build()</code>’s observation layer and are not set here; your own <code>TraceLayer</code> runs beside them</td><td><code>.trace_layer(layer)</code></td></tr>
 <tr><td>Base path for <code>_links</code></td><td>none</td><td><code>.base_path("/api")</code></td></tr>
 </tbody>
 </table>
@@ -942,13 +942,15 @@ let layer = FerraLayer::new().trace_layer(custom_trace).build();
 <p>Two consequences of the erasure worth knowing:</p>
 <ul>
 <li><strong><code>FerraLayer</code> carries no static evidence of which trace shape is
-mounted.</strong> Reading the type alone will not tell you whether the
-framework default or your layer is in the slot. <code>Debug</code> renders the
-slot as <code>Some("&lt;trace closure&gt;")</code> or <code>None</code>.</li>
-<li><strong>The framework default is not stored in the slot.</strong> It defaults to
-<code>None</code>, and the default layer (one <code>INFO</code> event per request: method, path
-without query string, status, latency) is produced on demand at router-construction time. That is what
-keeps <code>build()</code> callable from a <code>const</code> context:</li>
+mounted.</strong> Reading the type alone will not tell you whether your
+layer is in the slot. <code>Debug</code> renders the slot as <code>Some("&lt;trace closure&gt;")</code>
+or <code>None</code>.</li>
+<li><strong>The slot is empty by default, and an empty slot adds nothing.</strong> It
+defaults to <code>None</code>: the request span and the one <code>ferra_http::request</code>
+line of every response are written by the observation layer of <code>build()</code>,
+outside the whole stack, not by this slot. Your layer is an addition, with
+its own span and events inside the request span. An empty slot is also
+what keeps <code>build()</code> callable from a <code>const</code> context:</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -965,17 +967,18 @@ literal, not a panic on the first request.</p>
 <h3 id="composition-order--preserved"><a class="header" href="#composition-order--preserved">Composition order — preserved</a></h3>
 <p>The constitutional Tower stack order is preserved regardless of
 which knobs are overridden:</p>
-<pre><code class="language-text">CorsLayer                                       (outermost)
-  body_limit_mapper   (413 → problem+json with verbatim detail)
-    RequestBodyLimitLayer({bytes})
-      TraceLayer
-        DefaultBodyLimit::disable
-          [on mutation sub-router only:]
-            rate_limit_mapper   (429 → problem+json)
-              GovernorLayer(per_second, burst_size)
-                &lt;handlers&gt;
-          [on read sub-router:]
-            &lt;handlers&gt;
+<pre><code class="language-text">CorsLayer                                       (outermost of these; the whole stack: ferra-http.md § Layer ordering)
+  JWT / API key layer (when the model's rules need one)
+    body_limit_mapper   (413 → problem+json with verbatim detail)
+      RequestBodyLimitLayer({bytes})
+        trace slot          (empty unless `trace_layer` fills it)
+          DefaultBodyLimit::disable
+            [on mutation sub-router only:]
+              rate_limit_mapper   (429 → problem+json)
+                GovernorLayer(per_second, burst_size)
+                  &lt;handlers&gt;
+            [on read sub-router:]
+              &lt;handlers&gt;
 </code></pre>
 <p><code>FerraLayer</code> does not reorder, add, or remove layers — only swaps
 the parameters / values that flow into the existing slots.</p>
@@ -988,9 +991,16 @@ above.</p>
 rule as <code>.mount::&lt;M&gt;()</code>.</p>
 <hr>
 <h2 id="request-time-budget"><a class="header" href="#request-time-budget">Request time budget</a></h2>
-<p>Call <code>.request_budget(Duration::from_secs(25))</code> before the first mount.
+<p>Call <code>.request_budget(Duration::from_secs(10))</code> before the first mount.
 No budget applies by default. The setting survives <code>.with_auth()</code> and
-<code>.api_version()</code> in either order.</p>
+<code>.api_version()</code> in either order. Choose a value under your
+infrastructure’s timeout (a gateway, a proxy, a platform limit): 10 s plus
+the 1 s Ferra may spend after a commit stays under the lowest common
+default, Envoy’s 15 s route timeout (API Gateway allows 29 s, Heroku 30 s,
+ALB and nginx 60 s). It is a margin, not a maximum: a slow <code>COMMIT</code> is not
+cut, and for a model with a <code>BelongsTo</code> the read of the written row’s parents
+after the commit is under no deadline either (<code>acquire_timeout</code> bounds the wait
+for the connection, <code>statement_timeout</code> the query).</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::Foundry;
@@ -998,7 +1008,7 @@ use std::time::Duration;
 
 fn configure(conn: sea_orm::DatabaseConnection) {
     let _router = Foundry::new(conn)
-        .request_budget(Duration::from_secs(25))
+        .request_budget(Duration::from_secs(10))
         .route("/live", axum::routing::get(|| async { "ok" }))
         .build();
 }
@@ -1021,10 +1031,13 @@ bound the work, and the answer past them is the 503 <code>retry_exhausted</code>
 <p>Once any commit starts, the commit is never cancelled and never answered
 503 <code>timeout</code>: the handler finishes and returns its own response. The gate
 stays set until the request ends, so your own work in that handler is not cut.
-One thing is bounded: a model’s <code>after_commit</code> hook, which runs after the
-commit and before the response, gets the budget that is left. When that runs
-out the hook is dropped and the request answers 500 <code>internal</code>; the commit
-stands (see <a href="behaviors.html#after-commit">Behaviors</a>). A gateway or process
+The work Ferra itself runs after the commit is bounded: a model’s <code>after_commit</code>
+hook, which runs after the commit and before the response, and the computed
+fields served after it, share one post-commit deadline per request,
+<code>max(deadline, first post-commit work + 1 s)</code>, so a slow <code>COMMIT</code> does not
+leave them no time. When it runs out the work is dropped and the request
+answers 500 <code>internal</code>; the commit stands (see
+<a href="behaviors.html#after-commit">Behaviors</a>). A gateway or process
 timeout can still interrupt the connection; choose a budget below that
 infrastructure timeout.</p>
 <p>Generated routes use the budget automatically. To include your own
@@ -1068,9 +1081,10 @@ only when no credential was sent: an invalid one is still a 401, never
 an anonymous request.</li>
 <li>The credential is verified once per request: <code>Resource&lt;M&gt;</code> and
 <code>Principal&lt;Claims&gt;</code> in one handler share one API key lookup.</li>
-<li>The request span’s <code>credential</code> field is set on model routes only: on a declared
-route the credential is checked at extraction, after any span was created, so the
-span does not carry it.</li>
+<li>The request span’s <code>credential</code> field is recorded where Ferra verifies the credential:
+by the credential layer on a model route, and by the <code>Principal&lt;Claims&gt;</code> or
+<code>Resource&lt;M&gt;</code> extractor on a declared route. A declared route that extracts neither
+verifies nothing, so the span carries no <code>credential</code>, whatever the request sent.</li>
 </ul>
 <p>On a chain without <code>.with_auth()</code> there is no credential to read:
 <code>Principal</code> and <code>CurrentUser</code> answer 401 and their <code>Option</code> forms are
@@ -1160,7 +1174,7 @@ use std::time::Duration;
 
 fn configure(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;axum::Router, BuildError&gt; {
     Foundry::new(conn)
-        .request_budget(Duration::from_secs(25))
+        .request_budget(Duration::from_secs(10))
         .route("/live", axum::routing::get(|| async { "ok" }))
         .try_build()
 }

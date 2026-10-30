@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,7 +195,7 @@ not public in 0.9: a route of your own answers with a struct of its own
 <p>The examples on this page assume the dependencies of <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -375,7 +375,7 @@ let app = Foundry::new(conn)
 <tr><td><code>FerraError::Internal(InternalError)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code> (the cause stays in <code>source()</code>, never on the wire; see <code>ferra-error-handling.md</code> § Rust errors and their causes)</td></tr>
 <tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
 <tr><td><code>FerraError::IdentityUnavailable</code></td><td>503</td><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td><code>Identity Unavailable</code> (a key set out of reach with no fresh key cached; no <code>Retry-After</code>; see <code>ferra-auth.md</code> § Key set)</td></tr>
-<tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>; the detail is yours; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
+<tr><td><code>FerraError::ServiceUnavailable(String)</code></td><td>503</td><td><code>https://ferra.rs/errors/service_unavailable</code></td><td><code>Service Unavailable</code> (your hook’s <code>HookError::unavailable</code>, with your detail, or, from 0.17.0, no database connection in time, with a fixed detail and nothing applied; no <code>Retry-After</code>; see <code>ferra-error-handling.md</code> § <code>service_unavailable</code>)</td></tr>
 <tr><td><code>FerraError::RetryExhausted</code></td><td>503</td><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td><code>Retries Exhausted</code> (a <code>Resource&lt;M&gt;</code> write aborted on each of its three attempts; <code>Retry-After: 1</code>; answer it as a transient 503, never replay it in a loop; 0.16.0; see <code>ferra-error-handling.md</code> § <code>retry_exhausted</code>)</td></tr>
 <tr><td><em>(middleware)</em></td><td>413</td><td><code>https://ferra.rs/errors/payload_too_large</code></td><td><code>Payload Too Large</code> <sup class="footnote-reference" id="fr-middleware-1"><a href="#footnote-middleware">1</a></sup></td></tr>
 <tr><td><em>(middleware)</em></td><td>429</td><td><code>https://ferra.rs/errors/rate_limited</code></td><td><code>Too Many Requests</code> <sup class="footnote-reference" id="fr-middleware-2"><a href="#footnote-middleware">1</a></sup></td></tr>
@@ -401,7 +401,7 @@ let app = Foundry::new(conn)
   ]
 }
 </code></pre>
-<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the cause (a <code>sea_orm::DbErr</code>, a failed hook) is kept in the error’s <code>source()</code> chain for your logs and never reaches the HTTP body. The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
+<p><strong>Internals never leak.</strong> The <code>detail</code> field on a <code>500</code> is always the literal string <code>"internal server error"</code>; the cause (a <code>sea_orm::DbErr</code>, a failed hook) is kept in the error’s <code>source()</code> chain for your logs and never reaches the HTTP body. A failed <code>COMMIT</code> is the exception: its chain carries only the SQLSTATE and the outcome (rolled back or unknown), never the database error, and its message stays out of the logs (the <code>ferra_db::commit</code> line). The Axum <code>"Failed to deserialize … into the target type: "</code> prefix and any <code>axum::extract::rejection::</code> substring are stripped at the extractor boundary; only human-readable messages reach <code>errors[*].message</code>.</p>
 <p>Worked body for a 429 from the rate-limit mapper:</p>
 <pre><code class="language-json">{
   "type":   "https://ferra.rs/errors/rate_limited",
@@ -671,8 +671,8 @@ let app: Router = foundry
 <li>Your route’s own extractors (<code>FerraPath</code>, <code>FerraJson</code>) run before you call a method, so a malformed path or body can be answered <code>400</code> before the access answers <code>401</code> or <code>403</code>. What the access then refuses — <code>401</code>, <code>403</code>, <code>404</code>, <code>422</code> — is what the generated route refuses, because it is the same code: another caller’s row under <code>IsOwner</code> is a <code>404</code>, indistinguishable from a missing row.</li>
 </ol>
 <h3 id="what-it-hands-back"><a class="header" href="#what-it-hands-back">What it hands back</a></h3>
-<p><code>get</code>, <code>list</code> and <code>create</code> return the model’s <em>read view</em>, <code>&lt;M as FerraViews&gt;::Read</code>: the <code>{Model}ReadProjection</code> struct <code>#[derive(FerraModel)]</code> generates (or the projection promoted with <code>default = true</code>). A <code>#[ferra(write_only)]</code> or <code>#[ferra(skip)]</code> field is not a member of that type, so a route that serializes it cannot leak it. <code>update</code> takes <code>&lt;M as FerraViews&gt;::Patch</code>, the generated <code>{Model}Patch</code>: one <code>Option&lt;T&gt;</code> per field of the write projection, <code>None</code> meaning “leave the column” (and <code>Option&lt;Option&lt;T&gt;&gt;</code> for a nullable column, <code>Some(None)</code> writing null). Only the set columns reach the <code>UPDATE</code>; a write-only column is writable and never read back.</p>
-<p><code>create</code> and <code>update</code> return the row they wrote with the field read rules applied, but without the <code>can(Get)</code> check of the model’s <code>#[ferra(authority)]</code> that the generated routes make before they send a body (a caller who may write a row but not read it gets no body from the route). A handler of yours must not echo that value to a caller who may not read the row: check with <code>get</code> first, or send nothing. The same holds for the rows <code>tx.resource::&lt;N&gt;()</code> returns inside a hook. Their computed fields are computed only for a caller who may <code>Get</code> the row (see <a href="computed-fields.html#when-the-hooks-run">Computed fields</a>); for one who may not, the field stays at its default and the view is meaningless.</p>
+<p><code>get</code> and <code>list</code> return the model’s <em>read view</em>, <code>&lt;M as FerraViews&gt;::Read</code> (<code>create</code> and <code>update</code> return an <code>Option</code> of it, below): the <code>{Model}ReadProjection</code> struct <code>#[derive(FerraModel)]</code> generates (or the projection promoted with <code>default = true</code>). A <code>#[ferra(write_only)]</code> or <code>#[ferra(skip)]</code> field is not a member of that type, so a route that serializes it cannot leak it. <code>update</code> takes <code>&lt;M as FerraViews&gt;::Patch</code>, the generated <code>{Model}Patch</code>: one <code>Option&lt;T&gt;</code> per field of the write projection, <code>None</code> meaning “leave the column” (and <code>Option&lt;Option&lt;T&gt;&gt;</code> for a nullable column, <code>Some(None)</code> writing null). Only the set columns reach the <code>UPDATE</code>; a write-only column is writable and never read back.</p>
+<p><code>create</code> and <code>update</code> return <code>Result&lt;Option&lt;Read&gt;, FerraError&gt;</code>. <code>Some</code> is the row they wrote with the field read rules applied. <code>None</code> means the row is written and the caller may not read it under the generated route’s rule (the <code>get</code> rule on the row, then the <code>can(Get)</code> of the model’s <code>#[ferra(authority)]</code>; an authority that panics or fails counts as “may not read”, with one <code>error!</code> on <code>ferra_http::policy</code>, and <code>panic = "abort"</code> defeats that catch): the route sends such a caller no body, and a handler of yours should send none either, with no <code>Location</code> and no id. The authority’s <code>filter</code> is not consulted, as for the body of the generated write: keep <code>filter</code> equal to <code>can(Get)</code>. <code>None</code> comes only after a successful write: a refusal, a validation error or a row the caller cannot reach for update is an <code>Err</code>, the absent row’s 404 included. A caller allowed to update but not to read tells <code>None</code> from that 404, so it learns the row exists, as it does from the route’s bodiless <code>204</code>. The same holds for <code>tx.resource::&lt;N&gt;()</code> inside a hook, mounted or not. Computed fields are computed only for a caller who may read the row (see <a href="computed-fields.html#when-the-hooks-run">Computed fields</a>); for one who may not, nothing is computed.</p>
 <p>Limits, by design:</p>
 <ul>
 <li>The access serves the bare route’s projections. Selecting a named projection comes with per-projection authorization, later.</li>
@@ -697,9 +697,9 @@ let app: Router = foundry
 <tr><td><code>tower_http::cors::CorsLayer::new()</code></td><td>Deny all cross-origin; with <code>JwtConfig::with_cookie</code>, the listed origins only, with credentials, exposing <code>ETag</code> and <code>Location</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td><td><code>FerraLayer::cors(...)</code>, refused with the cookie</td></tr>
 <tr><td>413 body-limit mapper</td><td>Rewrites stock <code>text/plain</code> → <code>application/problem+json</code> with <code>type: .../payload_too_large</code></td><td>— (permanent)</td></tr>
 <tr><td><code>tower_http::limit::RequestBodyLimitLayer</code></td><td>1 MiB</td><td><code>FerraLayer::body_limit(...)</code></td></tr>
-<tr><td><code>tower_http::trace::TraceLayer</code></td><td>One <code>INFO</code> event per request: method, path (no query string), status, latency in ms, and for an accepted request the kind of credential (<code>credential</code> = <code>token</code>, <code>cookie</code> or <code>api_key</code>) and a key’s <code>api_key.prefix</code>. Never headers, bodies, a token or a key secret.</td><td><code>FerraLayer::trace_layer</code></td></tr>
+<tr><td>Trace slot</td><td>Empty: it adds nothing. A request has one span (<code>request</code>) and one <code>INFO</code>/<code>WARN</code>/<code>ERROR</code> event (target <code>ferra_http::request</code>: method, route, status, <code>ferra.error.type</code>, latency in ms), both written by the observation layer, outside everything below; the span records the kind of credential Ferra verified (<code>credential</code> = <code>token</code>, <code>cookie</code> or <code>api_key</code>) and <code>url.path</code> without the query. Never headers, bodies, a token, a key or its prefix.</td><td><code>FerraLayer::trace_layer</code> (your own <code>TraceLayer</code>, beside them)</td></tr>
 <tr><td><code>tower_governor::GovernorLayer</code> on mutation endpoints</td><td>2 mutations per second, burst 5 (<code>RateLimitRule::new(2, 5)</code>) + peer-socket-IP key</td><td><code>FerraLayer::rate_limit(RateLimitRule::new(per_second, burst))</code></td></tr>
-<tr><td>Cache default (outermost layer of <code>build()</code>)</td><td><code>Cache-Control: no-store</code> when the response has none; <code>Vary</code> merged with <code>Accept</code>, <code>Authorization</code>, <code>Cookie</code></td><td>a route’s own <code>Cache-Control</code>, see <a href="#caching">Caching</a></td></tr>
+<tr><td>Cache default (outermost layer of <code>build()</code> but the observation layer, which adds no header)</td><td><code>Cache-Control: no-store</code> when the response has none; <code>Vary</code> merged with <code>Accept</code>, <code>Authorization</code>, <code>Cookie</code></td><td>a route’s own <code>Cache-Control</code>, see <a href="#caching">Caching</a></td></tr>
 <tr><td><code>per_page</code> clamp (FR-017)</td><td>Clamped to <code>[1, 100]</code>; the body’s <code>per_page</code> is the applied value (no <code>Warning</code> header since 0.12.0)</td><td>— (constitutional)</td></tr>
 </tbody>
 </table>
@@ -791,24 +791,34 @@ let layer = FerraLayer::new().cors(cors).build();
 </span><span class="boring">}</span></code></pre>
 <h3 id="layer-ordering--how-layer-composes"><a class="header" href="#layer-ordering--how-layer-composes">Layer ordering — how <code>.layer()</code> composes</a></h3>
 <p>Tower’s <code>.layer()</code> wraps the current router as the <strong>inner</strong> service, so the <strong>last</strong> <code>.layer()</code> call becomes the <strong>outermost</strong> layer. A <code>.layer(MyCustomLayer::new())</code> appended to <code>Foundry::…build()</code> therefore wraps every Ferra-provided layer from the outside.</p>
-<p>Side-by-side: the conceptual stack (top = outermost, bottom = innermost) and the literal <code>.layer()</code> call sequence in <code>Foundry::…build()</code> (top = first call, bottom = last call). Arrows map the inversion:</p>
-<pre><code class="language-text">CONCEPTUAL stack (request top→bottom):        LITERAL call sequence (first→last in source):
-
- outer → cache defaults (Cache-Control, Vary)   (chain level, outside everything below)
-         request budget
-         CorsLayer                              .layer(DefaultBodyLimit::disable())   ← first call (innermost)
-         JWT / API key authentication
-         body_limit_mapper                      .layer(TraceLayer::new_for_http())
-         RequestBodyLimitLayer(1 MiB)           .layer(RequestBodyLimitLayer::new(1 MiB))
-         TraceLayer                             .layer(middleware::from_fn(body_limit_mapper))
-         DefaultBodyLimit::disable              .layer(CorsLayer::new())              ← last call (outermost)
-         (on mutation sub-router:)             
-           rate_limit_mapper                    [on mutation sub-router:]
-           GovernorLayer                          .layer(GovernorLayer { ... })       ← first call on mutations
- inner → handlers                                .layer(middleware::from_fn(rate_limit_mapper))  ← last (outer)
-</code></pre>
-<p><strong>Reading it:</strong> on the generated routes the order, outermost first, is cache defaults, request budget, CORS, JWT (and API key) authentication, body limit, trace, then the rate limiter on mutations. A request enters at the cache defaults (outermost), traverses down to the handler, and the response retraces the stack back out. In the source, the call order is <strong>inverted</strong> — the first <code>.layer()</code> call is the innermost layer on the merged router, and the last <code>.layer()</code> call is the outermost.</p>
-<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a custom observability layer is a decision about which sub-router you wrap — consumers who want to observe only mutations attach to a sub-router; consumers who want to observe everything attach to the merged router returned by <code>Foundry::…build()</code>.</p>
+<p>The stack <code>Foundry::…build()</code> returns, from the outermost layer (a request enters here) to the handler. Rows 1 to 5 wrap the whole application once; rows 6 to 15 are built for each mounted model:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>Layer</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>Observation layer</td><td>Records the request (span, request line, metrics under <code>observability</code>); adds and changes no header. See <a href="observability.html"><code>observability.md</code></a></td></tr>
+<tr><td>2</td><td>Cache defaults</td><td><code>Cache-Control</code> and <code>Vary</code> on every response</td></tr>
+<tr><td>3</td><td>Request budget</td><td>The 503 <code>timeout</code>, when a budget is set</td></tr>
+<tr><td>4</td><td>ETag layer, and the extensions</td><td>The ETag key, the base URL, the default representation and the mounted models, which the handlers read</td></tr>
+<tr><td>5</td><td>Version prefix (with <code>.api_version</code>)</td><td>The <code>VersionPrefix</code> extension and, with <code>.deprecated</code>, the middleware that adds <code>Sunset</code>/<code>Deprecation</code> and the post-sunset warn and counter</td></tr>
+<tr><td>6</td><td>Base path</td><td>The <code>FerraLayer::base_path</code> prefix of hypermedia links</td></tr>
+<tr><td>7</td><td>Cookie origin check</td><td>Only with <code>JwtConfig::with_cookie</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td></tr>
+<tr><td>8</td><td>CORS</td><td><code>FerraLayer::cors</code>, or the cookie origins</td></tr>
+<tr><td>9</td><td>JWT / API key authentication</td><td>Also the <code>ApiKeyHeader</code> extension (innermost on the chain), which tells the handlers which header carries API keys</td></tr>
+<tr><td>10</td><td><code>body_limit_mapper</code></td><td>Rewrites the 413 to <code>application/problem+json</code></td></tr>
+<tr><td>11</td><td><code>RequestBodyLimitLayer</code></td><td>1 MiB by default</td></tr>
+<tr><td>12</td><td>Trace slot</td><td>Empty: it holds a layer only if you passed <code>trace_layer</code></td></tr>
+<tr><td>13</td><td><code>DefaultBodyLimit::disable</code></td><td></td></tr>
+<tr><td>14</td><td><code>rate_limit_mapper</code> (mutations only)</td><td>Rewrites the 429 to <code>application/problem+json</code></td></tr>
+<tr><td>15</td><td><code>GovernorLayer</code> (mutations only)</td><td>The rate limit</td></tr>
+<tr><td>16</td><td>Handler</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<p>A request enters at row 1 and traverses down to the handler; the response retraces the stack back out. In the source, the call order is <strong>inverted</strong>: the first <code>.layer()</code> call is the innermost layer, and the last <code>.layer()</code> call is the outermost.</p>
+<p><strong>Mutation sub-router subtlety.</strong> <code>GovernorLayer</code> (rate-limit) and <code>rate_limit_mapper</code> (the 429 RFC 7807 wrapper) mount on the <strong>mutation sub-router only</strong> — never on the merged router and never on read routes. <code>rate_limit_mapper</code> is the last <code>.layer()</code> call on that sub-router, so it wraps <code>GovernorLayer</code> from the outside and sees the 429s that layer produces. Placing a layer of your own that watches requests is a decision about which sub-router you wrap — consumers who want to watch only mutations attach to a sub-router; consumers who want to watch everything attach to the merged router returned by <code>Foundry::…build()</code>.</p>
 <p><strong>Worked consumer example.</strong> A consumer appending two custom layers on top of the framework stack:</p>
 <pre class="playground"><code class="language-rust">use ferra::Foundry;
 <span class="boring">use ferra::FerraModel;
@@ -830,17 +840,17 @@ let layer = FerraLayer::new().cors(cors).build();
 </span><span class="boring">}
 </span><span class="boring">use film::Model as Film;
 </span><span class="boring">use axum::{extract::Request, middleware::{from_fn, Next}, response::Response};
-</span><span class="boring">async fn observe(request: Request, next: Next) -&gt; Response { next.run(request).await }
+</span><span class="boring">async fn audit(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">async fn shed_load(request: Request, next: Next) -&gt; Response { next.run(request).await }
 </span><span class="boring">fn demo(conn: sea_orm::DatabaseConnection) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let app = Foundry::new(conn).etag_key(std::env::var("ETAG_KEY")?)?.mount::&lt;Film&gt;().build()
-    .layer(from_fn(observe))      // outer: sees requests before the framework
+    .layer(from_fn(audit))        // outer: sees requests before the framework
     .layer(from_fn(shed_load));   // appended AFTER → now the TRUE outermost
 <span class="boring">let _ = app;
 </span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>On incoming requests: <code>shed_load</code> runs first, then <code>observe</code>, then the framework stack (CORS → <code>body_limit_mapper</code> → <code>RequestBodyLimitLayer</code> → <code>TraceLayer</code> → <code>DefaultBodyLimit::disable</code> → handlers; with the mutation-only branch adding <code>rate_limit_mapper</code> → <code>GovernorLayer</code> before mutation handlers). On the way back out, responses traverse the stack in reverse.</p>
+<p>On incoming requests: <code>shed_load</code> runs first, then <code>audit</code>, then the framework stack (the table above, from the observation layer to the handler). Ferra’s observation layer does not see what the two layers you appended answer: a 503 from <code>shed_load</code> is not in the metrics, the request line or a span. On the way back out, responses traverse the stack in reverse.</p>
 <p>See also §“RFC 7807 error taxonomy” for the 429 wire body the <code>rate_limit_mapper</code> produces.</p>
 <hr>
 <h2 id="caching"><a class="header" href="#caching">Caching</a></h2>

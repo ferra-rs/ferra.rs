@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,7 +195,7 @@ variants below), and the way out is the running router: you read the document at
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -210,16 +210,17 @@ serde   = { version = "1", features = ["derive"] }
 can return for it — 400; 401 when the model reads tokens; 403 when the rule needs an
 identity; 404 on item routes; 409 on writes; 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
 <code>restore</code> and the actions; 413 and 422 on bodies (422 on every action too); 429 on
-mutations (not under <code>no_rate_limit()</code>); 503 on writes; 500 — each an <code>application/problem+json</code> body.
-Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) declares a 503, whatever the chain: the
-database may abort it on each of its attempts (<code>retry_exhausted</code>, 0.14.0, with <code>Retry-After: 1</code>). A chain
-with <code>request_budget</code> adds a 503 to every operation, and a chain whose JWT
+mutations (not under <code>no_rate_limit()</code>); 503; 500 — each an <code>application/problem+json</code> body.
+Every operation, a read as well as a write, declares a 503, whatever the chain (0.17.0): the pool may give
+no connection in time (<code>service_unavailable</code>). Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) can
+also end in <code>retry_exhausted</code> (0.14.0, with <code>Retry-After: 1</code>). A chain
+with <code>request_budget</code> adds <code>timeout</code>, and a chain whose JWT
 source is a key set (<code>JwtConfig::key_set</code>), or that accepts API keys (<code>with_api_keys</code>),
-adds it to the operations of the models that read tokens: all are the one named response <code>ServiceUnavailable</code> of
-<code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>retry_exhausted</code>, <code>timeout</code>,
-<code>identity_unavailable</code> or <code>service_unavailable</code>, the last being a hook’s or an action handler’s
-<code>unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
-sends <code>Retry-After: 1</code> and the other three send none, so the header is named in words, not declared
+adds <code>identity_unavailable</code> to the operations of the models that read tokens: all are the one named response
+<code>ServiceUnavailable</code> of <code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>service_unavailable</code>
+(the pool, or a hook’s or an action handler’s <code>unavailable</code>), <code>retry_exhausted</code>, <code>timeout</code> or
+<code>identity_unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
+sends <code>Retry-After: 1</code> and the others send none, so the header is named in words, not declared
 in the component (it would then be declared for answers that do not send it). What the retry does:
 <a href="ferra-http.html#transient-conflicts-are-retried"><code>ferra-http.md</code> § Transient conflicts are retried</a>.</li>
 <li><strong>Entity tags and preconditions are declared (0.14.0).</strong> Every response that serves one

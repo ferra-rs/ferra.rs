@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -417,6 +417,12 @@ pub struct Model {
 </table>
 </div>
 <p>The omitted-sort default is deterministic: <code>ORDER BY &lt;primary-key-col&gt; ASC</code>. Repeated identical requests return rows in identical order. Two rows whose sort-column values are equal are tiebroken by the primary-key default. Composite-PK models tiebreak on <code>primary_key_fields[0]</code> per the declaration-order rule pinned in ADR-0029.</p>
+<h3 id="where-null-sorts"><a class="header" href="#where-null-sorts">Where <code>NULL</code> sorts</a></h3>
+<p>Ferra writes no <code>NULLS FIRST</code> or <code>NULLS LAST</code>, so a nullable sortable field (<code>Option&lt;T&gt;</code>) sorts as PostgreSQL sorts: a row whose value is <code>NULL</code> comes <strong>last</strong> for <code>?sort=year</code> and <strong>first</strong> for <code>?sort=-year</code>. Rows with equal values, <code>NULL</code> included, are then ordered by primary key ascending. A test pins both directions, so changing this later is a listed change, not a silent one.</p>
+<p>A cursor key is never nullable (<code>FRG-352</code>), so a cursor walk has no <code>NULL</code> to place; the rule above is the page-mode one.</p>
+<h3 id="one-sort-criterion"><a class="header" href="#one-sort-criterion">One sort criterion</a></h3>
+<p><code>sort</code> names <strong>one</strong> field. <code>?sort=title,year</code> is not a list of two criteria: the whole string <code>title,year</code> is looked up as a field name, is not one, and the answer is the 400 <code>not_sortable</code> of the next section. Ties are broken by the primary key, never by a second field of yours.</p>
+<p><code>Resource&lt;M&gt;::list</code> in a route of your own has no 400 to give for a <code>sort</code> the generated route would refuse: a <code>sort</code> on a field that is not <code>#[field(sortable)]</code>, or that the caller may not read, keeps the default order (primary key ascending). Name the field by its Rust name there.</p>
 <h3 id="rejection-shape"><a class="header" href="#rejection-shape">Rejection shape</a></h3>
 <p>A request naming a non-safelisted sort field (<code>?sort=director</code> when <code>director</code> is not marked sortable) returns HTTP 400 with <code>application/problem+json</code>:</p>
 <pre><code class="language-json">{
@@ -506,6 +512,8 @@ pub struct Model {
 <li><code>?cursor=…&amp;page=2</code> on a <code>both</code>-mode model →
 <code>detail: "cursor and page are mutually exclusive on this collection"</code>.</li>
 </ul>
+<h3 id="page-size"><a class="header" href="#page-size">Page size</a></h3>
+<p><code>per_page</code> defaults to 20 and is held to 1..100 <strong>silently</strong>: <code>?per_page=500</code> answers 200 with at most 100 rows, <code>?per_page=0</code> answers one row per page, and neither answers a 400 or a <code>Warning</code> header (RFC 9111 §5.5 obsoletes <code>Warning</code>). The applied size is the one to read: a <code>page</code>-mode body carries <code>per_page: 100</code>, and, in the HAL representation, each of its links (<code>self</code>, <code>first</code>, <code>prev</code>, <code>next</code>, <code>last</code>) repeats <code>per_page=100</code>. Only a <code>per_page</code> that is not a non-negative integer, or does not fit 32 bits (above 4294967295), is refused (<code>invalid_parameter</code>, see Edge cases). <code>Resource&lt;M&gt;::list</code> and <code>list_cursor</code> hold the same bounds.</p>
 <hr>
 <h2 id="cursor-pagination"><a class="header" href="#cursor-pagination">Cursor pagination</a></h2>
 <p>Cursor pagination (also called <strong>keyset</strong> pagination) tracks the boundary of the previous page via an opaque cursor token instead of an offset. It has two qualities <code>page</code> pagination lacks:</p>

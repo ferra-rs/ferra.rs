@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -214,7 +214,7 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/timeout</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Request Timeout Budget Exceeded</td><td><code>FerraError::Timeout</code> (request budget expired before a repository commit started)</td></tr>
 <tr><td><code>https://ferra.rs/errors/multiple_credentials</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Multiple Credentials</td><td><code>FerraError::MultipleCredentials</code> (0.12.0: a request that presents more than one credential: <code>Authorization</code>, the API key header and the cookie in any combination, and any of them twice; refused before any verification, whatever they hold)</td></tr>
 <tr><td><code>https://ferra.rs/errors/identity_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Identity Unavailable</td><td><code>FerraError::IdentityUnavailable</code> (0.12.0: a credential could not be verified because the identity source is out of reach: the key set of the identity provider could not be fetched with no fresh key cached, or the API key store failed; no <code>Retry-After</code>)</td></tr>
-<tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (0.13.0: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach; unlike <code>timeout</code>, it can follow a commit; no <code>Retry-After</code>)</td></tr>
+<tr><td><code>https://ferra.rs/errors/service_unavailable</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Service Unavailable</td><td><code>FerraError::ServiceUnavailable</code> (two causes, no <code>Retry-After</code>: your hook reported, with <code>HookError::unavailable</code>, that something it depends on is out of reach (0.13.0; unlike <code>timeout</code>, it can follow a commit); or, on a generated route or a <code>Resource&lt;M&gt;</code> call, no database connection could be had in time (0.17.0): nothing of the operation was applied, so the client may retry it (an earlier write of a route of your own stands))</td></tr>
 <tr><td><code>https://ferra.rs/errors/precondition_failed</code></td><td style="text-align: right"><code>412 Precondition Failed</code></td><td>Precondition Failed</td><td>the generated <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> and <code>restore</code> routes (0.14.0: an <code>If-Match</code> or <code>If-None-Match</code> that does not hold on the row, or is no list of entity tags; the row is unchanged, the <code>detail</code> is one fixed text that echoes nothing and names no tag, and the response carries no <code>ETag</code>; a row the caller may not see is a <code>404</code> first, a wrong <code>Content-Type</code> a <code>415</code>; see <a href="ferra-http.html#preconditions-on-a-write"><code>ferra-http.md</code> § Preconditions on a write</a>)</td></tr>
 <tr><td><code>https://ferra.rs/errors/retry_exhausted</code></td><td style="text-align: right"><code>503 Service Unavailable</code></td><td>Retries Exhausted</td><td>the generated write routes and <code>Resource&lt;M&gt;</code> writes (0.14.0: the database aborted the write’s transaction with <code>40001</code> or <code>40P01</code> on each of its three attempts; the write given up was not applied, so the client may retry it (an earlier write of a route of your own stands); carries <code>Retry-After: 1</code>, a <code>detail</code> that is one fixed text naming no SQLSTATE, table or constraint, and <code>FerraError::RetryExhausted</code> for a <code>Resource&lt;M&gt;</code> write (0.16.0); while a request budget is set, a deadline that leaves no room for the next attempt is the <code>timeout</code> above instead)</td></tr>
 </tbody>
@@ -316,6 +316,11 @@ literal <code>"internal server error"</code> — no internal path fragment, no
 crate name, no underlying-library substring leaks (constitution §I). A stored
 typed JSON document that no longer decodes into its struct makes the row
 unreadable: a <code>GET</code> of it and a <code>PATCH</code> of it are a <code>500</code>, whatever the patch sets.</p>
+<p>A panic in a handler, an extractor or a layer inside the stack (a route added with <code>.route</code> before <code>.build()</code>
+included) is the same <code>500</code>, with <code>Cache-Control</code> and <code>Vary</code> but no <code>Access-Control-Allow-Origin</code>: a browser on
+another origin sees a CORS failure, not the body. Its message is in no body, label, span field or <code>tracing</code> line (the
+process’s panic hook still prints it), and one <code>error</code> line, target <code>ferra_http::observe</code>, says a handler panicked.
+A row committed before the panic stands. <code>panic = "abort"</code> defeats the catch.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/internal",
   "title": "Internal Server Error",
@@ -349,8 +354,9 @@ such as <code>charset</code> are ignored). Nothing is read or written.</p>
 repository commit starts. The unfinished transaction rolls back, and no
 <code>Retry-After</code> header is sent. Once a commit starts, the handler completes
 and returns its own response, never this <code>503</code>; only a model’s <code>after_commit</code>
-hook is still bounded by the remaining budget, and when it is cut the answer is
-a <code>500</code> <code>internal</code> with the commit standing. See <a href="foundry.html#request-time-budget">Request time budget</a>.</p>
+hook, and the computed fields served after the commit, are still bounded, by the
+request’s one post-commit deadline (<code>max(deadline, first post-commit work + 1 s)</code>), and when
+it is cut the answer is a <code>500</code> <code>internal</code> with the commit standing. See <a href="foundry.html#request-time-budget">Request time budget</a>.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/timeout",
   "title": "Request Timeout Budget Exceeded",
@@ -385,14 +391,13 @@ cause goes to a <code>warn</code> trace. New in 0.12.0.</p>
 }
 </code></pre>
 <h3 id="service_unavailable--503"><a class="header" href="#service_unavailable--503"><code>service_unavailable</code> — <code>503</code></a></h3>
-<p>Returned when a hook of yours returns <code>HookError::unavailable(detail)</code>: something the
-hook depends on (a queue, a payment provider) is out of reach. The <code>detail</code> is yours.
-No <code>Retry-After</code> header is sent. New in 0.13.0.</p>
-<p><strong>After a commit the write stands.</strong> The same type answers an <code>unavailable</code> returned by
-<code>after_commit</code>, which runs once the row is committed: the response is a 503, and the row
-is written. A client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2):
-read the resource first, or send an idempotency key. <code>timeout</code> says the opposite (nothing
-was committed); <code>identity_unavailable</code> is about the credential, never about your code.</p>
+<p>Two causes share the type. Neither sends a <code>Retry-After</code> header.</p>
+<p><strong>A hook of yours</strong> returns <code>HookError::unavailable(detail)</code>: something the hook depends
+on (a queue, a payment provider) is out of reach. The <code>detail</code> is yours. New in 0.13.0.
+After a commit the write stands: the same type answers an <code>unavailable</code> returned by
+<code>after_commit</code>, which runs once the row is committed, so the response is a 503 and the
+row is written. A client must not retry a non-idempotent request blindly (RFC 9110
+§ 9.2.2): read the resource first, or send an idempotency key.</p>
 <pre><code class="language-json">{
   "type": "https://ferra.rs/errors/service_unavailable",
   "title": "Service Unavailable",
@@ -400,6 +405,43 @@ was committed); <code>identity_unavailable</code> is about the credential, never
   "detail": "the payment provider is not reachable"
 }
 </code></pre>
+<p><strong>The database connection</strong> (0.17.0): a generated route or a <code>Resource&lt;M&gt;</code> call got no
+connection from the pool within its <code>acquire_timeout</code>. The answer comes before the
+operation: nothing of it was applied, no hook ran, and the client may retry it. In a route
+of your own, an earlier write of the same handler through <code>Resource&lt;M&gt;</code> stands: do not
+retry a non-idempotent request blindly (RFC 9110 § 9.2.2). The
+<code>detail</code> is one fixed text that names neither the pool, nor the database, nor a delay:</p>
+<pre><code class="language-json">{
+  "type": "https://ferra.rs/errors/service_unavailable",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "the service could not handle the request in time; this operation was not applied"
+}
+</code></pre>
+<p>A saturated pool is one trigger; a database that is down or starting is the other:
+sqlx retries a refused TCP connection, and the server’s <code>53300</code> and <code>57P03</code>, until the
+<code>acquire_timeout</code>, and then the pool reports a timeout. A connection the database
+refuses at once, a wrong password (<code>28P01</code>), an unknown database (<code>3D000</code>) or a failed
+TLS handshake (a refused handshake, a bad certificate), is not this 503: sqlx does not
+retry it, Sea-ORM reports it as a connection error, not as a pool timeout, and it stays a
+500 <code>internal</code>. One <code>warn</code> line, target <code>ferra_db::pool</code>, with the
+<code>resource</code> and a fixed text, is written per refused attempt; it names no host, user,
+database or pool size. The pool is not retried by Ferra (only <code>40001</code> and <code>40P01</code> are).</p>
+<p>No <code>Retry-After</code> is sent, because no delay is known: the wait has already elapsed and
+depends on other requests. A client or a gateway backs off with full jitter on a 503
+without <code>Retry-After</code>; <code>retry_exhausted</code> is the only 503 that sends one. Set the pool’s
+<code>acquire_timeout</code> under the request budget, so that the pool answers this 503 and not the
+budget’s <a href="#timeout--503"><code>timeout</code></a>.</p>
+<p><strong>After a commit it is a 500, not this 503.</strong> On a model with a <code>BelongsTo</code>, a generated create, update, restore or item action answered with a
+representation, and a <code>Resource&lt;M&gt;</code> write, read the row’s parents once the write is
+durable. If the pool gives no connection for that read, the write stands and the answer is
+a 500 <code>internal</code> with one <code>error</code> line, <code>committed; the response could not be completed</code>, that
+carries the <code>resource</code> and the <code>operation</code>: this 503 says “not applied”, which would then be false. Read the resource before you
+retry. A plain <code>GET</code> meets the 503.</p>
+<p>For a write made through Ferra (a generated route or a <code>Resource&lt;M&gt;</code> call), <code>timeout</code> says nothing was committed; a
+write on your own connection is outside this
+(<a href="custom-handlers.html#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a>).
+<code>identity_unavailable</code> is about the credential, never about your code.</p>
 <h3 id="retry_exhausted--503"><a class="header" href="#retry_exhausted--503"><code>retry_exhausted</code> — <code>503</code></a></h3>
 <p>Returned when the database aborted a write’s transaction with <code>40001</code> (serialization
 failure) or <code>40P01</code> (deadlock) on each of its three attempts, a refused <code>COMMIT</code>
@@ -714,7 +756,7 @@ not read.</p>
 as a failure (unless <code>panic = "abort"</code>). On a read, a request budget that runs out is the
 budget’s own <code>503</code> <code>timeout</code>, with no partial body. Ferra logs one <code>error!</code> line for the request with the model, the operation and
 your message, and no row value. On a write response the row is already committed and the line
-says so; if the request budget runs out during that compute the answer is the same <code>500</code>, not
+says so; if the post-commit deadline runs out during that compute the answer is the same <code>500</code>, not
 <code>503</code> <code>timeout</code>. See <a href="computed-fields.html#when-a-hook-fails">When a hook fails</a>.</p>
 <hr>
 <h2 id="rust-errors-and-their-causes"><a class="header" href="#rust-errors-and-their-causes">Rust errors and their causes</a></h2>
@@ -730,7 +772,10 @@ message, and the response body never does.</li>
 (<code>40001</code>, <code>55P03</code>…) when the database’s own answer carried one, and <code>None</code> otherwise.
 Ferra logs a database cause as its SQLSTATE and nothing else, because a Postgres
 message can quote the request’s values. The full chain stays reachable through
-<code>source()</code> for your own subscriber, which then owns the question of what it may print.</li>
+<code>source()</code> for your own subscriber, which then owns the question of what it may print.
+One exception: for a failed <code>COMMIT</code> the chain carries only the SQLSTATE and the outcome
+(rolled back or unknown), never the database error, and its message stays out of the logs
+(the <code>ferra_db::commit</code> line holds the SQLSTATE and the outcome).</li>
 <li>The same holds for a <code>HookError</code>: after a <code>?</code> on a <code>FerraError</code>, its <code>source()</code> returns that
 error, so the <code>Debug</code> of a <code>HookError</code> can quote the Postgres error, row values included.
 Do not log a <code>HookError</code> with <code>{:?}</code> where row values are sensitive.</li>
@@ -865,6 +910,12 @@ advances a <code>metrics::counter!</code> named <code>ferra.sunset.post_sunset_h
 on every post-sunset hit (regardless of the once-per-process dedup
 that gates the warn-event). See <a href="./foundry.html"><code>foundry.md</code> § “Post-sunset
 warn-event”</a> for the full surface.</p>
+<p><strong>The slug on the metrics, the span and the request line.</strong> <code>ferra.error.type</code> is the
+slug of a Ferra problem answer: the last segment of its <code>type</code> URI, one of the
+<code>ERROR_TYPES</code> above (<code>not_found</code>, <code>validation_failed</code>, <code>internal</code>…). Ferra writes it
+on the request histogram, on the request span and on the request line
+(<code>ferra_http::request</code>) of every problem answer it builds, and an answer of your own that
+carries a <code>problem+json</code> body has none. See <a href="observability.html"><code>observability.md</code></a>.</p>
 <hr>
 <h2 id="adding-a-new-uri"><a class="header" href="#adding-a-new-uri">Adding a new URI</a></h2>
 <p>The framework’s URI namespace is closed by design: a new variant
@@ -895,7 +946,7 @@ table above is self-contained.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="deploying-to-lambda.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="observability.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -909,7 +960,7 @@ table above is self-contained.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="deploying-to-lambda.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="observability.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

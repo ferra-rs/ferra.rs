@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,14 +205,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
 serde   = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0", features = ["test-support"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["test-support"] }
 </code></pre>
 <p><code>ferra</code> is the only Ferra crate you declare: <code>ferra-core</code>, <code>ferra-db</code>,
 <code>ferra-forge</code>, <code>ferra-http</code> and <code>ferra-openapi</code> are reached through it, and the
@@ -286,7 +286,12 @@ impl FerraIdentity for Claims {
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    let conn = sea_orm::Database::connect(std::env::var("DATABASE_URL")?).await?;
+    // A bare URL leaves `acquire_timeout` at sqlx's 30 s, past the 10 s request
+    // budget below. Under the budget, a full pool answers 503
+    // `service_unavailable` (see ferra-db.md) instead of the budget's 503 `timeout`.
+    let mut options = sea_orm::ConnectOptions::new(std::env::var("DATABASE_URL")?);
+    options.acquire_timeout(std::time::Duration::from_secs(3));
+    let conn = sea_orm::Database::connect(options).await?;
 
     // Development only: create the table when it is missing. A real
     // application owns its schema with `sea-orm-migration`.
@@ -307,10 +312,19 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     )?;
 
     // The key that signs the entity tags: at least 32 bytes, the same on every
-    // replica, and never the JWT secret.
+    // replica, and never the JWT secret. The request budget is off unless you
+    // set it: choose a value under your infrastructure's timeout (a gateway,
+    // a proxy, a platform limit). 10 s plus the 1 s Ferra may spend after a
+    // commit stays under the lowest common default, Envoy's 15 s route
+    // timeout (API Gateway allows 29 s, Heroku 30 s, ALB and nginx 60 s). It is
+    // a margin, not a maximum: a slow `COMMIT` is not cut, and with a
+    // `BelongsTo` the read of the written row's parents after the commit is
+    // under no deadline either (`acquire_timeout` bounds the wait for the
+    // connection, `statement_timeout` the query).
     let app = Foundry::new(conn)
         .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;Claims&gt;(jwt)
+        .request_budget(std::time::Duration::from_secs(10))
         .mount::&lt;film::Model&gt;()
         // Public in development: /docs needs no token (see `with_docs_protected` in ferra-openapi.md).
         .with_docs()

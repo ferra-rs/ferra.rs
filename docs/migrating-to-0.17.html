@@ -1,0 +1,346 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Migrating from 0.16 to 0.17 - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-6e4afefc.svg">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-e47a5fb9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/migrating-to-0.17.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="migrating-from-016-to-017"><a class="header" href="#migrating-from-016-to-017">Migrating from 0.16 to 0.17</a></h1>
+<p>0.17.0 (Soaking) makes a service under load answer what it can, and says so when it cannot. Each entry below is a
+change you may notice. This page grows with the release: read the entries, then update the application’s git
+dependency to <code>v0.17.0</code>. <a href="../../CHANGELOG.html">CHANGELOG.md</a> lists every change.</p>
+<h2 id="a-pool-that-gives-no-connection-answers-503-not-500"><a class="header" href="#a-pool-that-gives-no-connection-answers-503-not-500">A pool that gives no connection answers 503, not 500</a></h2>
+<p><strong>Before.</strong> A request that waited for a database connection longer than the pool’s <code>acquire_timeout</code> answered <code>500</code>
+<code>internal</code>, the same as any database failure.</p>
+<p><strong>After.</strong> It answers <code>503</code> <code>service_unavailable</code>, with the fixed detail “the service could not handle the request in
+time; this operation was not applied”, and no <code>Retry-After</code>. The answer comes before the operation: nothing was
+applied and no hook ran, so the client may retry (an earlier write of a route of your own stands). A database that is down or starting gives the same <code>503</code> once the
+<code>acquire_timeout</code> elapses, because the pool retries a refused connection until then. A connection the database refuses
+at once (a wrong password, an unknown database) stays a <code>500</code> <code>internal</code>. One <code>warn</code> line, target <code>ferra_db::pool</code>,
+holds the resource and a fixed text. The OpenAPI document now declares the <code>503</code> (the one <code>ServiceUnavailable</code>
+response) on every operation, a read as well as a write. After a commit, if the pool gives no connection for the
+parents of the row just written, the answer is still a <code>500</code> with one <code>error</code> line, because the write stands.</p>
+<p><strong>Who is affected.</strong> A client, a gateway or an alert that treats <code>500</code> as “the service is broken” and <code>503</code> as
+“retry later”, or that matches the <code>500</code> of a saturated pool. A client generated from the OpenAPI document, which now
+sees a <code>503</code> on every operation, must be regenerated.</p>
+<p><strong>Migration.</strong> Treat <code>503</code> <code>service_unavailable</code> as transient: retry it with a backoff and full jitter, since no
+<code>Retry-After</code> is sent. Move any alert on a pool <code>500</code> to the <code>503</code> and to the <code>ferra_db::pool</code> line. Set the pool’s
+<code>acquire_timeout</code> under the request budget, so that the pool answers and not the budget’s <code>timeout</code>. See
+<a href="ferra-error-handling.html#service_unavailable--503"><code>service_unavailable</code></a>.</p>
+<h2 id="a-failed-commit-writes-one-ferra_dbcommit-line"><a class="header" href="#a-failed-commit-writes-one-ferra_dbcommit-line">A failed <code>COMMIT</code> writes one <code>ferra_db::commit</code> line</a></h2>
+<p>A <code>COMMIT</code> the database fails no longer writes the generic “a database error answered 500” line (target <code>ferra_http::error</code>); it writes one <code>ferra_db::commit</code> <code>error</code> line with <code>resource</code>, <code>outcome</code> and <code>db.response.status_code</code>, and the answer is still the <code>500</code>. An alert on the old line goes quiet for a failed <code>COMMIT</code>: move it to the new target.</p>
+<h2 id="resource-and-txresource-create-and-update-return-optionread"><a class="header" href="#resource-and-txresource-create-and-update-return-optionread"><code>Resource</code> and <code>TxResource</code> <code>create</code> and <code>update</code> return <code>Option&lt;Read&gt;</code></a></h2>
+<p><strong>Before.</strong> <code>Resource::create</code>, <code>Resource::update</code>, <code>TxResource::create</code> and <code>TxResource::update</code> returned <code>Result&lt;Read, FerraError&gt;</code>: the row the call had written, whether or not the caller could read it. A route that echoed it sent a row the generated route would have kept back.</p>
+<p><strong>After.</strong> They return <code>Result&lt;Option&lt;Read&gt;, FerraError&gt;</code>. <code>None</code> means the row is written and the caller may not read it under the generated route’s rule: the <code>get</code> rule on the row, then the authority’s <code>can(Get)</code>, mounted or not. An authority that panics or fails on the written row counts as “may not read” (one <code>error</code> line on <code>ferra_http::policy</code>; <code>panic = "abort"</code> defeats the catch). When it is <code>None</code> nothing derived from the row leaves the call: no computed field is called. The generated route answers that caller <code>201</code> or <code>204</code> with no body, no <code>Location</code> and no id in any header; your route should too. <code>None</code> comes only after a successful write: a refusal, a validation error and a row the caller cannot reach for update (the absent row’s <code>404</code>) stay an <code>Err</code>, as before. <code>SystemAccess::insert</code> and <code>SystemAccess::latest</code> are unchanged: they return the whole row, read-checked by nothing, and it never belongs in a response.</p>
+<p><strong>Who is affected.</strong> Code that uses the value of one of the four calls: a route of your own, and a hook that reads what <code>tx.resource::&lt;N&gt;().create(..)</code> or <code>.update(..)</code> returns. A call whose value you drop (<code>.await?;</code>) compiles unchanged.</p>
+<p><strong>Migration.</strong> Replace <code>let row = films.update(id, patch).await?;</code> by <code>let Some(row) = films.update(id, patch).await? else { return Ok(StatusCode::NO_CONTENT.into_response()) };</code> (a create answers <code>StatusCode::CREATED</code> there, with no <code>Location</code>). A handler that answers <code>Json(films.create(v).await?)</code> now sends <code>null</code> for <code>None</code>: answer a status with no body instead. See <a href="custom-handlers.html">Custom handlers</a>.</p>
+<h2 id="a-handler-panic-answers-500-internal-not-a-closed-connection"><a class="header" href="#a-handler-panic-answers-500-internal-not-a-closed-connection">A handler panic answers 500 <code>internal</code>, not a closed connection</a></h2>
+<p><strong>Before.</strong> A panic in a generated route, in a route of your own added with <code>.route</code> before <code>build()</code>, in an extractor
+or in a layer of the stack ended the connection: the client saw no response, and the operator’s error rate, the
+request metric and the request span omitted the request.</p>
+<p><strong>After.</strong> The panic answers <code>500</code> <code>internal</code> with the constant body, <code>Cache-Control: no-store</code> and <code>Vary</code>. The request
+is observed once, with <code>error.type</code> <code>500</code> and <code>ferra.error.type</code> <code>internal</code> (with the <code>observability</code> feature), and one
+<code>error</code> line, target <code>ferra_http::observe</code>, “a handler panicked”, is written. The panic’s message is client-influenced
+text: it is in no body, label, span field or <code>tracing</code> line. The process’s panic hook (stderr by default) still prints
+it. The answer is made outside the per-model CORS layer, so it carries no <code>Access-Control-Allow-Origin</code>: a browser on
+another origin sees a CORS failure, not the <code>500</code>. A row committed before the panic stands. <code>panic = "abort"</code> in your
+profile defeats the catch: the process ends. A route merged into the router after <code>build()</code> is outside the stack and
+is not caught.</p>
+<p><strong>Who is affected.</strong> A client or a gateway that treated a closed connection as the signal of a handler bug, and an
+alert that counted such closures: the panic is now a <code>500</code> in the metrics and the span.</p>
+<p><strong>Migration.</strong> Alert on <code>500</code> and on the <code>ferra_http::observe</code> line. Do not rely on a panic to cancel a write: a
+panic after a commit leaves the row written. See <a href="custom-handlers.html#composing-with-foundry">Custom handlers</a> and
+<a href="ferra-error-handling.html#internal--500"><code>internal</code></a>.</p>
+<h2 id="every-response-writes-one-ferra_httprequest-line"><a class="header" href="#every-response-writes-one-ferra_httprequest-line">Every response writes one <code>ferra_http::request</code> line</a></h2>
+<p><strong>Before.</strong> The only line a request wrote was the one <code>tower_http</code> wrote in a model’s own stack, so a <code>401</code>, a <code>404</code> for
+an unknown route and the <code>503</code> of <code>.request_budget(..)</code> wrote none, and an operator who set <code>tower_http</code> to a quiet
+level silenced what there was.</p>
+<p><strong>After.</strong> From 0.17.0 each response writes one <code>tracing</code> event, target <code>ferra_http::request</code>, inside the request span.
+Its fields are <code>http.request.method</code>, <code>http.route</code>, <code>http.response.status_code</code>, <code>ferra.error.type</code> and <code>latency_ms</code>,
+and nothing else: no path, query, header, token, claim, body or cookie value. <code>http.route</code> is absent when no route
+matched, and <code>ferra.error.type</code> when the answer is not a Ferra problem. The level follows the status: <code>error</code> for <code>500</code>,
+<code>warn</code> for <code>503</code>, <code>info</code> for everything else, so a <code>502</code> or <code>504</code> your own handler answers is <code>info</code> (alert on
+<code>error.type</code> on the histogram or the span). The refusal events and the lines of 0.17.0’s pool and <code>COMMIT</code> work
+(<code>ferra_http::credential</code>, <code>ferra_http::auth</code>, <code>ferra_http::rate_limit</code>, <code>ferra_db::pool</code>, <code>ferra_db::commit</code>,
+<code>ferra_http::error</code>) are
+unchanged and are written beside it.</p>
+<p><strong>Who is affected.</strong></p>
+<ul>
+<li>An operator who filtered <code>tower_http</code> to keep the logs short: that filter no longer silences the request line, which
+has its own target, and the default trace layer no longer writes its <code>tower_http</code> line. Every request writes one, <code>GET</code>s included, so set <code>ferra_http::request</code> to the level you want
+(<code>RUST_LOG=ferra_http::request=warn</code> keeps the <code>503</code> and the <code>500</code>).</li>
+<li>A test or an alert that counts the <code>error</code> lines of a <code>500</code>: the request line is one more, at <code>error</code>. Select by
+target (<code>ferra_http::request</code> or not) rather than by level alone.</li>
+</ul>
+<p><strong>Migration.</strong> Add <code>ferra_http::request</code> to the log filter, and move an alert on a <code>tower_http</code> access line to it. The
+line, its levels and the other targets are in <a href="observability.html#the-request-line"><code>observability.md</code></a>.</p>
+<h2 id="the-request-span-has-one-name-per-attribute-and-api_keyprefix-is-gone"><a class="header" href="#the-request-span-has-one-name-per-attribute-and-api_keyprefix-is-gone">The request span has one name per attribute, and <code>api_key.prefix</code> is gone</a></h2>
+<p><strong>Before.</strong> Each model’s own stack opened a span named <code>request</code> with the fields <code>method</code>, <code>path</code>, <code>credential</code> and, for
+an accepted API key, <code>api_key.prefix</code>. A <code>401</code>, a <code>404</code> for an unknown route and a hand-written route had none, and a
+<code>500</code> also wrote the <code>ERROR</code> event “response failed” from <code>tower_http</code>.</p>
+<p><strong>After.</strong> From 0.17.0 one span per request is opened by the layer <code>build()</code> puts outside everything, so it exists for
+every response, and the per-model span and its <code>INFO</code> line are gone. Its attributes are a closed set, in the names of
+OpenTelemetry’s HTTP semantic conventions:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td><code>method</code></td><td><code>http.request.method</code> (<code>_OTHER</code> for an extension method)</td></tr>
+<tr><td><code>path</code></td><td><code>url.path</code> (the path as received, percent-encoded, no query)</td></tr>
+<tr><td><code>credential</code></td><td><code>credential</code>, unchanged (<code>token</code>, <code>cookie</code> or <code>api_key</code>); recorded only for a credential Ferra verified</td></tr>
+<tr><td><code>api_key.prefix</code></td><td>dropped from the span; the prefix is on the <code>warn</code> of a refused key (<code>ferra_http::credential</code>)</td></tr>
+<tr><td>(none)</td><td><code>otel.name</code>, <code>otel.kind</code>, <code>http.route</code>, <code>network.protocol.version</code>, <code>http.response.status_code</code>, <code>ferra.error.type</code>, and on a <code>5xx</code> <code>error.type</code> and <code>otel.status_code</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>A write also has four child spans: <code>ferra.authorize</code>, <code>ferra.hook</code> (with <code>hook</code>), <code>ferra.db.write</code> (one per attempt, so
+the number of them shows the retries) and <code>ferra.after_commit</code>. Each carries <code>resource</code> and <code>operation</code> and no outcome,
+id, SQLSTATE or error text. The <code>ERROR</code> event “response failed” is gone: a <code>500</code> is the request line at <code>error</code>.</p>
+<p><strong>Who is affected.</strong></p>
+<ul>
+<li>A subscriber or a collector that masks, drops or indexes the field <code>path</code>: it must now name <code>url.path</code>, or the path
+is no longer masked (SEC-047). The same goes for <code>method</code> → <code>http.request.method</code>.</li>
+<li>A dashboard or an alert on <code>api_key.prefix</code> of an accepted request: no span carries it any more. A refused key still
+writes its prefix on the <code>warn</code>.</li>
+<li>A layer you pass to <code>FerraLayer::trace_layer</code> still runs, beside the request span and its line; the default one,
+which wrote the old span and the old line, is gone.</li>
+</ul>
+<p><strong>Migration.</strong> Rename <code>path</code> and <code>method</code> in the masking and indexing rules, move an alert on the old line to
+<code>ferra_http::request</code>, and read the credential kind from <code>credential</code> on the request span. The span and its phase spans
+are in <a href="observability.html#spans"><code>observability.md</code></a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="stability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="migrating-to-0.16.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="stability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="migrating-to-0.16.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

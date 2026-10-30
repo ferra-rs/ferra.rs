@@ -1,0 +1,578 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Observability - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-6e4afefc.svg">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-e47a5fb9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/observability.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="observability-metrics-spans-and-the-request-line"><a class="header" href="#observability-metrics-spans-and-the-request-line">Observability: metrics, spans and the request line</a></h1>
+<p>What an operator can watch: five metrics, a request span with four phase spans, and one
+log line per response. The metrics need the <code>observability</code> feature of <code>ferra</code>; the spans
+and the line are always on, and cost nothing without a subscriber. Ferra ships no
+exporter and no <code>/metrics</code> route: you choose where the numbers go, and
+<a href="#who-may-read-the-scrape">Who may read the scrape</a> says where they must not.</p>
+<p>Ferra’s names are the dotted OpenTelemetry names (<code>http.server.request.duration</code>).
+Translating them is the exporter’s job: <a href="#two-prometheus-spellings">Two Prometheus spellings</a>.
+What is frozen across releases is in <a href="stability.html"><code>stability.md</code></a>: a metric’s name, unit
+and label set never change from 0.18.0 (a new label is a new metric), a new value of a closed label is
+an addition, and span attributes are add-only.</p>
+<hr>
+<h2 id="the-metrics"><a class="header" href="#the-metrics">The metrics</a></h2>
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0", features = ["observability"] }
+metrics-exporter-prometheus = { version = "0.18", default-features = false }  # built on metrics 0.24, Ferra's copy
+# The recipe's test also uses `tokio`, `tower` with `util`, `sea-orm` with `mock`.
+</code></pre>
+<p>The exporter must record through the same <code>metrics</code> minor as Ferra (0.24, <a href="stability.html"><code>stability.md</code></a>): an exporter built on another copy installs a recorder Ferra never reaches, and the scrape stays empty (<code>cargo tree -d -i metrics</code> shows two copies).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Name</th><th>Kind, unit</th><th>Labels</th></tr>
+</thead>
+<tbody>
+<tr><td><code>http.server.request.duration</code></td><td>histogram, seconds</td><td><code>http.request.method</code>, <code>http.route</code>, <code>http.response.status_code</code>, <code>network.protocol.version</code>, <code>error.type</code>, <code>ferra.error.type</code></td></tr>
+<tr><td><code>ferra.db.transaction.duration</code></td><td>histogram, seconds</td><td><code>http.request.method</code>, <code>http.route</code>, <code>db.response.status_code</code></td></tr>
+<tr><td><code>ferra.db.retries</code></td><td>counter</td><td><code>http.request.method</code>, <code>http.route</code>, <code>db.response.status_code</code></td></tr>
+<tr><td><code>ferra.after_commit.failures</code></td><td>counter</td><td><code>http.request.method</code>, <code>http.route</code></td></tr>
+<tr><td><code>ferra.sunset.post_sunset_hits</code></td><td>counter</td><td><code>version</code>, <code>sunset</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Every label has a closed set of values, and none carries an id, a raw path, a query, a
+key prefix, a body, a hook’s text or a field of a model:</p>
+<ul>
+<li><code>http.request.method</code> is one of <code>GET</code>, <code>HEAD</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>, <code>CONNECT</code>,
+<code>OPTIONS</code>, <code>TRACE</code>, <code>PATCH</code>, or <code>_OTHER</code>. <strong>An extension method is recorded as <code>_OTHER</code>,
+never as its text.</strong> The list (RFC 9110’s plus <code>PATCH</code>) is closed, and Ferra offers no
+way to override it.</li>
+<li><code>http.route</code> is the route template, <code>/films/{id}</code>, never the path that was asked: a
+request for <code>/films/42</code> and one for <code>/films/43</code> are one series. It is absent when no
+route matched (an unknown path, whatever its text, is one series), and a <code>405</code> carries
+the template of the route that refused the method.</li>
+<li><code>http.response.status_code</code> is the status of the answer.</li>
+<li><code>network.protocol.version</code> is one of <code>1.0</code>, <code>1.1</code>, <code>2</code>, <code>3</code>, and absent for any other version (HTTP/0.9).</li>
+<li><code>error.type</code> is the status as a string (<code>"500"</code>, <code>"503"</code>), on a <code>5xx</code> only. It is the
+signal for a <code>5xx</code> your own handler answers, a <code>502</code> included.</li>
+<li><code>ferra.error.type</code> is the slug of a Ferra problem answer, the last segment of its type
+URI (<code>not_found</code>, <code>validation_failed</code>, <code>rate_limited</code>, <code>timeout</code>, <code>internal</code>; the
+closed list is <a href="ferra-error-handling.html">Error handling</a>). It is absent on a success.
+Ferra sets it on the answers it builds and nothing else can: <strong>an answer of your own
+that carries an <code>application/problem+json</code> body has no <code>ferra.error.type</code></strong>, and an
+application layer that rewrites a Ferra answer into a success records that success
+with no slug. A layer that rewrites a Ferra error into <em>another</em> error status keeps the
+slug of the original.</li>
+<li><code>db.response.status_code</code> is <code>40001</code>, <code>40P01</code> or <code>_OTHER</code>, and absent on an attempt
+that committed. A write whose transaction ended for any other reason (a refusal, a hook
+that failed, a row that was not there) is <code>_OTHER</code>.</li>
+</ul>
+<p>What each one measures:</p>
+<ul>
+<li><strong>The request histogram</strong> runs from the entry into Ferra’s stack to the response head,
+retries and <code>after_commit</code> included. It is recorded once per response, whatever the
+answer: a <code>401</code>, a <code>404</code> for an unknown route, a <code>405</code>, the request budget’s <code>503</code> and
+the response of one of your own <code>.route</code> handlers (added before <code>build()</code>) are all in it.</li>
+<li><strong>The transaction histogram</strong> has one sample per attempt of a write that owns its
+transaction: from the opening of the transaction to the end of its <code>COMMIT</code>, or to the
+attempt’s error. The wait for a connection, the queued <code>ROLLBACK</code> and the retry’s jitter
+are not in it, and an attempt the request budget drops is not recorded.</li>
+<li><strong><code>ferra.db.retries</code></strong> counts the writes run again after the database aborted an
+attempt, with the class of that attempt. A conflict that is not transient is one
+<code>_OTHER</code> attempt and no retry.</li>
+<li><strong><code>ferra.after_commit.failures</code></strong> counts one per <code>after_commit</code> that failed on a
+committed write (an <code>Err</code>, a panic, the post-commit deadline), so a batch that fails on
+three rows counts three.</li>
+<li><strong><code>ferra.sunset.post_sunset_hits</code></strong> is the counter of a deprecated API version that
+went past its sunset date (<a href="foundry.html">Foundry</a>).</li>
+</ul>
+<p>A write that a task of your own spawned has no request to name, so its transaction
+metrics carry no <code>http.request.method</code> and no <code>http.route</code>.</p>
+<p>A row the caller may not read and a row that does not exist give the same series with
+the same counts on every metric, so the scrape cannot tell them apart (contention aside:
+a concurrent writer, or an authority that is not pure, can make the hidden row record one
+more <code>_OTHER</code> attempt, or a lock wait, or a deadlock (a <code>40P01</code> attempt and a <code>ferra.db.retries</code> count)). The <em>durations</em> differ, and a scrape serves them: see
+<a href="#who-may-read-the-scrape">Who may read the scrape</a>.</p>
+<p>Not recorded, and without a knob: pool metrics, a counter of budget cuts or of
+rate-limit rejections (read them from <code>ferra.error.type</code>: <code>timeout</code>, <code>rate_limited</code>),
+<code>url.scheme</code>, and a route merged after <code>build()</code>.</p>
+<hr>
+<h2 id="two-prometheus-spellings"><a class="header" href="#two-prometheus-spellings">Two Prometheus spellings</a></h2>
+<p>An OpenTelemetry exporter turns <code>http.server.request.duration</code> into
+<code>http_server_request_duration_seconds</code> by default. <code>metrics-exporter-prometheus</code> gives
+the same name with <code>with_recommended_naming(true)</code>, which also adds <code>_total</code> to the
+counters (<code>ferra_db_retries_total</code>, <code>ferra_after_commit_failures_total</code>), and gives
+<code>http_server_request_duration</code> without it. Alert rules and dashboards are written against
+one spelling: pick it when you wire the exporter, not after.</p>
+<p>The exporter also turns the dots of the labels into underscores. The scrape of the recipe
+below has this line:</p>
+<pre><code class="language-text">http_server_request_duration_seconds_count{http_request_method="GET",http_response_status_code="404",http_route="/films/{id}",network_protocol_version="1.1",ferra_error_type="not_found"} 1
+</code></pre>
+<p><code>url.scheme</code> is not a label and not a span attribute. Ferra reads no <code>X-Forwarded-Proto</code>,
+and the scheme of the peer’s connection says nothing behind a TLS terminator. Likewise
+<code>url.query</code>, <code>http.request.method_original</code> and <code>server.address</code> are never recorded.</p>
+<hr>
+<h2 id="the-prometheus-recipe"><a class="header" href="#the-prometheus-recipe">The Prometheus recipe</a></h2>
+<p>The block below is the whole wiring, and it runs: <code>ferra-doc-playground</code> compiles and
+executes it with the rest of the guide, so a change that breaks the names it asserts
+breaks the guide’s tests. It installs a recorder, builds the application, sends one
+request and reads the scrape.</p>
+<pre class="playground"><code class="language-rust standalone_crate">use axum::{body::Body, http::Request};
+use ferra::{FerraModel, Foundry};
+use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
+use sea_orm::{DatabaseBackend, MockDatabase, entity::prelude::*};
+use serde::{Deserialize, Serialize};
+use tower::ServiceExt;
+
+mod film {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "films")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub title: String,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // 1. The recorder, installed BEFORE `build()`: Ferra describes its metrics
+    //    (their units and help texts) while it builds.
+    let handle = PrometheusBuilder::new()
+        // `_seconds` on the histograms, `_total` on the counters.
+        .with_recommended_naming(true)
+        // Without buckets the exporter renders a summary, not a histogram. The
+        // matcher is the dotted name, not the Prometheus spelling.
+        .set_buckets_for_metric(
+            Matcher::Full("http.server.request.duration".to_owned()),
+            &amp;[0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0],
+        )?
+        .install_recorder()?;
+
+    // 2. The exporter runs no task of its own: call `run_upkeep` at an interval.
+    let upkeep = handle.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(5));
+        loop {
+            tick.tick().await;
+            upkeep.run_upkeep();
+        }
+    });
+
+    // 3. Your application. The key comes from ETAG_KEY in a real one.
+<span class="boring">    let etag_key = "e".repeat(32);
+</span>    let conn = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results([Vec::&lt;film::Model&gt;::new()])
+        .into_connection();
+    let app = Foundry::new(conn).etag_key(etag_key)?.mount::&lt;film::Model&gt;().build();
+
+    // 4. One request (no film 42 in the mock: a 404 is observed like any answer).
+    let request = Request::get("/films/42").body(Body::empty())?;
+    assert_eq!(app.oneshot(request).await?.status(), 404);
+
+    // 5. The scrape: the series is labelled with the template, not with `/films/42`.
+    let scrape = handle.render();
+    let series = |name: &amp;str| {
+        scrape
+            .lines()
+            .filter(|line| line.starts_with(name) &amp;&amp; line.contains(r#"http_route="/films/{id}""#))
+            .collect::&lt;Vec&lt;_&gt;&gt;()
+    };
+    assert!(!series("http_server_request_duration_seconds_bucket{").is_empty(), "{scrape}");
+    let count = series("http_server_request_duration_seconds_count{");
+    assert!(count.len() == 1 &amp;&amp; count[0].ends_with(" 1"), "{scrape}");
+    Ok(())
+}</code></pre>
+<p>What the recipe settles:</p>
+<ul>
+<li><strong>Install the recorder before <code>build()</code>.</strong> Ferra describes the four metrics of ADR-0085
+(units and help texts; the sunset counter carries none) when <code>build()</code> runs; a recorder installed after it never receives them, and
+the exporter takes <code>_seconds</code> from the unit.</li>
+<li><strong><code>set_buckets_for_metric</code> on the dotted name.</strong> The exporter compares the matcher with
+the metric name before it adds a suffix, so <code>Matcher::Full</code> takes
+<code>http.server.request.duration</code>, not <code>http_server_request_duration_seconds</code>. The
+boundaries above are the OpenTelemetry semantic conventions’ for this histogram. Give
+<code>ferra.db.transaction.duration</code> buckets in the same way, or it renders as a summary.</li>
+<li><strong><code>run_upkeep</code>.</strong> <code>install_recorder</code> starts no task; the handle’s <code>run_upkeep</code> drains
+the histograms, and without it they grow without bound.</li>
+<li><strong>No listener.</strong> The recipe declares <code>metrics-exporter-prometheus</code> with
+<code>default-features = false</code>, which leaves out its HTTP listener and its push gateway.
+You serve <code>handle.render()</code> yourself, and where is the next section.</li>
+<li><strong>The recorder is yours.</strong> A recorder that blocks or panics is the application’s fault,
+not Ferra’s. The transaction metrics and the <code>ferra.after_commit.failures</code> counter are
+recorded inside the handler: a recorder that panics only there gives a <code>500</code> (the panic
+is caught like a handler’s). The request histogram (<code>http.server.request.duration</code>) is
+recorded outside Ferra’s panic catch: a recorder that panics there leaves the catch
+behind, and the connection closes without a response.</li>
+<li><strong>One recorder per process.</strong> <code>install_recorder</code> installs a process-global recorder; a
+second call fails. This is why the block is <code>standalone_crate</code>: the guide’s other blocks
+run in one process and would share the recorder.</li>
+</ul>
+<hr>
+<h2 id="who-may-read-the-scrape"><a class="header" href="#who-may-read-the-scrape">Who may read the scrape</a></h2>
+<p>The scrape is operational data: routes, status codes, error rates and <em>timings</em>. Serve
+it on a private listener (a port the load balancer does not forward), or behind
+authentication. <strong>Never on the public router.</strong></p>
+<ul>
+<li>A <code>.route("/metrics", handler)</code> declared before <code>build()</code> is observed and under the
+request budget, but it is <strong>neither authenticated nor rate limited</strong>: a <code>.route</code> handler
+checks no credential unless it extracts a principal.</li>
+<li>One merged into the router <em>after</em> <code>build()</code> is neither observed nor under the budget,
+and is no more authenticated than the first.</li>
+<li>The distributions answer a question the counts do not. A row the caller may not read and
+a row that does not exist give the same series, but the time to refuse them can differ,
+and a histogram records time. Whoever reads the histograms can see that difference.</li>
+</ul>
+<hr>
+<h2 id="spans"><a class="header" href="#spans">Spans</a></h2>
+<p>Every response has one <strong>request span</strong>, opened by the observation layer that <code>build()</code>
+puts outermost, so it exists for a <code>401</code>, a <code>404</code> for an unknown route and the request
+budget’s <code>503</code> too. It is named <code>request</code>, at level <code>INFO</code>, and holds a closed set of
+fields:</p>
+<ul>
+<li><code>otel.name</code>: <code>{method} {http.route}</code>, or <code>{method}</code> when no route matched, with <code>HTTP</code>
+in place of <code>_OTHER</code>; and <code>otel.kind = "server"</code>.</li>
+<li><code>http.request.method</code>, <code>http.route</code>, <code>network.protocol.version</code>.</li>
+<li><code>url.path</code>: the path as received (percent-encoded, no query), also on an unmatched
+route. It is text the caller chose and Ferra does not truncate it: never put a secret in
+a path.</li>
+<li>On the response: <code>http.response.status_code</code>; on a <code>5xx</code>, <code>error.type</code> and
+<code>otel.status_code = "error"</code>; <code>ferra.error.type</code> on a Ferra problem answer.</li>
+<li><code>credential</code>, <code>token</code>, <code>cookie</code> or <code>api_key</code>: the credential Ferra <em>verified</em>, and only
+that one. A refused credential, two credentials, or a <code>.route</code> handler that extracts no
+principal leave it empty (the refused one is on the <code>warn</code> of <code>ferra_http::credential</code>).</li>
+</ul>
+<p>Never on a span: a query, a header, a client or server address (nor anything taken from
+<code>X-Forwarded-*</code>, <code>Forwarded</code> or <code>Host</code>), <code>http.request.method_original</code>, a claim, a
+token, a row value, an API key prefix. A layer of yours that clears the request
+extensions removes <code>credential</code> from the span, without a panic.</p>
+<p>Inside the request, four <strong>phase spans</strong> (<code>INFO</code>) are its children. Each carries
+<code>resource</code> and <code>operation</code>, and nothing else but the hook’s name on the second: no outcome,
+no attempt number, no SQLSTATE, no error text, no id.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Span</th><th>When</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ferra.authorize</code></td><td>an authorization checkpoint: on <code>get</code>, <code>list</code> and <code>me</code>, and on writes; a collection action opens one per row it checks</td></tr>
+<tr><td><code>ferra.hook</code></td><td>one per hook call, with <code>hook</code> the name of the hook method. An action handler is not a hook and has no span</td></tr>
+<tr><td><code>ferra.db.write</code></td><td>one per attempt of a write that owns its transaction, so the number of these children is the number of attempts</td></tr>
+<tr><td><code>ferra.after_commit</code></td><td>the <code>after_commit</code> of a write</td></tr>
+</tbody>
+</table>
+</div>
+<p>The slot of <code>FerraLayerBuilder::trace_layer</code> is empty by default: a request has one span and one
+line. A layer you pass there still runs, inside the request span.</p>
+<hr>
+<h2 id="the-request-line"><a class="header" href="#the-request-line">The request line</a></h2>
+<p>Each response writes one <code>tracing</code> event, target <code>ferra_http::request</code>, inside the request
+span. Its fields are <code>http.request.method</code>, <code>http.route</code>, <code>http.response.status_code</code>,
+<code>ferra.error.type</code> and <code>latency_ms</code>, and nothing else (the route is absent when none
+matched, the slug when the answer is not a Ferra problem). The level follows the status:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Status</th><th>Level</th></tr>
+</thead>
+<tbody>
+<tr><td><code>500</code></td><td><code>error</code></td></tr>
+<tr><td><code>503</code></td><td><code>warn</code></td></tr>
+<tr><td>everything else</td><td><code>info</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Ferra itself answers no other <code>5xx</code>. <strong>A <code>502</code> or a <code>504</code> your own handler answers is
+<code>info</code></strong>: read it from <code>error.type</code> on the histogram and the span, and alert there.</p>
+<p>The line is written for every request, <code>GET</code>s included, and an attacker can drive it.
+Filter on its target to keep its volume down (<code>RUST_LOG=ferra_http::request=warn</code> keeps
+the <code>503</code> and the <code>500</code>). A filter on <code>tower_http</code> no longer silences it.</p>
+<p>A <code>2xx</code> writes no <code>warn</code> and no <code>error</code> beyond five operating signals, each with its
+target:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Target</th><th>Signal</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ferra_http::retry</code></td><td>a write ran again after a transient conflict</td></tr>
+<tr><td><code>ferra_http::operations</code></td><td>a foreign key changed under the lock, and the write ran again</td></tr>
+<tr><td><code>ferra_http::sunset</code></td><td>a request reached a version past its sunset date</td></tr>
+<tr><td><code>ferra_http::api_key</code></td><td>the last use of an API key was not recorded</td></tr>
+<tr><td><code>ferra_http::policy</code></td><td>the authority failed on the row that was written</td></tr>
+</tbody>
+</table>
+</div>
+<p>The list covers the answers Ferra gives. A line Ferra writes when it returns an <code>Err</code> to
+<em>your</em> code (a <code>Resource&lt;M&gt;</code> call in a <code>.route</code> handler, a nested <code>tx.resource</code> in a hook)
+is written then; if your code discards the error and answers <code>2xx</code>, that line is
+yours, outside the list.</p>
+<p>Beside the request line, these keep their own target and are unchanged:</p>
+<ul>
+<li>the refusals: <code>ferra_http::credential</code>, <code>ferra_http::auth</code> (<code>kid_unknown</code>) and
+<code>ferra_http::rate_limit</code>;</li>
+<li><code>ferra_db::pool</code> at <code>warn</code>, for a <code>503 service_unavailable</code> (no connection in time): the
+refused request writes two <code>warn</code> lines, this one and the request line;</li>
+<li><code>ferra_db::commit</code> at <code>error</code> (<code>rolled_back</code> or <code>unknown</code>) and <code>ferra_http::error</code> at
+<code>error</code> (“committed; the response could not be completed”): both are a <code>500</code>, and the
+request line is <code>error</code> beside them.</li>
+</ul>
+<p>A handler that panics (and an extractor, or a layer inside the application) answers a
+<code>500 internal</code> with a constant body, observed once with <code>error.type="500"</code>. One <code>error</code>
+line, target <code>ferra_http::observe</code>, says “a handler panicked” with no payload: the
+payload is text the client may have influenced, so it reaches no response, label, span or
+<code>tracing</code> line. The process’s panic hook still prints it. The answer carries
+<code>Cache-Control</code> and <code>Vary</code> and no CORS header, so a browser on another origin sees a CORS
+failure. A row committed before the panic stands. <code>panic = "abort"</code> defeats all of it.</p>
+<hr>
+<h2 id="what-is-not-observed"><a class="header" href="#what-is-not-observed">What is not observed</a></h2>
+<ul>
+<li><strong>A request that ends with no response</strong>: a client that left, an outer timeout that
+drops the future. The contract is every response that leaves the built application, not
+every request that started.</li>
+<li><strong>A response made before the application</strong>: an answer the HTTP server gives
+on its own (to a malformed request line, say) never reaches Ferra.</li>
+<li><strong>A route merged after <code>build()</code>, or a layer you add outside it.</strong></li>
+<li><strong>A <code>COMMIT</code> an outer timeout drops in flight.</strong> Its outcome is unknown to the
+application: the row may or may not be there, and nothing here records it. A client that
+retries a create in that case needs the
+<a href="computed-fields.html#idempotent-creates">idempotent create</a>.</li>
+<li><strong>A pool wait, a <code>BEGIN</code> round trip, a queued <code>ROLLBACK</code></strong>: outside the transaction histogram. The pool wait and the <code>BEGIN</code> are in the request histogram.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ferra-error-handling.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="deploying-to-lambda.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ferra-error-handling.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="deploying-to-lambda.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

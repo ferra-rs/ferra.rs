@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -485,7 +485,9 @@ new row, and a stale <code>If-Match</code> is a <code>412</code>.</li>
 </ul>
 <p>Set a <a href="foundry.html#request-time-budget">request budget</a>. Without one, only the three attempts bound the work. With
 one, the deadline cuts a handler at its next <code>.await</code> before the commit starts (<code>503</code> <code>timeout</code>, nothing written);
-a handler that blocks the thread without awaiting is not cut, and neither is a commit once it has started.</p>
+a handler that blocks the thread without awaiting is not cut, and neither is a commit once it has started. After
+the commit, the <code>after_commit</code> hooks run under the request’s one post-commit deadline, shared by every row of a
+batch (<a href="behaviors.html#after-commit">the three phases</a>).</p>
 <h2 id="sending-the-same-request-twice"><a class="header" href="#sending-the-same-request-twice">Sending the same request twice</a></h2>
 <p>Ferra does not deduplicate a request, and there is no <code>Idempotency-Key</code>. <code>If-Match</code> is the guard against running an
 action twice:</p>

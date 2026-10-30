@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,7 +191,7 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.16.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
 </code></pre>
 </li>
 <li>
@@ -270,6 +270,14 @@ it, so end the match with <code>_ =&gt; false</code> and name <code>Action(_)</c
 <p><strong>A removed attribute keeps a migration diagnostic for at least one minor
 version</strong>: the compiler says what to write instead (as FRG-105, FRG-106 and
 FRG-335 do for what 0.9.0 removed).</p>
+<h2 id="metrics-and-spans"><a class="header" href="#metrics-and-spans">Metrics and spans</a></h2>
+<p>With the <code>observability</code> feature, Ferra records five metrics. With or without it, each request has a request span and its phase spans (the names and labels are in
+<a href="observability.html"><code>observability.md</code></a>). The compatibility rule: from 0.18.0, a metric’s name, unit and label set are frozen (a
+new label is a new metric); a new value of a closed label is an addition; span attributes are add-only; Ferra’s
+names are the dotted OpenTelemetry names and translating them is the exporter’s job, with both Prometheus spellings
+shown: <code>http_server_request_duration_seconds</code> with OpenTelemetry exporters by default and with
+<code>metrics-exporter-prometheus</code> under <code>with_recommended_naming(true)</code>, <code>http_server_request_duration</code> otherwise; and
+the <code>metrics</code> major is in the table of third-party crates in the contract, below.</p>
 <h2 id="third-party-crates-in-the-contract"><a class="header" href="#third-party-crates-in-the-contract">Third-party crates in the contract</a></h2>
 <p>Types of other crates appear in Ferra’s signatures, and two crates are
 re-exported whole. A major version change of one of them is a break of Ferra,
@@ -277,12 +285,13 @@ made in a minor release and listed in the changelog.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Crate</th><th>Where you meet it</th><th>In 0.9.x</th></tr>
+<tr><th>Crate</th><th>Where you meet it</th><th>Version</th></tr>
 </thead>
 <tbody>
 <tr><td><code>axum</code></td><td><code>Foundry::build()</code> returns an <code>axum::Router</code>; extractors, middlewares</td><td>0.8</td></tr>
 <tr><td>Sea-ORM</td><td><code>ferra::sea_orm</code>, whole; the entity derives; <code>DatabaseConnection</code></td><td>2.x</td></tr>
 <tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
+<tr><td><code>metrics</code></td><td>with <code>observability</code>, Ferra records through its facade: the recorder you install (<code>metrics-exporter-prometheus</code>, <a href="observability.html"><code>observability.md</code></a>) must be built on the same copy</td><td>0.24</td></tr>
 <tr><td><code>tower-http</code></td><td><code>FerraLayerBuilder::cors</code>, <code>trace_layer</code></td><td>0.7</td></tr>
 <tr><td><code>secrecy</code></td><td><code>JwtConfig::single_secret</code> takes <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
 <tr><td><code>serde</code></td><td>every model derives it</td><td>1</td></tr>
@@ -310,8 +319,10 @@ with. Each release’s changelog names it and gives the line to change in your
 refuses it with <code>FRG-400</code>, and <code>cargo tree -d -i sea-orm</code> shows it. Declaring no
 <code>sea-orm</code> and writing <code>ferra::sea_orm::…</code> is supported as well.</li>
 <li><strong>A gate pins it.</strong> <code>reexport_pin</code> fails CI when the lockfile holds two copies of
-either crate, or another version than the one documented here; changing the pin
-is a decision made in one change with this page and the changelog.</li>
+<code>sea-orm</code>, <code>garde</code> or <code>metrics</code>, or another version than the one documented here; changing the pin
+is a decision made in one change with this page and the changelog. A new <code>metrics</code>
+minor (<code>0.x</code>) is a breaking change of Ferra too: a recorder built on another copy
+would receive none of Ferra’s metrics.</li>
 </ul>
 <h2 id="sea-orm-in-ferras-signatures"><a class="header" href="#sea-orm-in-ferras-signatures">Sea-ORM in Ferra’s signatures</a></h2>
 <p>Ferra’s own signatures name a Sea-ORM type in four places only:</p>
@@ -364,7 +375,8 @@ places listed in “Sea-ORM in Ferra’s signatures”.</li>
 <li><strong><code>reexport_pin</code></strong> — <code>ferra::sea_orm</code> and <code>ferra::garde</code> are the crates
 themselves, and neither of the two gates above can see inside a re-export: this
 one fails when <code>Cargo.lock</code> holds two copies of either, or a version other than
-the documented one (Sea-ORM 2.x, <code>garde</code> 0.23.x).</li>
+the documented one (Sea-ORM 2.x, <code>garde</code> 0.23.x). It pins <code>metrics</code> (0.24.x) the
+same way, the facade Ferra records its metrics through.</li>
 </ul>
 <p>And one test names the contract item by item
 (<code>crates/ferra/tests/contract_surface.rs</code>), so that removing one breaks the
@@ -378,7 +390,7 @@ build on the stable toolchain too.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="migrating-to-0.16.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="migrating-to-0.17.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -392,7 +404,7 @@ build on the stable toolchain too.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="migrating-to-0.16.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="migrating-to-0.17.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

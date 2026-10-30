@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5c0a523.js";
+            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fcc48201.js"></script>
+        <script src="toc-e47a5fb9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -381,9 +381,8 @@ as written. It computes only when it serves a body: not for
 <code>Resource::update</code> compute the row they return the same way.</p>
 <p>A value is <strong>never computed for a caller who may not <code>Get</code> the row</strong>: whether the <code>get</code> rule
 refuses it or the authority’s <code>can(Get)</code> does, the hook is not called for that caller. That holds
-for <code>Resource::create</code> and <code>Resource::update</code> too, where the view is still returned: the field
-stays at its default (<code>None</code> where the view types it <code>Option</code>) and the view is meaningless, so do
-not echo it to a caller who may not read the row (an <code>Option&lt;Read&gt;</code> is planned for 0.17.0).</p>
+for <code>Resource::create</code> and <code>Resource::update</code> too: for a caller who may not read the row they
+return <code>None</code>, the row written, and no hook is called.</p>
 <p>A write made by <code>tx.resource</code> computes <strong>inside the open transaction</strong>, as its reads do: a hook
 sees its own transaction’s state, which may still roll back. The after-commit rule governs only
 what is served to a client.</p>
@@ -473,15 +472,16 @@ values the logs must not hold. Ferra adds no row value of its own. A panic is lo
 <tr><td>on a read (<code>GET</code>, a list, <code>/me</code>)</td><td><code>500</code></td><td><code>computed field failed</code></td></tr>
 <tr><td>on a read, the request budget runs out</td><td><code>503</code> <code>timeout</code>, no partial body</td><td>nothing from the compute</td></tr>
 <tr><td>on a write response, after the commit</td><td><code>500</code>; <strong>the write is committed</strong></td><td><code>computed field failed; the write is committed</code></td></tr>
-<tr><td>on a write response, the budget runs out</td><td><code>500</code>; <strong>the write is committed</strong></td><td><code>committed; computed field cut by the request budget</code></td></tr>
+<tr><td>on a write response, the post-commit deadline runs out</td><td><code>500</code>; <strong>the write is committed</strong></td><td><code>committed; computed field cut by the request budget</code></td></tr>
 </tbody>
 </table>
 </div>
 <p>On a write the <code>500</code> does not undo anything: the row exists, the same as when
 <a href="behaviors.html"><code>after_commit</code></a> fails. A client that replays the request can create a
-duplicate. From the first commit of the request on, every hook runs under what is left of the
-request budget (without a budget, nothing bounds it) and a cut answers <code>500</code>, never <code>503</code>
-<code>timeout</code>, because that answer says that nothing was written. That holds for a write response, and
+duplicate. From the first commit of the request on, every hook runs under the request’s one
+post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code>, shared with <code>after_commit</code>
+(without a budget, nothing bounds it; see <a href="behaviors.html#after-commit">Behaviors</a>) and a cut
+answers <code>500</code>, never <code>503</code> <code>timeout</code>, because that answer says that nothing was written. That holds for a write response, and
 also for a read of a hand-written route after a <code>Resource::create</code> or an <code>update</code> of the same
 request, and for a <code>tx.resource</code> write in the hook of a later write. Before any commit the budget
 layer cuts the request itself with <code>503</code> <code>timeout</code>, and the transaction rolls back.</p>
