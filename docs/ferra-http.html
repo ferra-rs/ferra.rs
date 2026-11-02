@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -253,17 +253,25 @@ primary key may be single or composite. Serve with
 <tr><th>Operation</th><th>Method</th><th>Path</th><th>Request</th><th>Success</th><th>Error surfaces</th></tr>
 </thead>
 <tbody>
-<tr><td><code>get</code></td><td><code>GET</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>)</td><td>400 on path-extractor rejection · 404 on missing row · 500 on DB error</td></tr>
-<tr><td><code>list</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + the collection as JSON (HAL: with <code>_links</code>)</td><td>500 on DB error</td></tr>
-<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row</td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td><code>update</code></td><td><code>PATCH</code></td><td><code>/{resource}/{id}</code></td><td><code>Content-Type: application/merge-patch+json</code>: a JSON object of the write projection’s fields to change</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>), <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row</td><td>400 · 401/403 · 404 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 401/403 · 404 · 412 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td>a declared action</td><td><code>POST</code></td><td><code>/{resource}/{id}/{name}</code></td><td>nothing, or the JSON body the action declares</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the written row (0.14.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 422 · 429 · 500 · 503, and 413 · 415 when the action has a body</td></tr>
+<tr><td><code>get</code></td><td><code>GET</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>)</td><td>400 on path-extractor rejection · 401/403 · 404 on missing row · 413 · 500 on DB error · 503</td></tr>
+<tr><td><code>list</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + the collection as JSON (HAL: with <code>_links</code>)</td><td>400 on a query that does not parse · 401/403 · 413 · 500 on DB error · 503</td></tr>
+<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row; <code>204</code> with no body under <code>Prefer: return=minimal</code></td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 415 on a body not declared as JSON · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>update</code></td><td><code>PATCH</code></td><td><code>/{resource}/{id}</code></td><td><code>Content-Type: application/merge-patch+json</code>: a JSON object of the write projection’s fields to change</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>), <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 401/403 · 404 · 409 on a foreign key that refers to the row · 412 · 413 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td>a declared action</td><td><code>POST</code></td><td><code>/{resource}/{id}/{name}</code></td><td>nothing, or the JSON body the action declares</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the written row (0.14.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 422 · 429 · 500 · 503, and 415 when the action has a body</td></tr>
 <tr><td>a declared collection action</td><td><code>POST</code></td><td><code>/{resource}/{name}</code></td><td>the envelope <code>{"ids": [...], "body": ...}</code>, 1 to 100 ids; <code>body</code> only when the action declares one</td><td><code>204</code> (no body, no <code>ETag</code>)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503</td></tr>
 </tbody>
 </table>
 </div>
+<p>The document declares a 401 only for a model that reads tokens and a 403 only where the rule, an authority,
+a <code>write</code> rule or an action’s handler can refuse a caller who has a token, on the <code>create</code> of a model with an
+owner field (an identity that is no value of the owner column is refused; not under <code>owner(from)</code>), and, under a
+cookie, on every mutation of a model that reads tokens (the CSRF guard refuses a write whose <code>Origin</code> is not
+allowed). It declares a 404 on a <code>list</code> or a <code>create</code> under a projection whose rule can refuse a caller, as on
+every item route
+(<a href="ferra-openapi.html"><code>ferra-openapi.md</code></a>); every row above lists what an operation can
+answer, and a 413, a 500 and a 503 are the answers of every operation.</p>
 <p>Every write above, <code>restore</code> and the actions included, runs in a transaction the
 framework owns, and answers <code>503</code> <code>retry_exhausted</code> (with <code>Retry-After: 1</code>) when the
 database aborts it on each of its three attempts; nothing is written. See
@@ -370,7 +378,7 @@ let app = Foundry::new(conn)
 <tr><td><code>FerraError::Unauthorized</code></td><td>401</td><td><code>https://ferra.rs/errors/unauthorized</code></td><td><code>Unauthorized</code> (with <code>WWW-Authenticate: Bearer</code>)</td></tr>
 <tr><td><code>FerraError::Forbidden</code></td><td>403</td><td><code>https://ferra.rs/errors/forbidden</code></td><td><code>Forbidden</code></td></tr>
 <tr><td><code>FerraError::Conflict(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code></td></tr>
-<tr><td><code>FerraError::ConflictWith(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code> (your hook’s <code>HookError::conflict</code>; the detail is yours, served as given; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
+<tr><td><code>FerraError::ConflictDetail(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code> (your hook’s <code>HookError::conflict</code>; the detail is yours, served as given; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
 <tr><td><code>FerraError::UnsupportedMediaType</code></td><td>415</td><td><code>https://ferra.rs/errors/unsupported_media_type</code></td><td><code>Unsupported Media Type</code></td></tr>
 <tr><td><code>FerraError::Internal(InternalError)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code> (the cause stays in <code>source()</code>, never on the wire; see <code>ferra-error-handling.md</code> § Rust errors and their causes)</td></tr>
 <tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
@@ -802,7 +810,7 @@ let layer = FerraLayer::new().cors(cors).build();
 <tr><td>2</td><td>Cache defaults</td><td><code>Cache-Control</code> and <code>Vary</code> on every response</td></tr>
 <tr><td>3</td><td>Request budget</td><td>The 503 <code>timeout</code>, when a budget is set</td></tr>
 <tr><td>4</td><td>ETag layer, and the extensions</td><td>The ETag key, the base URL, the default representation and the mounted models, which the handlers read</td></tr>
-<tr><td>5</td><td>Version prefix (with <code>.api_version</code>)</td><td>The <code>VersionPrefix</code> extension and, with <code>.deprecated</code>, the middleware that adds <code>Sunset</code>/<code>Deprecation</code> and the post-sunset warn and counter</td></tr>
+<tr><td>5</td><td>Version prefix (with <code>.api_version</code>)</td><td>The <code>VersionPrefix</code> extension and, with <code>.deprecated</code>, the middleware that adds <code>Sunset</code>/<code>Deprecation</code> and the post-sunset warn and counter, on a route served under the version: a path no route serves is the bare <code>404</code>, with none of them</td></tr>
 <tr><td>6</td><td>Base path</td><td>The <code>FerraLayer::base_path</code> prefix of hypermedia links</td></tr>
 <tr><td>7</td><td>Cookie origin check</td><td>Only with <code>JwtConfig::with_cookie</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td></tr>
 <tr><td>8</td><td>CORS</td><td><code>FerraLayer::cors</code>, or the cookie origins</td></tr>

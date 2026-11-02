@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,7 +190,7 @@ through <code>FRG-334</code> retired), the behavior codes (<code>FRG-320</code> 
 collection-read codes (<code>FRG-350</code> through <code>FRG-358</code>), the field-mode codes <code>FRG-359</code> through <code>FRG-365</code>, the authorization codes
 (<code>FRG-100</code> through <code>FRG-152</code>; <code>#[operation(...)]</code> is refused with <code>FRG-335</code>,
 <code>groups</code> with <code>FRG-137</code>, an attribute where the derive does not read it with <code>FRG-138</code>, and
-<code>action(...)</code> declarations with <code>FRG-139</code> through <code>FRG-146</code>),
+<code>action(...)</code> declarations with <code>FRG-139</code> through <code>FRG-146</code>, a Ferra attribute in <code>model_ex_attrs</code> with <code>FRG-147</code>, an <code>owner(from)</code> whose <code>to</code> is not the parent’s key with <code>FRG-148</code>, a <code>sea_orm</code> key given twice with <code>FRG-149</code>),
 the <code>FerraLayer::base_path</code> codes (<code>FRG-340</code> through <code>FRG-342</code>) and the
 dependency code <code>FRG-400</code>.</p>
 <blockquote>
@@ -229,7 +229,7 @@ the page of the subject for a few (<code>pagination.md</code>, <code>ferra-auth.
                                                  FRG-013, FRG-014, FRG-016..FRG-023; FRG-002, FRG-004,
                                                  FRG-010, FRG-012, FRG-015 intentionally unallocated)
 FRG-100 .. FRG-199   authorization errors       (0.8.0, 0.9.0 — FRG-100..FRG-113, FRG-150, FRG-151; 0.10.0 — FRG-152;
-                                                 0.13.0 — FRG-117..FRG-136; 0.14.0 — FRG-137..FRG-146, FRG-153;
+                                                 0.13.0 — FRG-117..FRG-136; 0.14.0 — FRG-137..FRG-146, FRG-153; 0.18.0 — FRG-147, FRG-148, FRG-149;
                                                  FRG-105 retired)
 FRG-200 .. FRG-299   validation-attribute       (0.6.0 Welding — FRG-201..FRG-215)
 FRG-300 .. FRG-399   projection / computed /    (0.6.5 Chasing — FRG-301..FRG-316,
@@ -271,7 +271,7 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-020</code></td><td>A <code>#[ferra(auth = ...)]</code> value that is not <code>"bearer"</code> or <code>"none"</code></td><td><a href="#frg-020--auth-takes-bearer-or-none">link</a></td></tr>
 <tr><td><code>FRG-021</code></td><td>A flag key (<code>authority</code>, <code>system_only</code>, <code>me</code>, <code>hooks</code>, <code>client_pk</code>, and <code>collection</code> in <code>action(...)</code>) given a value</td><td><a href="#frg-021--a-flag-given-a-value">link</a></td></tr>
 <tr><td><code>FRG-022</code></td><td>A key written as a path, not a bare identifier</td><td><a href="#frg-022--a-key-that-is-a-path">link</a></td></tr>
-<tr><td><code>FRG-023</code></td><td>An attribute that does not parse: a bare <code>#[ferra]</code> or <code>#[field]</code>, a key with no <code>=</code>, <code>projection</code> with no parentheses</td><td><a href="#frg-023--an-attribute-that-does-not-parse">link</a></td></tr>
+<tr><td><code>FRG-023</code></td><td>An attribute that does not parse: a bare <code>#[ferra]</code>, <code>#[field]</code> or <code>#[authorize]</code>, a key with no <code>=</code>, <code>projection</code> with no parentheses</td><td><a href="#frg-023--an-attribute-that-does-not-parse">link</a></td></tr>
 <tr><td><code>FRG-100</code></td><td>The model declares no authorization posture</td><td><a href="#frg-100--model-declares-no-authorization-posture">link</a></td></tr>
 <tr><td><code>FRG-101</code></td><td><code>#[authorize]</code> is empty, leaves one of the five CRUD operations without a rule, or names an empty role</td><td><a href="#frg-101--authorize-is-empty-or-incomplete">link</a></td></tr>
 <tr><td><code>FRG-102</code></td><td>A predicate mixes <code>+</code> and <code>|</code> without parentheses</td><td><a href="#frg-102--mixed--and--without-parentheses">link</a></td></tr>
@@ -312,6 +312,9 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-144</code></td><td>An <code>action(...)</code> on a <code>#[ferra(system_only)]</code> model</td><td><a href="#frg-144--an-action-on-a-system_only-model">link</a></td></tr>
 <tr><td><code>FRG-145</code></td><td><code>#[derive(ActionBody)]</code> on a type a body cannot be: not a struct with named fields, a generic one, a field that is not a scalar Ferra field type, a <code>#[field(...)]</code> key outside the eight validation keys, or a <code>#[serde(...)]</code> attribute <code>FRG-116</code> does not list</td><td><a href="#frg-145--a-type-an-action-body-cannot-be">link</a></td></tr>
 <tr><td><code>FRG-146</code></td><td>A <code>writes</code> entry of an <code>action(...)</code> that is no field of the model, or that is not a <code>read_only</code> field or a field with a <code>write</code> rule, or that is the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> or <code>skip</code> field or a field a behavior adds</td><td><a href="#frg-146--a-field-an-action-cannot-write">link</a></td></tr>
+<tr><td><code>FRG-147</code></td><td>A Ferra attribute (<code>#[ferra]</code>, <code>#[authorize]</code>, <code>#[behavior]</code>, <code>#[operation]</code>, <code>#[field]</code>) in <code>#[sea_orm(model_ex_attrs(..))]</code>, which reaches <code>ModelEx</code> alone</td><td><a href="#frg-147--a-ferra-attribute-in-model_ex_attrs">link</a></td></tr>
+<tr><td><code>FRG-148</code></td><td><code>#[field(owner(from = parent))]</code> whose <code>BelongsTo</code> has a <code>to</code> other than the parent’s primary key</td><td><a href="#frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key">link</a></td></tr>
+<tr><td><code>FRG-149</code></td><td><code>from</code>, <code>to</code> or <code>enum_name</code> given twice on one field, in one <code>#[sea_orm(..)]</code> or across two</td><td><a href="#frg-149--a-sea_orm-key-given-twice-on-one-field">link</a></td></tr>
 <tr><td><code>FRG-117</code></td><td>A projection widens exposure without <code>authorize</code>, or is the sibling of a ruled default projection without it</td><td><a href="#frg-117--a-projection-widens-exposure-without-authorize">link</a></td></tr>
 <tr><td><code>FRG-118</code></td><td><code>IsOwner</code> in a projection’s <code>authorize</code></td><td><a href="#frg-118--isowner-in-a-projections-authorize">link</a></td></tr>
 <tr><td><code>FRG-115</code></td><td>A projection writes the owner field</td><td><a href="#frg-115--a-projection-writes-the-owner-field">link</a></td></tr>
@@ -1232,9 +1235,11 @@ the unit tests <code>frg_022_*</code> of <code>crates/ferra-forge/src/diagnostic
 value that is not the expected token. The derive reads attributes with <code>syn</code>, the Rust parser crate, and <code>syn</code> says what
 it expected; the derive adds the code and keeps <code>syn</code>’s span, so the error points at the token <code>syn</code> stopped on: the
 attribute’s name for a missing argument list, the token after the key (often the closing parenthesis) for a missing <code>=</code>.
-A message that already carries a code is left as it is. <code>#[authorize]</code> is not in this class: the same mistakes in
-<code>#[authorize]</code> (a bare <code>#[authorize]</code>, a key with no <code>=</code>) keep their code
-<a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>, with <code>syn</code>’s message, as they always had.</p>
+A message that already carries a code is left as it is. <code>#[authorize]</code> is in this class since 0.18.0: the same
+mistakes in <code>#[authorize]</code> (a bare <code>#[authorize]</code>, a key with no <code>=</code>) are <code>FRG-023</code>, with <code>syn</code>’s message after the
+code and a help of their own, <code>an #[authorize] body is operation = predicate pairs</code>; before, they carried
+<a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>, which is now only an unknown, qualified or malformed
+checker.</p>
 <pre><code class="language-text">error: FRG-023: the attribute does not parse: expected attribute arguments in parentheses: #[ferra(...)]
          help: write the attribute as the guide shows it: `name(...)` for a list, `name = value` for a key
          note: see docs/user-guide/ferra-forge-diagnostics.md § FRG-023
@@ -1359,7 +1364,7 @@ rule, restoring a soft-deleted row requires both the <code>update</code> and the
 rule to pass.</p>
 <p>On a <code>#[ferra(system_only)]</code> model the block asks for <code>list</code> and <code>get</code> only: Ferra
 serves no write for it (see <a href="#frg-135--a-write-rule-on-a-system_only-model"><code>FRG-135</code></a>).</p>
-<p>FRG-101 also appears <strong>next to</strong> FRG-102 or FRG-103: a rule that fails to
+<p>FRG-101 also appears <strong>next to</strong> FRG-023, FRG-102 or FRG-103: a rule that fails to
 parse is dropped, so its operation then counts as missing. Fix the first error
 and the FRG-101 goes away with it.</p>
 <p><strong>Bad.</strong></p>
@@ -1489,11 +1494,11 @@ typo such as <code>IsOwnr</code> is refused, never treated as a pass-through;</l
 <li>a checker written as a path, such as <code>AuthRule::IsAdmin</code> — the vocabulary is
 spelled bare, and the help names the bare form;</li>
 <li><code>HasRole</code> without exactly one string-literal argument (<code>HasRole</code>,
-<code>HasRole(editor)</code>, <code>HasRole("a", "b")</code>), or an operator other than <code>+</code> and <code>|</code>;</li>
-<li>an <code>#[authorize]</code> that does not parse at all (a bare <code>#[authorize]</code>, a key with no <code>=</code>): <code>syn</code>’s message after the
-code, at the token <code>syn</code> stopped on. This is a grammar error, not a checker, and the code is misleading; it is kept
-as it has always been, not folded into <a href="#frg-023--an-attribute-that-does-not-parse"><code>FRG-023</code></a>.</li>
+<code>HasRole(editor)</code>, <code>HasRole("a", "b")</code>), or an operator other than <code>+</code> and <code>|</code>.</li>
 </ul>
+<p>An <code>#[authorize]</code> that does not parse at all (a bare <code>#[authorize]</code>, a key with no <code>=</code>) is not this code since 0.18.0:
+it is a grammar error, not a checker, and it is
+<a href="#frg-023--an-attribute-that-does-not-parse"><code>FRG-023</code></a>.</p>
 <p>Each offending predicate is reported where it is written. When some rules still
 parse, FRG-101 follows for the dropped ones (see FRG-101).</p>
 <p><strong>Bad.</strong></p>
@@ -3933,7 +3938,8 @@ rule: it does not borrow the model’s <code>update</code> rule, nor its posture
 operations anonymous, and gives an action no rule), so an action without <code>authorize</code> would have
 none to check. One error per missing key. An empty or malformed <code>authorize</code> is not this code:
 it is <a href="#frg-101--authorize-is-empty-or-incomplete"><code>FRG-101</code></a>, <a href="#frg-102--mixed--and--without-parentheses"><code>FRG-102</code></a>
-or <a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>. Reported at the <code>action</code> key.</p>
+or <a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>, or <a href="#frg-023--an-attribute-that-does-not-parse"><code>FRG-023</code></a>
+when the attribute does not parse. Reported at the <code>action</code> key.</p>
 <p><strong>Bad.</strong></p>
 <pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -4223,10 +4229,221 @@ error: FRG-146: the field `id` cannot be written by an action: it is the primary
 <code>owner(from = ..)</code> follows to the parent; moving it would hand the row to another owner” (when it is <code>read_only</code> or has a <code>write</code> rule: a foreign key that any caller may write gets the last reason), “it is <code>computed</code>; Ferra
 derives its value”, “it is <code>skip</code>: the API never reads or writes it”, “a behavior adds it; Ferra stamps it”, and “any caller who may write the row can
 already write it; <code>writes</code> opens only a closed field”.</p>
+<p>With the action in <code>#[sea_orm(model_attrs(..))]</code>, the foreign key behind <code>owner(from = ..)</code> is refused in the
+compiler, not by the derive: the <code>ModelEx</code> run that reads that foreign key sees no action. The message is the same, as a
+constant-evaluation error (<code>E0080</code>, “evaluation panicked: FRG-146: …”), underlined on the name in <code>writes</code>.</p>
 <p><strong>Fix.</strong> List only a <code>read_only</code> field or a field with a <code>write</code> rule. Remove a field that any caller who may write the
 row can already write, and the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> field, a <code>skip</code> field and a field a behavior adds: an action cannot set them, listed or not. Check the spelling of
 a name the model does not have.</p>
-<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_free_field.rs"><code>frg_146_free_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_key.rs"><code>frg_146_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner.rs"><code>frg_146_owner.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner_from_fk.rs"><code>frg_146_owner_from_fk.rs</code></a> (the foreign key left writable: the reason of a free field), <a href="../../crates/ferra-http/tests/ui/fail_action_writes_owner_from_fk_read_only.rs"><code>fail_action_writes_owner_from_fk_read_only.rs</code></a> (the foreign key <code>read_only</code>: its own reason), <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_computed.rs"><code>frg_146_computed.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_skip.rs"><code>frg_146_skip.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_behavior_field.rs"><code>frg_146_behavior_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_unknown_name.rs"><code>frg_146_unknown_name.rs</code></a></p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_free_field.rs"><code>frg_146_free_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_key.rs"><code>frg_146_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner.rs"><code>frg_146_owner.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner_from_fk.rs"><code>frg_146_owner_from_fk.rs</code></a> (the foreign key left writable: the reason of a free field), <a href="../../crates/ferra-http/tests/ui/fail_action_writes_owner_from_fk_read_only.rs"><code>fail_action_writes_owner_from_fk_read_only.rs</code></a> (the foreign key <code>read_only</code>: its own reason), <a href="../../crates/ferra-http/tests/ui/dense_model_attrs_action_writes_owner_fk.rs"><code>dense_model_attrs_action_writes_owner_fk.rs</code></a> (the same, with the action in <code>model_attrs(..)</code>), <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_computed.rs"><code>frg_146_computed.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_skip.rs"><code>frg_146_skip.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_behavior_field.rs"><code>frg_146_behavior_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_unknown_name.rs"><code>frg_146_unknown_name.rs</code></a></p>
+<hr>
+<h2 id="frg-147--a-ferra-attribute-in-model_ex_attrs"><a class="header" href="#frg-147--a-ferra-attribute-in-model_ex_attrs">FRG-147 — a Ferra attribute in <code>model_ex_attrs</code></a></h2>
+<p><strong>Trigger.</strong> A <code>#[ferra(..)]</code>, <code>#[authorize(..)]</code>, <code>#[behavior(..)]</code>, <code>#[operation(..)]</code> or <code>#[field(..)]</code> written
+inside <code>#[sea_orm(model_ex_attrs(..))]</code> of a model in the dense form (<code>#[sea_orm::model]</code>). Sea-ORM puts the items of
+<code>model_ex_attrs(..)</code> on <code>ModelEx</code> alone; Ferra reads the rules, the projections and the behaviors from <code>Model</code>. The
+attribute would declare nothing: an <code>#[authorize(delete = HasRole("admin"))]</code> there left <code>delete</code> to the default of
+the posture. The refusal comes from the compiler, as a constant-evaluation error (<code>E0080</code>, “evaluation panicked:
+FRG-147: …”), underlined on the struct’s name; the message quotes the attribute. One error per model: the first
+such attribute.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films", model_ex_attrs(behavior(soft_delete)))]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[behavior(soft_delete)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Message.</strong></p>
+<pre><code class="language-text">error[E0080]: evaluation panicked: FRG-147: `#[behavior(soft_delete)]` is written in `#[sea_orm(model_ex_attrs(..))]`, which puts it on `ModelEx` alone: Ferra reads `#[behavior(..)]` from `Model`, so it would declare nothing
+                help: move it into `model_attrs(..)`, or out of `#[sea_orm(..)]` beside the other Ferra attributes
+</code></pre>
+<p><strong>Fix.</strong> Write the attribute outside <code>#[sea_orm(..)]</code>, where both expansions carry it, or in <code>model_attrs(..)</code>, which
+reaches <code>Model</code>.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_ex_attrs_authorize.rs"><code>dense_model_ex_attrs_authorize.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_ex_attrs_ferra.rs"><code>dense_model_ex_attrs_ferra.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_ex_attrs_behavior.rs"><code>dense_model_ex_attrs_behavior.rs</code></a>; accepted: <a href="../../crates/ferra-forge/tests/ui_relations/dense_pass_mixed_container_attrs.rs"><code>dense_pass_mixed_container_attrs.rs</code></a></p>
+<hr>
+<h2 id="frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key"><a class="header" href="#frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key">FRG-148 — an <code>owner(from)</code> whose <code>BelongsTo</code> does not point at the parent’s key</a></h2>
+<p><strong>Trigger.</strong> <code>#[field(owner(from = parent))]</code> on a model whose <code>BelongsTo</code> field <code>parent</code> has a <code>to</code> other than the
+parent’s primary key (one field). Ferra locks the parent and judges it under its <code>update</code> rule by its primary key,
+and the row takes that parent’s owner: with <code>to</code> naming another column, the parent whose key equals the foreign key’s
+value would be judged, while the row points at another one. <code>to</code> is read as Sea-ORM reads it, a <code>Column</code> variant, so a
+key with an <code>enum_name</code> is named by that name (<code>to = "Key"</code>); a <code>to</code> whose variant no field of the parent carries is
+refused too, never read as written. The refusal comes from the compiler, as a
+constant-evaluation error (<code>E0080</code>, “evaluation panicked: FRG-148: …”), underlined on the <code>from</code> value. A
+<code>BelongsTo</code> with no <code>owner(from)</code> may point <code>to</code> another column: its embed and its reference check read <code>to</code>.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(unique)]
+        pub code: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod order {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "orders")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub vendor_code: i32,
+        #[field(owner(from = vendor))]
+        pub owner_id: Uuid,
+        #[sea_orm(belongs_to, from = "vendor_code", to = "code")]
+        pub vendor: BelongsTo&lt;super::vendor::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod order {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "orders")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub vendor_id: i32,
+        #[field(owner(from = vendor))]
+        pub owner_id: Uuid,
+        #[sea_orm(belongs_to, from = "vendor_id", to = "id")]
+        pub vendor: BelongsTo&lt;super::vendor::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Message.</strong></p>
+<pre><code class="language-text">error[E0080]: evaluation panicked: FRG-148: `owner(from = ..)` follows a `BelongsTo` whose `to` names `Column::Code`, not the primary key of the parent: Ferra locks and judges the parent by its primary key, so another row than the one the foreign key names would be judged
+                help: point the `BelongsTo` `to` at the parent's primary key, or declare the owner on this model with `#[field(owner)]` instead of `owner(from = ..)`
+</code></pre>
+<p><strong>Fix.</strong> Point the <code>BelongsTo</code> <code>to</code> at the parent’s primary key, or drop <code>owner(from = ..)</code> and declare the owner on
+the model with <code>#[field(owner)]</code>.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/ui_relations/frg_148_owner_from_to_not_the_parent_key.rs"><code>frg_148_owner_from_to_not_the_parent_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/frg_148_owner_from_to_through_enum_name.rs"><code>frg_148_owner_from_to_through_enum_name.rs</code></a> (<code>to = "id"</code> naming another field through its <code>enum_name</code>), <a href="../../crates/ferra-forge/tests/ui_relations/spaced_enum_name_owner_from_to.rs"><code>spaced_enum_name_owner_from_to.rs</code></a> (a variant no field carries as Ferra reads it); accepted: <a href="../../crates/ferra-forge/tests/ui_relations/pass_owner_from_to_the_key_through_enum_name.rs"><code>pass_owner_from_to_the_key_through_enum_name.rs</code></a></p>
+<hr>
+<h2 id="frg-149--a-sea_orm-key-given-twice-on-one-field"><a class="header" href="#frg-149--a-sea_orm-key-given-twice-on-one-field">FRG-149 — a <code>sea_orm</code> key given twice on one field</a></h2>
+<p><strong>Trigger.</strong> <code>from</code>, <code>to</code> or <code>enum_name</code> given twice on one field, in one <code>#[sea_orm(..)]</code> or across two. Ferra reads
+these keys to decide what a check judges (the parent an <code>owner(from)</code> locks, the column a <code>to</code> names), and it read the
+first occurrence; Sea-ORM reads the last one of an attribute, and only the first <code>#[sea_orm]</code> of a relation field. The
+two could disagree on the column. The refusal is underlined on the second occurrence.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key, enum_name = "Code", enum_name = "Key")]
+        pub id: i32,
+        pub code: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key, enum_name = "Key")]
+        pub id: i32,
+        pub code: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Message.</strong></p>
+<pre><code class="language-text">error: FRG-149: `enum_name` is given twice in the `#[sea_orm]` attributes of this field: Ferra and Sea-ORM do not pick the same occurrence, so Ferra could check another column than the one Sea-ORM uses
+         help: keep one `enum_name = ".."` on the field
+</code></pre>
+<p><strong>Fix.</strong> Keep one occurrence of the key, the one you mean.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/ui_relations/frg_149_to_repeated.rs"><code>frg_149_to_repeated.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/frg_149_to_in_two_attributes.rs"><code>frg_149_to_in_two_attributes.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/frg_149_enum_name_repeated.rs"><code>frg_149_enum_name_repeated.rs</code></a></p>
 <hr>
 <h2 id="frg-150--mounting-a-model-without-posture"><a class="header" href="#frg-150--mounting-a-model-without-posture">FRG-150 — mounting a model without posture</a></h2>
 <p><strong>Trigger.</strong> Two sites share this code.</p>
@@ -5579,6 +5796,11 @@ listed in a <code>read = [...]</code>; see FRG-305 for that refinement).</p>
 relation field: it is not unknown, it is an embed
 (<a href="relations.html#embedding">Embedding</a>). The name of a <code>HasMany</code> or a <code>HasOne</code> is
 <a href="#frg-363--a-hasmany-or-hasone-in-a-read-list">FRG-363</a>. Any other name that is no field is still unknown here.</p>
+<p>When the Ferra attributes are written in <code>#[sea_orm(model_attrs(..))]</code>, Sea-ORM puts them on the dense <code>Model</code> only,
+and the derive’s second run, on <code>ModelEx</code>, the only one that sees the relation fields, reads none of them. The
+check then runs in the compiler instead: the <code>Model</code> run asks the model’s relations, in a constant, whether each
+name of a <code>read</code> list that is no field is one of them, and a name that is not fails the constant evaluation (<code>E0080</code>,
+“evaluation panicked: FRG-301: …”), with the same text, underlined on the name.</p>
 <p><strong>Bad.</strong></p>
 <pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -5621,7 +5843,7 @@ pub struct Model {
 struct, or add the field. Identifiers in <code>read</code>/<code>write</code> lists must
 match field names exactly (case-sensitive). A <code>read</code> list may name a
 <code>BelongsTo</code> relation too, to embed the parent.</p>
-<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs"><code>crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs</code></a></p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs"><code>crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs</code></a>; in <code>model_attrs(..)</code>: <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_read_unknown.rs"><code>dense_model_attrs_read_unknown.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_read_typo.rs"><code>dense_model_attrs_read_typo.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_derive_in_model_attrs.rs"><code>dense_model_attrs_derive_in_model_attrs.rs</code></a> (the derive itself in <code>model_attrs</code> and <code>model_ex_attrs</code>)</p>
 <hr>
 <h2 id="frg-302--write_only-and-read_only-on-the-same-field"><a class="header" href="#frg-302--write_only-and-read_only-on-the-same-field">FRG-302 — <code>write_only</code> and <code>read_only</code> on the same field</a></h2>
 <p><strong>Trigger.</strong> A field carries both <code>#[ferra(write_only)]</code> and
@@ -8160,9 +8382,13 @@ mod review {
 <p><strong>Fix.</strong> Remove the name from <code>read</code>. The relation is still in every response, as the link <code>reviews</code> to its
 sub-collection (<a href="relations.html#links-and-foreign-keys">Links and foreign keys</a>). To show the rows of the other side
 inside this one, embed from that side: the <code>BelongsTo</code> of <code>review</code> to <code>film</code> is a name its <code>read</code> list may carry.</p>
+<p>With the Ferra attributes in <code>#[sea_orm(model_attrs(..))]</code> the check runs in the compiler, as for
+<a href="#frg-301--projection-references-an-unknown-field">FRG-301</a>: the same text, as a constant-evaluation error
+(<code>E0080</code>, “evaluation panicked: FRG-363: …”), underlined on the name.</p>
 <p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_363_has_many_in_read.rs"><code>frg_363_has_many_in_read.rs</code></a>
 and <a href="../../crates/ferra-forge/tests/diagnostics/frg_363_has_one_in_read.rs"><code>frg_363_has_one_in_read.rs</code></a>,
-in <code>crates/ferra-forge/tests/diagnostics/</code>.</p>
+in <code>crates/ferra-forge/tests/diagnostics/</code>; in <code>model_attrs(..)</code>:
+<a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_read_has_many.rs"><code>dense_model_attrs_read_has_many.rs</code></a>.</p>
 <hr>
 <h2 id="frg-364--an-ignored-field-without-computed"><a class="header" href="#frg-364--an-ignored-field-without-computed">FRG-364 — an ignored field without <code>computed</code></a></h2>
 <p><strong>Trigger.</strong> A field declares <code>#[sea_orm(ignore)]</code> and no <code>#[ferra(computed)]</code>. A field with no column

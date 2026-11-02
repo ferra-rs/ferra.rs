@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -203,7 +203,7 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/not_found</code></td><td style="text-align: right"><code>404 Not Found</code></td><td>Resource Not Found</td><td><code>FerraError::NotFound</code> (<code>&lt;resource&gt;/&lt;id&gt; not found</code>); <code>FerraError::CollectionNotFound</code> (0.13.0: a collection the caller may not use, <code>&lt;resource&gt; not found</code>, no id)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Validation Error</td><td><code>FerraError::Validation</code> (extractor failures: malformed JSON body, unparseable path parameter)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation_failed</code></td><td style="text-align: right"><code>422 Unprocessable Content</code></td><td>Validation Failed</td><td><code>FerraError::Unprocessable</code> (well-formed body whose values violate <code>#[field(...)]</code> rules — see § Validation failures (422))</td></tr>
-<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>; a unique constraint, or a <code>DELETE</code> a foreign key refuses, 0.16.0); <code>FerraError::ConflictWith</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
+<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>; a unique constraint, or a <code>DELETE</code> a foreign key refuses, 0.16.0); <code>FerraError::ConflictDetail</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
 <tr><td><code>https://ferra.rs/errors/internal</code></td><td style="text-align: right"><code>500 Internal Server Error</code></td><td>Internal Server Error</td><td><code>FerraError::Internal</code></td></tr>
 <tr><td><code>https://ferra.rs/errors/payload_too_large</code></td><td style="text-align: right"><code>413 Payload Too Large</code></td><td>Payload Too Large</td><td>request-body-limit middleware</td></tr>
 <tr><td><code>https://ferra.rs/errors/rate_limited</code></td><td style="text-align: right"><code>429 Too Many Requests</code></td><td>Too Many Requests</td><td>rate-limit middleware</td></tr>
@@ -494,6 +494,10 @@ unauthenticated request reaches the docs surface. New in 0.5.0.</p>
   "detail": "authentication required"
 }
 </code></pre>
+<p>The docs 401 carries the fixed <code>WWW-Authenticate: Bearer</code> too, the same value
+as every other 401, on both docs routes and on a path set with
+<code>with_docs_protected_at</code>; the verifier declares nothing, whatever it checks. It
+sent no challenge before 0.18.0.</p>
 <p>Every other 401 (missing, malformed, expired or badly signed token, wrong
 <code>iss</code> or <code>aud</code>, unknown <code>kid</code>) has the same bytes and the headers
 <code>WWW-Authenticate: Bearer</code> and <code>application/problem+json</code>, whatever the reason,
@@ -508,6 +512,7 @@ so a caller cannot probe which check failed. Since 0.12.0 its <code>detail</code
   "detail": "valid credentials are required to access this resource"
 }
 </code></pre>
+<p>A path no route serves is a <code>404</code> with an empty body, whoever asks and whatever the chain mounts: the docs verifier and the JWT layer of a model guard their own routes only. Before 0.18.0 the fallback inherited the layers of the last router merged, so an unknown path could answer <code>401</code> under <code>with_docs_protected</code> or after a bearer model.</p>
 <h3 id="validation_failed--422"><a class="header" href="#validation_failed--422"><code>validation_failed</code> — <code>422</code></a></h3>
 <p>Returned when an inbound <code>POST</code> or <code>PUT</code> body parses cleanly but
 violates one or more <code>#[field(...)]</code> rules declared on the target

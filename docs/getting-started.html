@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -318,9 +318,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // commit stays under the lowest common default, Envoy's 15 s route
     // timeout (API Gateway allows 29 s, Heroku 30 s, ALB and nginx 60 s). It is
     // a margin, not a maximum: a slow `COMMIT` is not cut, and with a
-    // `BelongsTo` the read of the written row's parents after the commit is
-    // under no deadline either (`acquire_timeout` bounds the wait for the
-    // connection, `statement_timeout` the query).
+    // `BelongsTo` the read of the written row's parents after the commit
+    // shares that second: when it expires the answer is a 500, the row written.
     let app = Foundry::new(conn)
         .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;Claims&gt;(jwt)

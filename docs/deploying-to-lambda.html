@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -257,8 +257,9 @@ request budget of 23 seconds. The function timeout is 30 seconds.</p>
 <p>The budget has three phases (the detail is in
 <a href="behaviors.html#after-commit">Behaviors</a>): until a <code>COMMIT</code> starts it cuts, with a 503
 <code>timeout</code> and nothing written; a started <code>COMMIT</code> is awaited, never canceled; after a confirmed
-commit, the <code>after_commit</code> hooks and the computed fields share one post-commit deadline,
-<code>max(deadline, first post-commit work + 1 s)</code> (a 500 when cut, the commit standing). The raw
+commit, the <code>after_commit</code> hooks, the computed fields and the read of the written row’s parents
+share one post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code> (a 500 when cut,
+the commit standing). The raw
 connection escape is outside the rollback guarantee.</p>
 <p><strong>Choose the budget under every timeout in front of it.</strong> A gateway or function timeout that fires
 before the response leaves the client with the outcome unknown: the write may be committed, so
@@ -267,12 +268,14 @@ margin here is the first data request’s secret loading (up to 4 seconds), plus
 1-second post-commit floor: 4 + 23 + 1 = 28 seconds, under the template’s 29-second API Gateway
 integration timeout. It is a margin, not a guaranteed maximum: a <code>COMMIT</code> that overruns the budget
 is awaited and is not bounded, and the time it takes past the budget adds to the 28.
-For a model with a <code>BelongsTo</code>, the read of the written row’s parents after the commit
-is outside that 28-second margin and under no deadline of its own: <code>acquire_timeout</code>
-bounds the wait for the connection and <code>statement_timeout</code> bounds the query, so the read
-can add up to <code>acquire_timeout</code> + <code>statement_timeout</code>. On a create with a <code>BelongsTo</code>, a
-saturated pool can therefore push the answer past the gateway’s 29 seconds, and the gateway
-answers <code>504</code>. The recipe keeps its 10-second <code>acquire_timeout</code>, which Neon cold connects need.</p>
+For a model with a <code>BelongsTo</code>, the read of the written row’s parents after the commit of the
+write’s own transaction is inside that 28-second margin: it shares the post-commit deadline, and
+a read still running at the deadline answers a 500, the row written. Only the reads of a route of
+yours after an earlier commit (<code>Resource::get</code>, <code>list</code>, <code>list_cursor</code>) and of a hook’s
+<code>tx.resource</code> stay outside it, under no deadline of their own: <code>acquire_timeout</code> bounds the wait
+for the connection and <code>statement_timeout</code> bounds the query, so such a read can add up to
+<code>acquire_timeout</code> + <code>statement_timeout</code>. The recipe keeps its 10-second <code>acquire_timeout</code>, which
+Neon cold connects need.</p>
 <p>Keep <code>DATABASE_URL</code>, <code>JWT_SECRET</code> and <code>ETAG_KEY</code> (the entity-tag key, at least 32
 bytes, never the JWT secret) in SSM Parameter Store <code>SecureString</code>
 parameters. The template carries only their names and ARNs. The operator sets
@@ -288,6 +291,11 @@ first invocation’s total time and the container extension’s installation mus
 be measured by the operator canary. Do not wrap writes in an unconditional
 outer timeout, which could cancel a commit already in progress.
 See <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/ps-integration-lambda-extensions.html">AWS’s extension lifecycle</a>.</p>
+<p>The deployed example mounts no <code>/docs</code>. If a deployment needs the documentation in production, the idiom is
+<code>Foundry::with_docs_protected(verifier)</code>, with a verifier that reads the <code>Authorization</code> header of the
+<code>http::request::Parts</code>, refuses an empty configured token and compares in constant time, as in
+<a href="ferra-openapi.html#enabling-the-docs-surface">Enabling the docs surface</a>. <code>with_docs()</code> stays for a local or
+internal service. No deployment profile changes <code>/docs</code>: the call site is the choice.</p>
 <h2 id="opentofu-walkthrough"><a class="header" href="#opentofu-walkthrough">OpenTofu walkthrough</a></h2>
 <ol>
 <li>Create Neon outside OpenTofu; choose the pooled connection string. Create

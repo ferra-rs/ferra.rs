@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,16 +207,22 @@ serde   = { version = "1", features = ["derive"] }
 <li><strong><code>GET /docs/openapi.json</code></strong> — the full OpenAPI 3.2 document (<code>openapi: "3.2.0"</code>).</li>
 <li><strong><code>GET /docs</code></strong> — interactive Scalar UI rendering the spec.</li>
 <li><strong>Every answer is documented.</strong> Each operation lists the error statuses the server
-can return for it — 400; 401 when the model reads tokens; 403 when the rule needs an
-identity; 404 on item routes; 409 on writes; 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
-<code>restore</code> and the actions; 413 and 422 on bodies (422 on every action too); 429 on
+can return for it — 400; 401 when the model reads tokens (a parent next to a child that needs an identity reads them: a broken token is a 401 on a sub-collection whose own rules are <code>Anyone</code>); 403 when the rule can refuse a caller who has a token (a role, an
+authority; <code>IsOwner</code> alone is a 404 for a stranger of a row, so an item route under it declares none; an action declares one only when its rule refuses the owner himself, the model has an authority, or a field its handler may change is one the framework refuses: outside the write set of the bare route (the promoted projection’s when the model promotes one) or carrying a <code>write</code> rule, and not listed in the action’s <code>writes</code>; a sub-collection declares the 401 when its parent or its child reads tokens, and the optional <code>security</code> of an <code>Anyone</code> operation when neither the parent’s rules nor its promoted projection need an identity (its <code>get</code>, and for the create its <code>update</code> too: the create judges both, the <code>get</code> first; the rule of a projection promoted with <code>default = true</code> on both), and declares the 403 from the parent’s <code>get</code> and <code>update</code> rules and the child’s own, an <code>IsOwner</code> list of the child not refusing the owner of a parent only its owner can read), or on a list or a create under an owner field (an identity that is no value
+of the owner column is refused; an <code>owner(from)</code> create is a 422 and declares none unless an authority or a write rule can refuse it; <code>Authenticated</code> and <code>Anyone</code> refuse nobody, so a <code>bearer</code> model
+with no rule declares none; under a cookie every mutation of a model that reads tokens also declares the CSRF
+guard’s); 404 on item routes and on any operation, a list and a create included, under a projection whose rule
+can refuse a caller; 409 on writes and on every <code>DELETE</code> (a foreign key can refuse
+it, whichever model it is); 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
+<code>restore</code> and the actions; 413 on every operation, a read as well as a write (a request over
+the body cap is refused before the route runs); 415 and 422 on bodies (422 on every action too); 429 on
 mutations (not under <code>no_rate_limit()</code>); 503; 500 — each an <code>application/problem+json</code> body.
 Every operation, a read as well as a write, declares a 503, whatever the chain (0.17.0): the pool may give
 no connection in time (<code>service_unavailable</code>). Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) can
 also end in <code>retry_exhausted</code> (0.14.0, with <code>Retry-After: 1</code>). A chain
-with <code>request_budget</code> adds <code>timeout</code>, and a chain whose JWT
+with <code>request_budget</code> can answer <code>timeout</code>, and a chain whose JWT
 source is a key set (<code>JwtConfig::key_set</code>), or that accepts API keys (<code>with_api_keys</code>),
-adds <code>identity_unavailable</code> to the operations of the models that read tokens: all are the one named response
+can answer <code>identity_unavailable</code>: all are the one named response
 <code>ServiceUnavailable</code> of <code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>service_unavailable</code>
 (the pool, or a hook’s or an action handler’s <code>unavailable</code>), <code>retry_exhausted</code>, <code>timeout</code> or
 <code>identity_unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
@@ -240,10 +246,13 @@ in the document as the router serves it: none under a projection prefix. Its <co
 on <code>Job</code> is <code>markSeenJob</code> (the <code>v1.</code> prefix of a versioned API is kept, and a promoted default
 projection adds its suffix as it does to every bare operation). It takes the key, <code>Prefer</code>,
 <code>If-Match</code> and <code>If-None-Match</code> as <code>PUT</code> does, and answers <code>200</code> with the model’s read schema and
-the <code>ETag</code> header, or <code>204</code>, with <code>400</code>, <code>401</code> (when the model reads tokens), <code>403</code>, <code>404</code>, <code>409</code> (a
-handler’s <code>conflict</code>), the one named <code>412</code>, <code>422</code> (a handler’s <code>unprocessable</code>, the validators of
+the <code>ETag</code> header, or <code>204</code>, with <code>400</code>, <code>401</code> (when the model reads tokens), <code>403</code> (only where the
+action can be refused: its rule refuses the owner himself, the model has an authority, or a field its
+handler may change is one the framework refuses, and, under a cookie, the CSRF guard’s, which every mutation of a
+model that reads tokens declares), <code>404</code>, <code>409</code> (a
+handler’s <code>conflict</code>), the one named <code>412</code>, <code>413</code>, <code>422</code> (a handler’s <code>unprocessable</code>, the validators of
 the state it returns, <code>owner(from)</code>), <code>429</code> (not under <code>no_rate_limit()</code>), <code>500</code> and the one
-named <code>503</code>. An action that declares a <code>body</code> adds <code>413</code> and <code>415</code>, and its request body is a
+named <code>503</code>. An action that declares a <code>body</code> adds <code>415</code>, and its request body is a
 <code>$ref</code> to a component of its own, <code>{Name}{Model}Input</code> in PascalCase (<code>MarkSeenJobInput</code>): the
 fields of the body type, with their validation keywords, <code>additionalProperties: false</code> (a key
 outside the list is the <code>422</code> <code>unknown_field</code>). An action without a body documents none. Because the
@@ -261,8 +270,8 @@ envelope, a component of its own, <code>{Name}{Model}Request</code> (<code>AckAl
 <code>minItems: 1</code>, <code>maxItems: 100</code>, <code>uniqueItems: true</code> whose items have the schema of the key; and <code>body</code>, a
 <code>$ref</code> to the typed body’s component (<code>{Name}{Model}Input</code>), present and required only when the action
 declares one. It answers <code>204</code> with no body and no <code>ETag</code> (a batch serves no row), and <code>400</code>, <code>401</code> (when the
-model reads tokens), <code>403</code>, <code>404</code>, <code>409</code>, the one named <code>412</code>, <code>413</code>, <code>415</code>, <code>422</code>, <code>429</code> (not under
-<code>no_rate_limit()</code>), <code>500</code> and the one named <code>503</code>: the three body errors always, since the envelope is a
+model reads tokens), <code>403</code> (on the same clauses as a row action’s, the cookie’s included), <code>404</code>, <code>409</code>, the one named <code>412</code>, <code>413</code>, <code>415</code>, <code>422</code>, <code>429</code> (not under
+<code>no_rate_limit()</code>), <code>500</code> and the one named <code>503</code>: <code>415</code> and <code>422</code> always, since the envelope is a
 body. The 100 is the one the server enforces.</li>
 <li><strong>API keys are a security scheme.</strong> On a chain that accepts API keys, the document
 declares <code>components/securitySchemes/apiKey</code> (<code>type: apiKey</code>, <code>in: header</code>, <code>name</code> the
@@ -283,7 +292,10 @@ flat schemas, without <code>_links</code>.</li>
 <code>&lt;Model&gt;CollectionHal</code> are <code>&lt;Model&gt;Hal</code>, since each item of a HAL list carries its own
 <code>_links</code> (0.13.0). In <code>&lt;Model&gt;Hal</code>, <code>_links.self</code> and <code>_links.collection</code> are optional: an item
 served to a caller who may <code>list</code> but not <code>GET</code> it has no <code>self</code> (0.13.0). A list’s own
-<code>_links.self</code> stays required.</li>
+<code>_links.self</code> stays required. A row also names one optional link per relation and per row action
+of the model, the action’s name being the key. A list names its pagination links by mode: <code>page</code>
+requires <code>first</code>, <code>last</code>, <code>next</code> and <code>prev</code> (each <code>next</code> and <code>prev</code> a link, or <code>null</code> on a boundary
+page); <code>cursor</code> has <code>next</code> and <code>prev</code> only, each optional; <code>both</code> has the four, each optional.</li>
 <li><strong>A gated field is declared optional.</strong> A field with a <code>#[field(read = …)]</code> rule is never in the
 <code>required</code> list of its read schema and is described “absent when the caller may not read it”; its
 examples stay synthetic (a placeholder of its type, never a value of yours). The <code>POST</code> and <code>PUT</code> of a
@@ -316,7 +328,7 @@ against it.</li>
 </ul>
 <p><code>Foundry::with_docs()</code> serves both routes to anyone who reaches the port. For any surface a
 network can reach, use <code>Foundry::with_docs_protected(verifier)</code>, which answers an anonymous
-request with a <code>401</code>: see <a href="#enabling-the-docs-surface">Enabling the docs surface</a>.</p>
+request with a <code>401</code>, on the docs routes only: an unknown path stays a <code>404</code>. See <a href="#enabling-the-docs-surface">Enabling the docs surface</a>.</p>
 <p>For each mounted model <code>M</code> (PascalCase struct name), the spec
 contains:</p>
 <ul>
@@ -353,12 +365,13 @@ version prefix: <code>/v1/me</code>), with the operationId <code>getMe</code> an
 parameter. Its responses are <code>200</code> (the model’s read schema), <code>401</code>, <code>403</code> (a
 <code>get</code> rule that reads no row), <code>404</code> (every refusal that depends on the row
 answers it, see <a href="projections-and-routing.html"><code>projections-and-routing.md</code></a>
-§ <code>/me</code>), and the <code>400</code> and <code>500</code> of every generated operation, all as
+§ <code>/me</code>), and the <code>400</code>, <code>413</code>, <code>500</code> and <code>503</code> of every generated operation, all as
 <code>ProblemDetails</code>. The path has no other method.</p>
 <hr>
 <h2 id="enabling-the-docs-surface"><a class="header" href="#enabling-the-docs-surface">Enabling the docs surface</a></h2>
 <p>For any surface a network can reach, the call site is <code>Foundry::with_docs_protected(verifier)</code>: an
-anonymous request gets a <code>401</code> with an RFC 7807 body, and the verifier is yours to write.</p>
+anonymous request gets a <code>401</code> with an RFC 7807 body and the fixed <code>WWW-Authenticate: Bearer</code>, and the verifier is
+yours to write; it declares nothing, the challenge is Ferra’s.</p>
 <pre class="playground"><code class="language-rust">use ferra::Foundry;
 use axum::http::header::AUTHORIZATION;
 <span class="boring">use ferra::FerraModel;
@@ -388,8 +401,8 @@ let docs_token = std::env::var("DOCS_TOKEN").unwrap_or_default();
 let app = Foundry::new(conn)
     .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;Film&gt;()
-    .with_docs_protected(move |req: &amp;axum::extract::Request| {
-        let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
+    .with_docs_protected(move |parts: &amp;axum::http::request::Parts| {
+        let sent = parts.headers.get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
         !docs_token.is_empty() &amp;&amp; same(sent, format!("Bearer {docs_token}").as_bytes())
     })
     .build();
@@ -438,7 +451,7 @@ zero boilerplate.</p>
 <tr><th>Method</th><th>Effect</th></tr>
 </thead>
 <tbody>
-<tr><td><code>.with_docs_protected(verifier)</code></td><td>Auth-gated docs at <code>/docs</code>; anonymous requests get 401 + RFC 7807 body.</td></tr>
+<tr><td><code>.with_docs_protected(verifier)</code></td><td>Auth-gated docs at <code>/docs</code>; anonymous requests get 401 + RFC 7807 body + <code>WWW-Authenticate: Bearer</code>.</td></tr>
 <tr><td><code>.with_docs_protected_at("/api-docs", verifier)</code></td><td>Auth-gated at the supplied prefix.</td></tr>
 <tr><td><code>.with_docs()</code></td><td>Public docs at <code>/docs</code> and <code>/docs/openapi.json</code>, for local or internal use.</td></tr>
 <tr><td><code>.with_docs_at("/api-docs")</code></td><td>Public docs at the supplied prefix.</td></tr>
@@ -493,7 +506,8 @@ stay public; <code>with_docs_protected</code> gates them.</p>
 <code>example</code> keyword is deprecated since OpenAPI 3.1), every request body, parameter and
 header an <code>example</code>, and error responses are shared <code>components.responses</code>
 (<code>BadRequest</code>, <code>Unauthorized</code>, <code>Forbidden</code>, <code>NotFound</code>, <code>Conflict</code>,
-<code>PreconditionFailed</code>, <code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>).</p>
+<code>PreconditionFailed</code>, <code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>),
+each with its own <code>example</code>: the <code>type</code>, <code>title</code> and <code>status</code> of that answer, not one body shared by all.</p>
 <p>The document is built once, at <code>Foundry::build()</code>. If Ferra cannot finish it — a
 Ferra bug — <code>build()</code> panics with an explicit message rather than serve a document that silently lost part of its content.</p>
 <h3 id="response-headers-of-the-docs-page"><a class="header" href="#response-headers-of-the-docs-page">Response headers of the docs page</a></h3>
@@ -834,10 +848,25 @@ for the <code>FerraComputed</code> trait, <code>ModelComputed</code>, when the h
     "title":    { "type": "string" },
     "status":   { "type": "integer", "format": "int32" },
     "detail":   { "type": "string" },
-    "instance": { "type": "string", "format": "uri-reference" }
+    "instance": { "type": "string", "format": "uri-reference" },
+    "errors":   {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "code", "message"],
+        "properties": {
+          "field":   { "type": "string" },
+          "code":    { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
   }
 }
 </code></pre>
+<p><code>errors</code> is optional: the 400 <code>validation</code> and the 422 carry it, one <code>{field, code, message}</code> entry
+per failing field in a single top-level array (the <code>{field: [message]}</code> map left in 0.11.0); every
+other answer has none.</p>
 <p>The closed enum on <code>type</code> is the load-bearing constraint: SDK
 generators produce a typed union over the URI set in the target
 language. An AI agent generating client code is foreclosed from

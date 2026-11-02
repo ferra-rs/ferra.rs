@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -308,8 +308,8 @@ read projection allows them. Their wire names follow <code>rename_all</code>.</p
 <p><code>BehaviorKind::SoftDelete</code> and <code>BehaviorKind::Timestampable</code> carry the column
 names (<code>deleted_at</code>, <code>created_at</code>, <code>updated_at</code> unless the model names its
 own). The enum and both variants are <code>#[non_exhaustive]</code>: a <code>match</code> keeps
-its wildcard arm and ends a variant pattern with <code>..</code>;
-<code>BehaviorKind::soft_delete</code> and <code>BehaviorKind::timestampable</code> build a value.</p>
+its wildcard arm and ends a variant pattern with <code>..</code>; the derive builds the
+values, you never do.</p>
 <p>Before:</p>
 <pre><code class="language-text">use ferra::meta::BehaviorKind;
 
@@ -332,7 +332,6 @@ fn deletion_column(kind: &amp;BehaviorKind) -&gt; Option&lt;&amp;'static str&gt;
         _ =&gt; None,
     }
 }
-assert_eq!(deletion_column(&amp;BehaviorKind::soft_delete("removed_at")), Some("removed_at"));
 <span class="boring">}</span></code></pre>
 <p><code>ModelMeta::soft_delete_column</code> and <code>ModelMeta::timestamp_columns</code> read the
 names for you.</p>

@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -265,7 +265,7 @@ serde   = { version = "1", features = ["derive"] }
 <tbody>
 <tr><td><code>Foundry::new(conn)</code></td><td>begins the chain</td><td>—</td></tr>
 <tr><td><code>.with_auth::&lt;Claims&gt;(jwt)</code></td><td>configures JWT bearer validation; required to mount a model whose rules need an identity (without it, <code>.mount::&lt;M&gt;()</code> is a compile error, FRG-151 — see <a href="ferra-auth.html"><code>ferra-auth.md</code></a> § Compile-time auth defense)</td><td>—</td></tr>
-<tr><td><code>.with_api_keys(keys)</code></td><td>accepts API keys next to the JWT (after <code>.with_auth()</code>; see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>)</td><td>—</td></tr>
+<tr><td><code>.with_api_keys(keys)</code></td><td>accepts API keys next to the JWT (after <code>.with_auth()</code>, once: a second call is <code>BuildError::ApiKeysTwice</code>; see <a href="ferra-auth.html"><code>ferra-auth.md</code></a>)</td><td>—</td></tr>
 <tr><td><code>.etag_key(secret)?</code></td><td>the key that signs the entity tags: at least 32 bytes, the same on every replica, never the JWT secret (see <a href="#entity-tag-key">Entity-tag key</a>)</td><td>—</td></tr>
 <tr><td><code>.api_version("v1")?</code></td><td>nests every route under <code>/v1/</code></td><td>—</td></tr>
 <tr><td><code>.default_representation(Representation::Flat)</code></td><td>the shape of a 2xx for a client that states no <code>Accept</code> preference (<code>Hal</code> unless set); see <a href="ferra-http.html#response-representations"><code>ferra-http.md</code></a></td><td>—</td></tr>
@@ -275,7 +275,7 @@ serde   = { version = "1", features = ["derive"] }
 <tr><td><code>.with_base_url(origin)</code></td><td>absolute <code>_links</code> and <code>Location</code> on <code>origin</code> (<code>https://…</code>); relative links otherwise</td><td>—</td></tr>
 <tr><td><code>.with_docs()</code></td><td>publishes <code>/docs/openapi.json</code> + <code>/docs</code> (Scalar UI); <code>/docs/v1/…</code> on a versioned chain</td><td><code>.with_docs_at(path)</code></td></tr>
 <tr><td><code>.with_docs_info(title, version)</code></td><td><code>info.title</code> / <code>info.version</code> of the served document and the Scalar page title (default <code>"API"</code>, <code>"1"</code>)</td><td>—</td></tr>
-<tr><td><code>.with_docs_protected(verifier)</code></td><td>gates docs behind the verifier (RFC 7807 401 on rejection)</td><td><code>.with_docs_protected_at(path, verifier)</code></td></tr>
+<tr><td><code>.with_docs_protected(verifier)</code></td><td>gates docs behind the verifier (RFC 7807 401 with <code>WWW-Authenticate: Bearer</code> on rejection)</td><td><code>.with_docs_protected_at(path, verifier)</code></td></tr>
 <tr><td><code>.build()</code></td><td>finalizes the chain into <code>axum::Router</code></td><td>—</td></tr>
 </tbody>
 </table>
@@ -436,7 +436,9 @@ same JWT layer and the same authorization rules as on an un-versioned chain.</p>
 <p><code>.deprecated(since, sunset)</code> takes two dates: the day the version was
 deprecated, and the last day it is served as documented. It returns
 <code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused
-(<code>DeprecationError::SunsetBeforeDeprecation</code>). It activates these signals:</p>
+(<code>DeprecationError::SunsetBeforeDeprecation</code>), and so is a date in a year outside
+<code>0..=9999</code> (<code>DeprecationError::YearOutOfRange</code>; a <code>Date</code> above 9999 cannot be built, so
+it is a year below zero). It activates these signals:</p>
 <ul>
 <li>a <code>Deprecation: @&lt;seconds&gt;</code> header on every response under the
 version (RFC 9745): the start of <code>since</code>, 00:00:00 UTC, in Unix
@@ -448,6 +450,8 @@ seconds — <code>@1782864000</code> for <code>2026-07-01</code>;</li>
 the emitted spec, plus an <code>info.x-sunset</code> mirror at the document
 root.</li>
 </ul>
+<p>The two headers, the warn-event and the counter below are of a route served under the
+version: a path no route serves is the bare <code>404</code>, with none of them.</p>
 <pre class="playground"><code class="language-rust">use ferra::{Foundry, date};
 <span class="boring">use ferra::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
@@ -566,10 +570,11 @@ the API but does not serve resource data; gating it would block the
 constitutional zero-to-documented-API standard for every new
 consumer.</p>
 <p>For any publicly-reachable network surface, switch to
-<code>.with_docs_protected(verifier)</code>. The verifier closure receives the
-inbound request and returns <code>bool</code>; a <code>false</code> produces an RFC 7807
+<code>.with_docs_protected(verifier)</code>. The verifier closure receives the head of
+the inbound request, an <code>http::request::Parts</code> (method, URI and headers, never the body),
+and returns <code>bool</code>; a <code>false</code> produces an RFC 7807
 <code>401 Unauthorized</code> response with
-<code>type: "https://ferra.rs/errors/unauthorized"</code>:</p>
+<code>type: "https://ferra.rs/errors/unauthorized"</code>, and the request body is never read:</p>
 <pre class="playground"><code class="language-rust">use axum::http::header::AUTHORIZATION;
 use ferra::Foundry;
 <span class="boring">use ferra::FerraModel;
@@ -598,8 +603,8 @@ fn same(a: &amp;[u8], b: &amp;[u8]) -&gt; bool {
 let app = Foundry::new(conn)
     .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;Film&gt;()
-    .with_docs_protected(|req: &amp;axum::extract::Request| {
-        let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
+    .with_docs_protected(|parts: &amp;axum::http::request::Parts| {
+        let sent = parts.headers.get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
         same(sent, b"Bearer secret")
     })
     .build();
@@ -607,11 +612,12 @@ let app = Foundry::new(conn)
 </span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>The verifier runs synchronously and MUST NOT perform I/O — the
-underlying primitive does not yet integrate with the
-<code>ferra-auth</code> provider chain (that landing is scheduled for 0.8.5
-beta). The current API accepts any <code>Fn(&amp;Request) -&gt; bool + Send + Sync + 'static</code>; the future <code>Provider</code> arm of <code>DocsAuthVerifier</code>
-will be additive.</p>
+<p>The verifier guards the two docs routes only; a path nothing serves stays a <code>404</code>.</p>
+<p>The verifier runs synchronously and MUST NOT perform I/O. The current API
+accepts any <code>Fn(&amp;http::request::Parts) -&gt; bool + Send + Sync + 'static</code> (before
+0.18.0, <code>Fn(&amp;axum::extract::Request) -&gt; bool</code>). <code>DocsAuthVerifier</code> is
+<code>#[non_exhaustive]</code>, so an arm can be added without a break; this guide promises
+no other arm and no version for one. A verifier that panics serves nothing.</p>
 <hr>
 <h2 id="layer-ordering-invariance"><a class="header" href="#layer-ordering-invariance">Layer-ordering invariance</a></h2>
 <p>Every resource mounted through <code>Foundry</code> carries the per-resource
@@ -998,9 +1004,13 @@ infrastructure’s timeout (a gateway, a proxy, a platform limit): 10 s plus
 the 1 s Ferra may spend after a commit stays under the lowest common
 default, Envoy’s 15 s route timeout (API Gateway allows 29 s, Heroku 30 s,
 ALB and nginx 60 s). It is a margin, not a maximum: a slow <code>COMMIT</code> is not
-cut, and for a model with a <code>BelongsTo</code> the read of the written row’s parents
-after the commit is under no deadline either (<code>acquire_timeout</code> bounds the wait
-for the connection, <code>statement_timeout</code> the query).</p>
+cut. For a model with a <code>BelongsTo</code>, the read of the written row’s parents after
+the commit of the write’s own transaction shares the 1 s Ferra may spend after a
+commit: when it expires the answer is a <code>500</code>, the row written. The reads of a
+route of yours after an earlier commit (<code>Resource::get</code>, <code>list</code>, <code>list_cursor</code>)
+and of a hook’s <code>tx.resource</code> are under no deadline of their own
+(<code>acquire_timeout</code> bounds the wait for the connection, <code>statement_timeout</code> the
+query).</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::Foundry;
@@ -1050,8 +1060,7 @@ then declare the route on the builder before <code>.build()</code>:
 afterwards (axum’s <code>.merge</code> or <code>.route</code> on the value <code>build()</code> returns)
 does not give those routes the budget, and escapes the conflict check
 below too.
-Writes through an application-owned raw <code>DatabaseConnection</code> are outside
-this guarantee.</p>
+Writes through an application-owned raw <code>DatabaseConnection</code> are outside this guarantee, and so is a <code>Resource&lt;M&gt;</code> write run in a task of your own (<code>tokio::spawn</code>): the budget sees the commits of the handler’s own future only, so it can answer 503 <code>timeout</code> while that task goes on and commits. Make every <code>Resource&lt;M&gt;</code> write in the handler’s future and await it there.</p>
 <p>Declared routes mount at the root, outside the <code>.api_version(...)</code> prefix:
 a <code>/live</code> probe or a webhook keeps its URL when the version changes, and
 gets no <code>Deprecation</code> or <code>Sunset</code> header. They receive only the
@@ -1194,6 +1203,11 @@ variant per refusal:</p>
 <tr><td><code>RouteOverlap { path, owned }</code></td><td>a route declared with <code>.route</code> overlaps a route Ferra mounts, or the docs page</td></tr>
 <tr><td><code>EtagKeyMissing</code></td><td>a model is mounted and the chain has no <code>.etag_key(...)</code>; a chain with only <code>.route(..)</code> needs none (see <a href="#entity-tag-key">Entity-tag key</a>)</td></tr>
 <tr><td><code>EtagKeyEqualsJwtSecret</code></td><td>the entity-tag key equals an HMAC secret of <code>.with_auth(...)</code></td></tr>
+<tr><td><code>ApiKeysTwice</code></td><td><code>.with_api_keys(...)</code> was called twice: the second store would replace the first</td></tr>
+<tr><td><code>RelationBackKey</code></td><td>a <code>HasMany</code> or <code>HasOne</code> whose target is mounted on the same <code>Foundry</code> has none, or more than one, <code>BelongsTo</code> back to its model, or its back <code>BelongsTo</code> has no <code>from</code> foreign key; the text names both models and the relation</td></tr>
+<tr><td><code>RelationNameCollision</code></td><td>a <code>HasMany</code> or <code>HasOne</code> is named like a row action, or the built-in <code>restore</code>, of its own model: the sub-collection would take the path of that route</td></tr>
+<tr><td><code>SubCollectionKeyNotPrimary</code></td><td>the back <code>BelongsTo</code> of a mounted child has a <code>to</code> other than the parent’s primary key: the sub-collection would answer another parent’s rows (see <a href="relations.html">Relations</a>)</td></tr>
+<tr><td><code>EmbedCycle { path }</code></td><td>projections embed each other in a loop: <code>path</code> is the loop, as <code>resource.projection</code> names joined by <code>→</code></td></tr>
 <tr><td><code>Docs</code></td><td>the <code>OpenAPI</code> document cannot be finished: a Ferra bug, please report it</td></tr>
 </tbody>
 </table>

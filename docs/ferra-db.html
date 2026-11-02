@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -647,12 +647,14 @@ they expire.</p>
 <h2 id="when-no-connection-can-be-had"><a class="header" href="#when-no-connection-can-be-had">When no connection can be had</a></h2>
 <p>A generated route, or a <code>Resource&lt;M&gt;</code> call, that gets no connection from your pool within its <code>acquire_timeout</code> answers
 <code>503</code> <code>service_unavailable</code> (0.17.0). The answer comes before the operation: nothing of it was applied, no hook ran, and
-the client may retry it. The <code>detail</code> is one fixed text; it names neither the pool, the database nor a delay
+the client may retry it. The exception is a route of your own that writes twice: an earlier write of the same request
+stands, so the client must not retry a non-idempotent request blindly
+(<a href="custom-handlers.html#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a>). The <code>detail</code> is one fixed text; it names neither the pool, the database nor a delay
 (<a href="ferra-error-handling.html#service_unavailable--503"><code>service_unavailable</code></a> shows the body). It is a <code>503</code> and not a
 <code>500</code> because the service could not handle the request in time, whatever the cause: a saturated pool, and also a
 database that is down or still starting, since sqlx retries a refused connection until the <code>acquire_timeout</code> and the
 pool then reports a timeout. Say “a connection could not be had”, not “the pool is full”, when you read it. A
-connection the database refuses at once (a wrong password, an unknown database) stays a <code>500</code>. Ferra does not retry
+connection the database refuses at once (a wrong password, an unknown database, a TLS handshake it refuses) stays a <code>500</code>. Ferra does not retry
 it: only <code>40001</code> and <code>40P01</code> are retried, and a retry would add to the saturation.</p>
 <ul>
 <li><strong>Set <code>acquire_timeout</code> under the request budget.</strong> The deadline that comes first answers. With the pool’s timeout at

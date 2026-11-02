@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,8 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="stability-policy"><a class="header" href="#stability-policy">Stability policy</a></h1>
-<p>What a Ferra release guarantees, what may change between 0.9 and 1.0, and how
-to upgrade. It applies from <code>v0.9.0</code>.</p>
+<p>What a Ferra release guarantees: the API frozen in <code>v0.18.0</code> is the API of <code>v1.0.0</code>, and this page says what holds from 1.0 and what each release before it allowed. What changed release by release is in the changelog and the migration pages.</p>
 <h2 id="how-ferra-is-released"><a class="header" href="#how-ferra-is-released">How Ferra is released</a></h2>
 <ul>
 <li>
@@ -191,7 +190,7 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
 </code></pre>
 </li>
 <li>
@@ -207,6 +206,8 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 <li><code>Foundry</code>, <code>FoundryBuilder</code> and their options;</li>
 <li><code>JwtConfig</code> and its types; the <code>FerraIdentity</code> trait; <code>testing::bearer</code>;</li>
 <li><code>Id</code>, <code>DateTime</code>, <code>Date</code>, <code>Time</code>;</li>
+<li><code>SortDirection</code>, exactly <code>Asc</code> and <code>Desc</code>. It is closed on purpose: a third variant would break a <code>match</code>, so it
+is a major change after 1.0;</li>
 <li>the error types, and the <code>problem+json</code> documents they render — status,
 <code>type</code> URI, <code>title</code>;</li>
 <li><code>ferra::hooks</code>: <code>FerraHooks</code>, <code>Saving</code>, <code>Saved</code>, <code>Committed</code>, <code>HookTx</code> (with <code>HookTx::system</code>), <code>TxResource</code>,
@@ -221,8 +222,8 @@ model’s actions, and <code>OperationMeta</code> and <code>ModelMeta::operation
 <li>the HTTP behavior of the generated routes: paths, methods, statuses, the
 shape of bodies and of the OpenAPI document.</li>
 </ul>
-<p>The exact list, name by name, is <code>api/ferra.txt</code>; the signatures are in the
-other files of <code>api/</code>.</p>
+<p>The exact list, name by name, is the file <code>api/ferra.txt</code> of the
+<a href="https://github.com/ferra-rs/ferra/tree/main/api">repository</a>; the signatures are in the other files of that folder.</p>
 <p><strong>Not in the contract</strong>, whatever its visibility:</p>
 <ul>
 <li>the implementation crates taken directly (<code>ferra-core</code>, <code>ferra-db</code>,
@@ -244,8 +245,8 @@ beyond its <code>FRG-</code> code;</li>
 <code>DatabaseTransaction</code>, <code>FerraDbError</code>) and <code>FerraState</code> are not exported: a
 route of your own reaches a model’s rows through <code>Resource&lt;M&gt;</code>, which applies
 the model’s rules. See <a href="migrating-to-0.10.html"><code>migrating-to-0.10.md</code></a>.</p>
-<h2 id="what-a-version-number-means"><a class="header" href="#what-a-version-number-means">What a version number means</a></h2>
-<p>Ferra is 0.x: it follows Semantic Versioning as Cargo reads it for 0.x.</p>
+<h2 id="what-a-version-number-meant-before-10"><a class="header" href="#what-a-version-number-meant-before-10">What a version number meant before 1.0</a></h2>
+<p>Ferra 0.x followed Semantic Versioning as Cargo reads it for 0.x.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -270,6 +271,67 @@ it, so end the match with <code>_ =&gt; false</code> and name <code>Action(_)</c
 <p><strong>A removed attribute keeps a migration diagnostic for at least one minor
 version</strong>: the compiler says what to write instead (as FRG-105, FRG-106 and
 FRG-335 do for what 0.9.0 removed).</p>
+<h2 id="what-10-guarantees"><a class="header" href="#what-10-guarantees">What 1.0 guarantees</a></h2>
+<p>From <code>v1.0.0</code> the contract above is frozen under Semantic Versioning as Cargo reads it for 1.x:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>From → to</th><th>May it break the contract?</th><th>What you do</th></tr>
+</thead>
+<tbody>
+<tr><td><code>v1.0.0</code> → <code>v1.0.1</code> (patch)</td><td><strong>No.</strong> Fixes only, with exceptions (i) and (iv) below.</td><td>Change the tag.</td></tr>
+<tr><td><code>v1.0.x</code> → <code>v1.1.0</code> (minor)</td><td><strong>No.</strong> Additions, and changes of the “Changed (not breaking)” class below, with exceptions (ii) and (iii).</td><td>Change the tag.</td></tr>
+<tr><td><code>v1.x</code> → <code>v2.0.0</code> (major)</td><td><strong>Yes</strong>, each break listed in <code>CHANGELOG.md</code> under “Changed — breaking”, with what to do.</td><td>Read the changelog, change the tag, follow the compiler.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The exceptions, each written in the changelog when it happens:</p>
+<ul>
+<li><strong>(i) A security fix comes in a patch</strong>, and may refuse what was wrongly accepted: a request that was served
+answers a refusal status, or a model that compiled is refused by the derive.</li>
+<li><strong>(ii) Becoming more permissive is an addition</strong>, in a minor: a refusal that becomes a success (a 400 that
+becomes a 200), a new optional attribute, a new variant of a <code>#[non_exhaustive]</code> enum.</li>
+<li><strong>(iii) The minimum supported Rust version may rise in a minor</strong>, never in a patch (<a href="#rust-version">Rust version</a>).</li>
+<li><strong>(iv) A patch of a crate Ferra pins exactly comes in a Ferra patch</strong>: if your application names the same crate,
+it follows that version (<a href="#third-party-crates-in-the-contract">Third-party crates in the contract</a>).</li>
+</ul>
+<p>What the changelog heading says is the class of a change, and the class decides the version number:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Class</th><th>After 1.0</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Changed — breaking</strong></td><td>A major.</td><td>A public signature moves: <code>DocsAuthVerifier</code> is built from a closure over <code>&amp;http::request::Parts</code>, where it took <code>&amp;axum::extract::Request</code> (0.18.0). A public item is removed: <code>DateTime::from_duration</code> (0.18.0). A generated route answers another status: the wait for a pool connection is a 503 where it was a 500 (0.17.0). An <code>FRG-</code> code changes: an <code>#[authorize]</code> that does not parse is FRG-023, it was FRG-103 (0.18.0). A pattern or a literal stops compiling: <code>JwtSecret</code> and <code>HmacAlgorithm</code> became <code>#[non_exhaustive]</code> (0.18.0), which is why they were closed before 1.0 and not after.</td></tr>
+<tr><td><strong>Added</strong></td><td>A minor.</td><td>A variant of a <code>#[non_exhaustive]</code> enum: <code>FerraError::RetryExhausted</code> (0.16.0), <code>ValidationCode::MinItems</code> (0.14.0). A new method on <code>Resource</code>. A new member in a response object.</td></tr>
+<tr><td><strong>Fixed</strong></td><td>A patch.</td><td>A request wrongly served is refused, exception (i): <code>verify</code> refuses a key whose stored record holds another prefix than the one presented, a <code>200</code> that becomes a <code>401</code> (0.18.0). A fix that can stop a client working carries a migration entry.</td></tr>
+<tr><td><strong>Changed</strong> (not breaking)</td><td>A minor.</td><td>The OpenAPI document comes closer to what the routes serve, the answers unchanged: a <code>413</code> declared on every operation, a <code>403</code> no longer declared where no caller can be refused (0.18.0).</td></tr>
+<tr><td><strong>Outside the contract</strong></td><td>Any release.</td><td>A <code>#[doc(hidden)]</code> item (<code>JsonBounds::new</code>, <code>BehaviorKind::soft_delete</code> left <code>api/</code> in 0.18.0), the text of a <code>detail</code>, a log event.</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>A change of status is breaking.</strong> The status of a generated route’s answer is in the contract (above), so a
+route that answers another status, <code>type</code> or <code>title</code> is “Changed — breaking”, whatever the two statuses are, but
+for exceptions (i) and (ii): a security fix in a patch, which may change a status toward the refusal, and a
+refusal that becomes a success, in a minor. A 500 that becomes a 503 is therefore breaking, although both tell the
+client the operation failed: the pool’s wait (0.17.0) is listed under “Changed — breaking”. The 0.14.0 section
+classed <code>retry_exhausted</code>, a 500 that became a 503 after three aborted attempts, as not breaking; that line stays
+as history, and from 0.18.0 this is the rule.</p>
+<p><strong>A derive that refuses more is a break.</strong> A model that compiles today and is refused by a later derive is
+“Changed — breaking”, a major, but for exception (i): a security fix may refuse it in a patch.
+<code>FRG-147</code> and the refusals of <code>model_attrs(..)</code> mistakes are such breaks, made before 1.0 (0.18.0).</p>
+<p><strong>The OpenAPI document alone.</strong> A change of the document that leaves every answer as it was is “Changed”, not
+breaking, when it brings the document closer to what is served. A change of what is served follows the rule on
+statuses above. A status a route still serves is never removed from the document, and a change that takes the
+document away from what is served is a defect, fixed as such.</p>
+<h3 id="traits-you-implement"><a class="header" href="#traits-you-implement">Traits you implement</a></h3>
+<p><code>ApiKeyStore</code>, <code>FerraAuthority</code>, <code>FerraListAuthority</code> and <code>FerraIdentity</code> are traits an application implements,
+and none is sealed. After 1.0 a method added to one of them has a default body, and the default refuses or
+changes nothing: an implementation written for 1.0 keeps compiling, and a default can narrow what it accepts,
+never widen it. A refusing default is fail closed: an implementation that does not answer the new
+method may see the new check refused, and is never granted more. A default method added to a trait you implement
+(<code>FerraHooks</code>, <code>FerraComputed</code>, …) arrives in a minor release; its default changes nothing and refuses nothing that
+passed before.</p>
 <h2 id="metrics-and-spans"><a class="header" href="#metrics-and-spans">Metrics and spans</a></h2>
 <p>With the <code>observability</code> feature, Ferra records five metrics. With or without it, each request has a request span and its phase spans (the names and labels are in
 <a href="observability.html"><code>observability.md</code></a>). The compatibility rule: from 0.18.0, a metric’s name, unit and label set are frozen (a
@@ -280,8 +342,9 @@ shown: <code>http_server_request_duration_seconds</code> with OpenTelemetry expo
 the <code>metrics</code> major is in the table of third-party crates in the contract, below.</p>
 <h2 id="third-party-crates-in-the-contract"><a class="header" href="#third-party-crates-in-the-contract">Third-party crates in the contract</a></h2>
 <p>Types of other crates appear in Ferra’s signatures, and two crates are
-re-exported whole. A major version change of one of them is a break of Ferra,
-made in a minor release and listed in the changelog.</p>
+re-exported whole. A major version change of one of them (a minor of a <code>0.x</code> crate) is a break of Ferra, listed in
+the changelog: from 1.0, a Ferra major, since a type of that crate in a Ferra signature changes with it. Before 1.0
+it came in a minor.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -289,13 +352,18 @@ made in a minor release and listed in the changelog.</p>
 </thead>
 <tbody>
 <tr><td><code>axum</code></td><td><code>Foundry::build()</code> returns an <code>axum::Router</code>; extractors, middlewares</td><td>0.8</td></tr>
-<tr><td>Sea-ORM</td><td><code>ferra::sea_orm</code>, whole; the entity derives; <code>DatabaseConnection</code></td><td>2.x</td></tr>
-<tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
+<tr><td>Sea-ORM</td><td><code>ferra::sea_orm</code>, whole; the entity derives; <code>DatabaseConnection</code>; and <code>sea_query</code>, Sea-ORM’s query builder, in the impls that make <code>Id</code>, <code>Date</code>, <code>DateTime</code> and <code>Time</code> Sea-ORM values and in the bounds on a model’s key</td><td>2.x</td></tr>
+<tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole, with its <code>derive</code> feature on, so <code>#[derive(ferra::garde::Validate)]</code> works and stays; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
 <tr><td><code>metrics</code></td><td>with <code>observability</code>, Ferra records through its facade: the recorder you install (<code>metrics-exporter-prometheus</code>, <a href="observability.html"><code>observability.md</code></a>) must be built on the same copy</td><td>0.24</td></tr>
 <tr><td><code>tower-http</code></td><td><code>FerraLayerBuilder::cors</code>, <code>trace_layer</code></td><td>0.7</td></tr>
 <tr><td><code>secrecy</code></td><td><code>JwtConfig::single_secret</code> takes <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
 <tr><td><code>serde</code></td><td>every model derives it</td><td>1</td></tr>
-<tr><td><code>uuid</code></td><td><code>ConditionType</code> is implemented for <code>uuid::Uuid</code>: a <code>Uuid</code> column is a <code>Field&lt;M, Uuid&gt;</code> (ADR-0070)</td><td>1</td></tr>
+<tr><td><code>uuid</code></td><td><code>ConditionType</code> is implemented for <code>uuid::Uuid</code>: a <code>Uuid</code> column is a <code>Field&lt;M, Uuid&gt;</code></td><td>1</td></tr>
+<tr><td><code>http</code></td><td><code>DocsAuthVerifier</code> is built from a closure over <code>&amp;http::request::Parts</code>; <code>RateLimitKey::from_fn</code> takes a <code>fn(&amp;http::request::Parts)</code>; <code>ForwardedFor::header</code> takes a <code>HeaderName</code>; the <code>Rejection</code> of the extractors <code>Principal</code>, <code>CurrentUser</code> and <code>Resource</code> is an <code>http::response::Response</code>, and <code>FerraPath</code> reads <code>&amp;mut http::request::Parts</code></td><td>1</td></tr>
+<tr><td><code>jiff</code></td><td><code>Date::as_inner</code>, <code>DateTime::as_inner</code> and <code>Time::as_inner</code> return a jiff type, and nothing else names jiff: <code>jiff::Error</code> and <code>from_duration</code> left in 0.18.0</td><td>0.2</td></tr>
+<tr><td><code>utoipa</code></td><td><code>Date</code>, <code>DateTime</code> and <code>Time</code> implement <code>utoipa::ToSchema</code> and <code>utoipa::PartialSchema</code></td><td>6</td></tr>
+<tr><td><code>serde_json</code></td><td><code>JsonBounds::schema</code> is an <code>Option&lt;fn() -&gt; serde_json::Value&gt;</code></td><td>1</td></tr>
+<tr><td><code>bytes</code></td><td>the <code>OnBody</code> bound of <code>FerraLayerBuilder::trace_layer</code> names <code>bytes::Bytes</code></td><td>1</td></tr>
 </tbody>
 </table>
 </div>
@@ -303,22 +371,22 @@ made in a minor release and listed in the changelog.</p>
 version numbers: Ferra’s snapshots do not cover it, and no tool can see inside a
 re-export. Four things stand in for that:</p>
 <ul>
-<li><strong>Five of them are exact requirements.</strong> <code>garde</code>, <code>utoipa-scalar</code>, <code>jiff</code>,
-<code>tower-http</code> and <code>base64</code> are declared <code>=x.y.z</code> in Ferra’s manifests. If your
+<li><strong>Six of them are exact requirements.</strong> <code>garde</code>, <code>utoipa-scalar</code>, <code>jiff</code>,
+<code>tower-http</code>, <code>base64</code> and <code>secrecy</code> are declared <code>=x.y.z</code> in Ferra’s manifests. If your
 application also names one of them, it must name the same version (or a
 requirement that version satisfies): another patch fails to resolve. A patch
 of one of them, for an advisory for instance, reaches you in a Ferra patch
-release.</li>
+release, exception (iv): align your requirement with it.</li>
 <li><strong>Sea-ORM is a public dependency of Ferra.</strong> A new major version of Sea-ORM
-(or a new minor of <code>garde</code>, a <code>0.x</code> crate) is a breaking change of Ferra: it
-ships in a minor release, and the changelog says so.</li>
+(or a new minor of <code>garde</code> or of <code>jiff</code>, <code>0.x</code> crates) is a breaking change of Ferra: a Ferra major from 1.0 on,
+and the changelog says so. A new <code>jiff</code> minor reaches <code>as_inner</code> alone.</li>
 <li><strong>Your <code>sea-orm</code> follows Ferra’s major.</strong> The documented way to use Sea-ORM is
 to declare <code>sea-orm</code> yourself, at the major version the release you use was built
 with. Each release’s changelog names it and gives the line to change in your
 <code>Cargo.toml</code>. A different major is two copies of the crate; <code>#[derive(FerraModel)]</code>
 refuses it with <code>FRG-400</code>, and <code>cargo tree -d -i sea-orm</code> shows it. Declaring no
 <code>sea-orm</code> and writing <code>ferra::sea_orm::…</code> is supported as well.</li>
-<li><strong>A gate pins it.</strong> <code>reexport_pin</code> fails CI when the lockfile holds two copies of
+<li><strong>Ferra’s CI pins it.</strong> A check fails when Ferra’s lockfile holds two copies of
 <code>sea-orm</code>, <code>garde</code> or <code>metrics</code>, or another version than the one documented here; changing the pin
 is a decision made in one change with this page and the changelog. A new <code>metrics</code>
 minor (<code>0.x</code>) is a breaking change of Ferra too: a recorder built on another copy
@@ -331,7 +399,7 @@ would receive none of Ferra’s metrics.</li>
 <li>the constructors that take the application’s connection, <code>Foundry::new(DatabaseConnection)</code>
 and <code>api_key::PgApiKeyStore::new(DatabaseConnection)</code>, and the <code>DatabaseConnection</code> re-export;</li>
 <li>the trait bounds that make a model a Sea-ORM entity (<code>Mountable</code>’s, the
-builder’s, <code>Resource</code>’s, <code>HookTx::resource</code>’s and <code>SystemAccess</code>’s <code>where</code> clauses: <code>ModelTrait</code>, <code>EntityTrait</code>, <code>ActiveModelTrait</code>,
+builder’s, <code>Resource</code>’s, <code>HookTx::resource</code>’s, <code>TxResource</code>’s and <code>SystemAccess</code>’s <code>where</code> clauses: <code>ModelTrait</code>, <code>EntityTrait</code>, <code>ActiveModelTrait</code>,
 <code>ActiveModelBehavior</code>, <code>FromQueryResult</code>, <code>IntoActiveModel</code>, <code>IntoValueTuple</code>,
 <code>PrimaryKeyTrait</code>), and <code>PkValue&lt;M&gt;</code>, the key type the entity declares;</li>
 <li>the trait impls that make a Ferra value type (<code>Id</code>, <code>Date</code>, <code>DateTime</code>,
@@ -342,45 +410,27 @@ That covers hooks, authority, actions, computed fields, the request context and
 resource access: they take and return Ferra’s types (<code>FerraError</code>, <code>Resource&lt;M&gt;</code>).
 Your own code reaches Sea-ORM through your own <code>DatabaseConnection</code>, outside
 Ferra’s contract.</p>
-<p>The gate <strong><code>sea_orm_surface</code></strong> reads <code>api/*.txt</code> and fails on any other line that
-names <code>sea_orm::</code>. The internal items of <code>ferra-db</code> (<code>PgRepository</code>,
-<code>FerraRepository</code>, <code>FerraDbError</code>, <code>WriteGuard</code>) are not in the facade; the gate lists them
-apart.</p>
+<p>Ferra’s CI fails on any other public signature that names a Sea-ORM, <code>sea_query</code> or <code>sqlx</code> type.</p>
 <h2 id="rust-version"><a class="header" href="#rust-version">Rust version</a></h2>
 <ul>
 <li>The minimum supported Rust version is <strong>1.94</strong>, checked in CI. Raising it is
-allowed in a minor release, never in a patch, and is listed in the changelog.</li>
+allowed in a minor release, never in a patch, and is listed in the changelog (exception (iii) above).</li>
 <li>The repository pins the toolchain it is developed with
 (<code>rust-toolchain.toml</code>); an application is free to use a newer one.</li>
-<li>Ferra builds and tests natively on Linux, macOS and Windows. What is proven:
-a real trial on Windows 11 on 2026-09-30, before lot L4, built the workspace,
-ran both test suites and <code>check_compile_error_spans</code> there. The checklist L4.28
-runs it again on the final state of the lot, with a default clone; until it has
-passed, the claim rests on that first trial.</li>
+<li>Ferra builds natively on Linux, macOS and Windows. Its CI runs on Linux at each push to <code>main</code>, the whole test
+suite with a database; on Windows and macOS a workflow started by hand builds it and runs the tests that need no
+database.</li>
 </ul>
 <h2 id="what-is-planned-and-will-not-break-you"><a class="header" href="#what-is-planned-and-will-not-break-you">What is planned, and will not break you</a></h2>
 <p>Each of these is an addition under the rules above: an external authenticator
 next to <code>.with_auth</code> (RS256/JWKS, sessions); a response envelope for custom
 routes.</p>
 <h2 id="how-the-contract-is-kept"><a class="header" href="#how-the-contract-is-kept">How the contract is kept</a></h2>
-<p>Four gates block CI (<code>CONTRIBUTING.md</code> has the commands):</p>
-<ul>
-<li><strong><code>public_api_snapshot</code></strong> — the public API of each crate is a text file under
-<code>api/</code>. Any difference fails until the snapshot is regenerated and committed
-with the change, which makes every change of the contract visible in review.</li>
-<li><strong><code>semver_checks</code></strong> — <code>cargo-semver-checks</code> compares each crate with the
-previous tag: a break without the minor version bump that allows it fails.</li>
-<li><strong><code>sea_orm_surface</code></strong> — fails when a line of <code>api/</code> names <code>sea_orm::</code> outside the
-places listed in “Sea-ORM in Ferra’s signatures”.</li>
-<li><strong><code>reexport_pin</code></strong> — <code>ferra::sea_orm</code> and <code>ferra::garde</code> are the crates
-themselves, and neither of the two gates above can see inside a re-export: this
-one fails when <code>Cargo.lock</code> holds two copies of either, or a version other than
-the documented one (Sea-ORM 2.x, <code>garde</code> 0.23.x). It pins <code>metrics</code> (0.24.x) the
-same way, the facade Ferra records its metrics through.</li>
-</ul>
-<p>And one test names the contract item by item
-(<code>crates/ferra/tests/contract_surface.rs</code>), so that removing one breaks the
-build on the stable toolchain too.</p>
+<p>Ferra’s CI fails a change that moves the contract without saying so: the public API of each crate is recorded as
+text in the repository’s <code>api/</code> folder and any difference fails until the record is updated with the change; each
+crate is compared with the previous tag for a break the version number does not allow; the Sea-ORM and HTTP types
+are kept to the places this page names; and one test names the contract item by item, so removing one breaks the
+build.</p>
 
                     </main>
 
@@ -390,7 +440,7 @@ build on the stable toolchain too.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="migrating-to-0.17.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="migrating-to-1.0.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -404,7 +454,7 @@ build on the stable toolchain too.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="migrating-to-0.17.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="migrating-to-1.0.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

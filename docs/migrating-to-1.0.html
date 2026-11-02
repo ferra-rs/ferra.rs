@@ -1,0 +1,592 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Migrating from 0.17 to 0.18 (the 1.0 API) - Ferra.rs — User Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-6e4afefc.svg">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/ferra-0209c95b.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-82a9e0b8.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ferra.rs — User Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/ferra-rs/ferra/edit/main/docs/user-guide/src/migrating-to-1.0.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="migrating-from-017-to-018-the-10-api"><a class="header" href="#migrating-from-017-to-018-the-10-api">Migrating from 0.17 to 0.18 (the 1.0 API)</a></h1>
+<p>The public API frozen in 0.18.0 is the API of 1.0.0: the release candidates add nothing public, and the only
+exceptions are those of <a href="stability.html">the stability policy</a>, a security fix among them. Each entry below is a change
+from 0.17 that can stop a build, refuse a startup or change an answer you rely on. Read the entries, then point the
+application’s git dependency at the 0.18 tag:</p>
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+</code></pre>
+<p>How 1.0 is distributed, crates.io or a git tag, is decided before its last release candidate; the 1.0 changelog says
+which line to write.</p>
+<p><strong>From a release before 0.17</strong>, follow the pages of the releases in between first, in order:
+<a href="migrating-to-0.9.html">0.9</a>, <a href="migrating-to-0.10.html">0.10</a>, <a href="migrating-to-0.11.html">0.11</a>, <a href="migrating-to-0.12.html">0.12</a>,
+<a href="migrating-to-0.13.html">0.13</a>, <a href="migrating-to-0.14.html">0.14</a>, <a href="migrating-to-0.15.html">0.15</a>, <a href="migrating-to-0.16.html">0.16</a>,
+<a href="migrating-to-0.17.html">0.17</a>.</p>
+<p><strong>What does not move.</strong> Sea-ORM stays at 2.x: your <code>sea-orm</code> line is unchanged. The minimum supported Rust version
+stays 1.94.</p>
+<p>The <a href="https://github.com/ferra-rs/ferra/blob/main/CHANGELOG.md">changelog</a> lists every change. The entries come in
+its order: the fourteen breaking changes, the last two security fixes, then the three fixes that can stop a client or a custom store. A “Before” is
+0.17 code, which no longer compiles; the “After” blocks compile against 0.18.</p>
+<h2 id="datetime-date-and-time-report-timeerror-and-from_duration-is-gone"><a class="header" href="#datetime-date-and-time-report-timeerror-and-from_duration-is-gone"><code>DateTime</code>, <code>Date</code> and <code>Time</code> report <code>TimeError</code>, and <code>from_duration</code> is gone</a></h2>
+<p><strong>Before.</strong> <code>DateTime::from_second</code>, <code>from_millisecond</code>, <code>from_microsecond</code>, <code>from_nanosecond</code> and the <code>FromStr</code> of
+<code>DateTime</code>, <code>Date</code> and <code>Time</code> returned <code>jiff::Error</code>. <code>DateTime::from_duration</code> took a <code>jiff</code> duration.</p>
+<pre><code class="language-text">fn parse(raw: &amp;str) -&gt; Result&lt;DateTime, jiff::Error&gt; { raw.parse::&lt;DateTime&gt;() }
+let at = DateTime::from_duration(jiff::SignedDuration::from_secs(90))?;
+</code></pre>
+<p><strong>After.</strong> They return <code>ferra::TimeError</code>, an opaque <code>#[non_exhaustive]</code> type whose <code>Display</code> is the fixed sentence
+<code>invalid date or time value</code>: it quotes no part of the input, and <code>source()</code> is <code>None</code>. There is no
+<code>From&lt;TimeError&gt; for FerraError</code>: a route of your own maps it to the error it answers. <code>DateTime::from_duration</code> is
+removed: <code>from_nanosecond</code> takes the nanoseconds since the Unix epoch as an <code>i128</code>, which a <code>jiff::SignedDuration</code>
+gives with <code>as_nanos()</code>. <code>as_inner</code> stays the one documented hatch to the time library. A bad date in a JSON body still
+reaches the client as the time library’s text, in the <code>message</code> of the <code>invalid_json</code> error (<code>errors[0].message</code>):
+<code>Deserialize</code> is unchanged.</p>
+<pre class="playground"><code class="language-rust">use ferra::{DateTime, TimeError};
+
+fn parse(raw: &amp;str) -&gt; Result&lt;DateTime, TimeError&gt; {
+    raw.parse::&lt;DateTime&gt;()
+}
+
+<span class="boring">fn main() -&gt; Result&lt;(), TimeError&gt; {
+</span>let since_epoch = jiff::SignedDuration::from_secs(90);
+let at = DateTime::from_nanosecond(since_epoch.as_nanos())?;
+<span class="boring">let _ = (parse, at);
+</span><span class="boring">Ok(())
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that names <code>jiff::Error</code> where it parses a Ferra date, and code that calls <code>from_duration</code>.</p>
+<p><strong>Migration.</strong> Name <code>ferra::TimeError</code> where you named <code>jiff::Error</code>. Replace <code>from_duration(d)</code> with
+<code>from_nanosecond(d.as_nanos())</code>. See <a href="ferra-core.html">Ferra Core</a>.</p>
+<h2 id="the-docs-verifier-reads-httprequestparts"><a class="header" href="#the-docs-verifier-reads-httprequestparts">The docs verifier reads <code>http::request::Parts</code></a></h2>
+<p><strong>Before.</strong> <code>with_docs_protected</code> and <code>with_docs_protected_at</code> took a closure over the whole request.</p>
+<pre><code class="language-text">.with_docs_protected(|req: &amp;axum::extract::Request| req.headers().contains_key(AUTHORIZATION))
+</code></pre>
+<p><strong>After.</strong> They take <code>Fn(&amp;http::request::Parts) -&gt; bool + Send + Sync + 'static</code>, a closure that reads the head of the
+request (method, URI, headers, extensions) and never the body, that may be shared between threads and that borrows
+nothing: a refusal serves nothing and leaves the body unread. <code>DocsAuthVerifier</code> is built from that closure, and
+<code>ferra_openapi::docs_routes_protected</code> takes the same one. <code>Parts</code> is the <code>http</code> crate’s: name it through <code>axum</code>,
+which an application declares already, as <code>axum::http::request::Parts</code>, or add <code>http = "1"</code> to your <code>Cargo.toml</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use axum::http::{header::AUTHORIZATION, request::Parts};
+use ferra::DocsAuthVerifier;
+
+let verifier = DocsAuthVerifier::from(|parts: &amp;Parts| parts.headers.contains_key(AUTHORIZATION));
+<span class="boring">let _ = verifier;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Every application that protects its docs routes with a closure of its own.</p>
+<p><strong>Migration.</strong> Write the closure over <code>parts</code>, and read <code>parts.headers</code> where it read <code>req.headers()</code>. A closure that
+read the body of the request cannot any more. See <a href="foundry.html">Foundry</a> and <a href="ferra-openapi.html">Ferra OpenAPI</a>.</p>
+<h2 id="with-a-request-budget-the-read-of-a-written-rows-parents-is-bounded"><a class="header" href="#with-a-request-budget-the-read-of-a-written-rows-parents-is-bounded">With a request budget, the read of a written row’s parents is bounded</a></h2>
+<p><strong>Before.</strong> After the commit of a write, the read of the written row’s parents (a create, an update, a patch, a
+restore, a row action, or a <code>Resource&lt;M&gt;</code> write, on a model with a <code>BelongsTo</code>) was bounded by the pool’s
+<code>acquire_timeout</code> and the server’s <code>statement_timeout</code> only. A slow read still answered the <code>2xx</code>.</p>
+<p><strong>After.</strong> With a request budget (<code>.request_budget(..)</code>, <a href="foundry.html">Foundry</a>), that read has to finish by the
+request’s post-commit deadline: the later of the budget’s end and one second after the first work the request does
+once a row is committed. A read still running at that deadline answers the <code>500</code> <code>internal</code> with one <code>error!</code> line,
+and the row is written. Nothing is cut inside a hook’s open <code>tx.resource</code> transaction, without a budget, or under
+<code>Prefer: return=minimal</code>. A deadline already used up by earlier post-commit work answers the <code>500</code> for a row with a
+parent to read, and the <code>2xx</code> for a row with none. The reads of <code>Resource::get</code>, <code>list</code> and <code>list_cursor</code>, and of
+<code>tx.resource</code>, stay under no deadline of their own.</p>
+<p>Nothing in your code changes: this is an answer that changes.</p>
+<p><strong>Who is affected.</strong> An application that sets <code>.request_budget(..)</code> and mounts a model with a <code>BelongsTo</code>; a client
+that retries a create when it gets a <code>500</code>.</p>
+<p><strong>Migration.</strong> Expect the <code>500</code> at the deadline where the late <code>2xx</code> came, and make a create safe to replay before
+retrying it: see the <a href="computed-fields.html#idempotent-creates">idempotent create</a> recipe.</p>
+<h2 id="a-second-with_api_keys-is-refused-at-startup"><a class="header" href="#a-second-with_api_keys-is-refused-at-startup">A second <code>with_api_keys</code> is refused at startup</a></h2>
+<p><strong>Before.</strong> A second <code>FoundryBuilder::with_api_keys</code> on a chain silently replaced the first store.</p>
+<p><strong>After.</strong> <code>try_build</code> returns the new <code>BuildError::ApiKeysTwice</code>, and <code>build()</code> panics with its text.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::api_key::PgApiKeyStore;
+</span><span class="boring">use ferra::{ApiKeyConfig, DatabaseConnection, FerraIdentity, Foundry, JwtConfig};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">#[derive(Clone, Deserialize)]
+</span><span class="boring">struct Claims { sub: String }
+</span><span class="boring">impl FerraIdentity for Claims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span><span class="boring">fn demo(conn: DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let keys = ApiKeyConfig::new(PgApiKeyStore::new(conn.clone()));
+let builder = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
+    .with_auth::&lt;Claims&gt;(jwt)
+    .with_api_keys(keys); // once: a second call is `BuildError::ApiKeysTwice`
+<span class="boring">let _ = builder;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><strong>Who is affected.</strong> A chain that calls <code>with_api_keys</code> twice.</p>
+<p><strong>Migration.</strong> Call <code>with_api_keys</code> once, with the one <code>ApiKeyConfig</code>. See <a href="foundry.html">Foundry</a>.</p>
+<h2 id="a-deprecation-date-outside-the-years-0-to-9999-is-refused-at-startup"><a class="header" href="#a-deprecation-date-outside-the-years-0-to-9999-is-refused-at-startup">A deprecation date outside the years 0 to 9999 is refused at startup</a></h2>
+<p><strong>Before.</strong> <code>FoundryBuilder::deprecated</code> accepted a date in a year below zero, and <code>x-sunset</code> read <code>-001-01-01</code>. (A
+<code>Date</code> above year 9999 cannot be built.)</p>
+<p><strong>After.</strong> <code>deprecated</code> refuses a year outside <code>0..=9999</code> with the new <code>DeprecationError::YearOutOfRange</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Year, month, day: a year from 0 to 9999.
+let sunset = ferra::Date::new(2027, 1, 5);
+<span class="boring">let _ = sunset;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> A chain whose <code>deprecated</code> or sunset date is in a year below zero.</p>
+<p><strong>Migration.</strong> Pass dates from year 0 on. See <a href="foundry.html">Foundry</a>.</p>
+<h2 id="a-malformed-authorize-is-frg-023-not-frg-103"><a class="header" href="#a-malformed-authorize-is-frg-023-not-frg-103">A malformed <code>#[authorize]</code> is <code>FRG-023</code>, not <code>FRG-103</code></a></h2>
+<p><strong>Before.</strong> An <code>#[authorize]</code> that does not parse (a bare <code>#[authorize]</code>, a key with no <code>=</code>) was refused with <code>FRG-103</code>.</p>
+<p><strong>After.</strong> It is refused with <code>FRG-023</code>, the code of every attribute that does not parse. <code>FRG-103</code> now only names an
+unknown, qualified or malformed checker. The message, its span and its help are unchanged. Nothing in your code
+changes: the model was refused before and is refused now.</p>
+<p><strong>Who is affected.</strong> A script, a test or a note that matches <code>FRG-103</code> on these two mistakes.</p>
+<p><strong>Migration.</strong> Match <code>FRG-023</code> for them. See <a href="ferra-forge-diagnostics.html">Compile-time Diagnostics</a>.</p>
+<h2 id="two-types-and-six-variants-are-non_exhaustive"><a class="header" href="#two-types-and-six-variants-are-non_exhaustive">Two types and six variants are <code>#[non_exhaustive]</code></a></h2>
+<p><strong>Before.</strong> <code>JwtSecret</code> and <code>HmacAlgorithm</code> were closed, and so were the variants <code>Saving::Create</code>, <code>Saving::Update</code>,
+<code>Saving::Restore</code>, <code>FieldMode::Key</code>, <code>PaginationMode::Cursor</code> and <code>PaginationMode::Both</code>.</p>
+<pre><code class="language-text">let secret = JwtSecret { kid: "key-1".into(), key: secret.into(), algorithm: HmacAlgorithm::Hs256 };
+match algorithm { HmacAlgorithm::Hs256 =&gt; 256, HmacAlgorithm::Hs384 =&gt; 384, HmacAlgorithm::Hs512 =&gt; 512 }
+</code></pre>
+<p><strong>After.</strong> All of them are <code>#[non_exhaustive]</code>, so a later field or algorithm is not a major version.
+<code>FieldMode::Key</code>, <code>PaginationMode::Cursor</code> and <code>PaginationMode::Both</code> are built by the derive; your code only
+matches them.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{HmacAlgorithm, JwtSecret};
+
+fn bits(algorithm: HmacAlgorithm) -&gt; u16 {
+    match algorithm {
+        HmacAlgorithm::Hs256 =&gt; 256,
+        HmacAlgorithm::Hs384 =&gt; 384,
+        HmacAlgorithm::Hs512 =&gt; 512,
+        _ =&gt; 0, // a later algorithm
+    }
+}
+
+let secret = JwtSecret::new("key-1", std::env::var("JWT_SECRET").unwrap_or_default(), HmacAlgorithm::Hs256);
+<span class="boring">let _ = (secret, bits);
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that builds a <code>JwtSecret</code> with a struct literal, that matches <code>HmacAlgorithm</code> without a
+wildcard arm, or that matches the six variants without <code>..</code>.</p>
+<p><strong>Migration.</strong> Build a <code>JwtSecret</code> with <code>JwtSecret::new(kid, key, algorithm)</code>, give a <code>match</code> on <code>HmacAlgorithm</code> a
+wildcard arm, and end a pattern on these variants with <code>..</code>. See <a href="ferra-auth.html">Authentication and Authorization</a>.</p>
+<h2 id="twelve-names-leave-the-contract"><a class="header" href="#twelve-names-leave-the-contract">Twelve names leave the contract</a></h2>
+<p><strong>Before.</strong> <code>JsonBounds::new</code>, <code>FieldMeta::with_json</code>, <code>BehaviorKind::soft_delete</code>, <code>BehaviorKind::timestampable</code>,
+<code>BehaviorKind::blameable</code>, <code>ModelMeta::blame_columns</code>, <code>FieldType::ComputedUserNamed</code>, <code>ModelMeta::filterable_fields</code>,
+<code>ModelMeta::sortable_fields</code>, <code>ProjectionMeta::schema_base_name</code>, <code>HmacAlgorithm::min_secret_len</code> and <code>Date::days_since</code>
+were part of the public API.</p>
+<p><strong>After.</strong> They are hidden, so they can change without a major version. They still compile where they are used, but
+a use is outside the contract.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::meta::ModelMeta;
+
+fn filterable(meta: &amp;ModelMeta) -&gt; impl Iterator&lt;Item = &amp;'static str&gt; + '_ {
+    meta.fields.iter().filter(|field| field.filterable).map(|field| field.name)
+}
+<span class="boring">let _ = filterable;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that calls one of them.</p>
+<p><strong>Migration.</strong> Let the derive build <code>BehaviorKind</code> and <code>FieldMeta</code> values, read the filterable and sortable fields from
+<code>ModelMeta::fields</code> as above, and read the minimum secret length from the <code>min</code> of <code>JwtConfigError::SecretTooShort</code>.
+For <code>Date::days_since</code>, subtract through <code>as_inner</code>. See <a href="stability.html">the stability policy</a>.</p>
+<h2 id="ferraerrorconflictwith-is-ferraerrorconflictdetail"><a class="header" href="#ferraerrorconflictwith-is-ferraerrorconflictdetail"><code>FerraError::ConflictWith</code> is <code>FerraError::ConflictDetail</code></a></h2>
+<p><strong>Before.</strong> The variant that serves its text verbatim as the <code>detail</code> of a 409 was named <code>ConflictWith</code>.</p>
+<p><strong>After.</strong> It is <code>ConflictDetail</code>, because <code>FerraError::Conflict(String)</code> hides its text behind a fixed <code>detail</code> and this
+variant does not. The answer is unchanged: status <code>409</code>, <code>type</code> <code>https://ferra.rs/errors/conflict</code>, title <code>Conflict</code>,
+<code>detail</code> as given.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraError;
+
+let refusal = FerraError::ConflictDetail("this title is taken".to_owned());
+<span class="boring">let _ = refusal;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that names <code>FerraError::ConflictWith</code>. <code>HookError::conflict</code> is unchanged.</p>
+<p><strong>Migration.</strong> Write <code>FerraError::ConflictDetail</code>. See <a href="ferra-error-handling.html">Error Handling</a>.</p>
+<h2 id="a-sub-collection-keyed-on-a-column-that-is-not-the-parents-primary-key-is-refused"><a class="header" href="#a-sub-collection-keyed-on-a-column-that-is-not-the-parents-primary-key-is-refused">A sub-collection keyed on a column that is not the parent’s primary key is refused</a></h2>
+<p><strong>Before.</strong> A <code>HasMany</code> or <code>HasOne</code> whose mounted child’s back <code>BelongsTo</code> has a <code>to</code> other than the parent’s primary
+key was served, and listed the child rows by the parent’s key, whatever <code>to</code> said.</p>
+<p><strong>After.</strong> <code>try_build</code> returns the new <code>BuildError::SubCollectionKeyNotPrimary</code> (<code>build()</code> panics with its text), naming
+the parent, the child and the column. The child’s <code>BelongsTo</code> points <code>to</code> at the parent’s primary key:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod client {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "clients")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub name: String,
+        #[sea_orm(has_many)]
+        pub contexts: HasMany&lt;super::context::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod context {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "contexts")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub client_id: i32,
+        // `to` names the parent's primary key.
+        #[sea_orm(belongs_to, from = "client_id", to = "id")]
+        pub client: BelongsTo&lt;super::client::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Who is affected.</strong> A chain that mounts a parent and a child whose <code>BelongsTo</code> points at another column than the
+parent’s key.</p>
+<p><strong>Migration.</strong> Point <code>to</code> at the parent’s primary key, or do not mount both models on one <code>Foundry</code>: each is then served
+alone, with no sub-collection. See <a href="relations.html">Relations</a>.</p>
+<h2 id="on-a-dense-model-model_attrs-mistakes-are-refused"><a class="header" href="#on-a-dense-model-model_attrs-mistakes-are-refused">On a dense model, <code>model_attrs(..)</code> mistakes are refused</a></h2>
+<p>A dense model is one written with <code>#[sea_orm::model]</code>, which expands the struct into <code>Model</code> (the columns) and
+<code>ModelEx</code> (the columns and the relations); <code>#[sea_orm(model_attrs(..))]</code> puts attributes on <code>Model</code> alone
+(<a href="relations.html">Relations</a>).</p>
+<p><strong>Before.</strong> On a dense model whose Ferra attributes are written in <code>model_attrs(..)</code>, three mistakes compiled that the
+derive refuses with the same attributes outside <code>model_attrs</code>: a name in the <code>read</code> list of a projection that is
+neither a field nor a <code>BelongsTo</code> (<code>FRG-301</code>), a <code>HasMany</code> or <code>HasOne</code> in it (<code>FRG-363</code>), and the foreign key behind
+<code>owner(from = ..)</code> in the <code>writes</code> of an action (<code>FRG-146</code>).</p>
+<p><strong>After.</strong> The three are refused, as a constant-evaluation error (<code>E0080</code>, “evaluation panicked: FRG-…”), underlined
+on the name at fault. A <code>read</code> list of names the model has compiles as before:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films", model_attrs(ferra(auth = "none"), ferra(projection(name = "admin", read = [id]))))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> A dense model with Ferra attributes in <code>model_attrs(..)</code> that made one of the three mistakes.</p>
+<p><strong>Migration.</strong> Correct the name in <code>read</code>, or remove the foreign key from <code>writes</code>. See
+<a href="ferra-forge-diagnostics.html">Compile-time Diagnostics</a>.</p>
+<h2 id="a-ferra-attribute-in-model_ex_attrs-is-refused-frg-147"><a class="header" href="#a-ferra-attribute-in-model_ex_attrs-is-refused-frg-147">A Ferra attribute in <code>model_ex_attrs(..)</code> is refused (<code>FRG-147</code>)</a></h2>
+<p><strong>Before.</strong> A Ferra attribute (<code>#[ferra]</code>, <code>#[authorize]</code>, <code>#[behavior]</code>, <code>#[operation]</code>, <code>#[field]</code>) written in
+<code>#[sea_orm(model_ex_attrs(..))]</code> compiled and declared nothing, so an <code>#[authorize(delete = HasRole("admin"))]</code> there
+left <code>delete</code> to the rule the model’s <code>auth</code> gives by default.</p>
+<pre><code class="language-text">#[sea_orm(table_name = "films", model_ex_attrs(behavior(soft_delete)))]
+</code></pre>
+<p><strong>After.</strong> It is refused with <code>FRG-147</code>, as a constant-evaluation error (<code>E0080</code>). Sea-ORM puts <code>model_ex_attrs</code> on
+<code>ModelEx</code> alone, and Ferra reads the rules, projections and behaviors from <code>Model</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[behavior(soft_delete)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> A model that wrote a Ferra attribute there: its rules were not in force.</p>
+<p><strong>Migration.</strong> Write the attribute outside <code>#[sea_orm(..)]</code>, or in <code>model_attrs(..)</code>. See
+<a href="ferra-forge-diagnostics.html">Compile-time Diagnostics</a>.</p>
+<h2 id="an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key-is-refused-frg-148"><a class="header" href="#an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key-is-refused-frg-148">An <code>owner(from)</code> whose <code>BelongsTo</code> does not point at the parent’s key is refused (<code>FRG-148</code>)</a></h2>
+<p>A security fix that refuses a model that compiled (<a href="stability.html">the stability policy</a>, exception (i)).</p>
+<p><strong>Before.</strong> <code>#[field(owner(from = parent))]</code> compiled whatever the <code>to</code> of the <code>BelongsTo</code> it follows. Ferra locked and
+judged the parent by its primary key: with <code>to</code> naming another column, the parent whose key equalled the foreign key’s
+value was judged and gave the row its owner, while the row pointed at another parent.</p>
+<pre><code class="language-text">#[sea_orm(belongs_to, from = "vendor_code", to = "code")]
+pub vendor: BelongsTo&lt;super::vendor::Entity&gt;,
+</code></pre>
+<p><strong>After.</strong> It is refused with <code>FRG-148</code>, as a constant-evaluation error (<code>E0080</code>) on the <code>from</code> value. The <code>BelongsTo</code>
+of an <code>owner(from)</code> chain points <code>to</code> the parent’s primary key, as in the
+<a href="ferra-forge-diagnostics.html#frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key">example of the diagnostic</a>.</p>
+<p><strong>Who is affected.</strong> A model with <code>owner(from = ..)</code> whose <code>BelongsTo</code> names another column of the parent in <code>to</code>. A
+<code>BelongsTo</code> without <code>owner(from)</code> is not affected.</p>
+<p><strong>Migration.</strong> Point <code>to</code> at the parent’s primary key (and the foreign key at that key’s values), or declare the owner on
+the model with <code>#[field(owner)]</code>. See <a href="ferra-forge-diagnostics.html">Compile-time Diagnostics</a>.</p>
+<h2 id="a-sea_orm-key-given-twice-on-one-field-is-refused-frg-149"><a class="header" href="#a-sea_orm-key-given-twice-on-one-field-is-refused-frg-149">A <code>sea_orm</code> key given twice on one field is refused (<code>FRG-149</code>)</a></h2>
+<p>A security fix that refuses a model that compiled (<a href="stability.html">the stability policy</a>, exception (i)).</p>
+<p><strong>Before.</strong> <code>from</code>, <code>to</code> or <code>enum_name</code> could be given twice on one field. Ferra read the first occurrence; Sea-ORM reads the
+last one of an attribute, and only the first <code>#[sea_orm]</code> of a relation field. The column Ferra checked was not always
+the one Sea-ORM used.</p>
+<pre><code class="language-text">#[sea_orm(primary_key, enum_name = "Code", enum_name = "Key")]
+pub id: i32,
+</code></pre>
+<p><strong>After.</strong> It is refused with <code>FRG-149</code>, on the second occurrence.</p>
+<p><strong>Who is affected.</strong> A model that repeats one of these keys on a field, in one attribute or across two.</p>
+<p><strong>Migration.</strong> Keep one occurrence, the one Sea-ORM used: the last of an attribute, or, on a relation field split over
+two <code>#[sea_orm]</code>, the one in the first (Sea-ORM ignored the second). See
+<a href="ferra-forge-diagnostics.html#frg-149--a-sea_orm-key-given-twice-on-one-field">Compile-time Diagnostics</a>.</p>
+<h2 id="a-key-whose-stored-record-holds-another-prefix-is-refused"><a class="header" href="#a-key-whose-stored-record-holds-another-prefix-is-refused">A key whose stored record holds another prefix is refused</a></h2>
+<p>This is a security fix, not a breaking change, and it can stop a custom store working.</p>
+<p><strong>Before.</strong> <code>verify</code> compared only the secret hash of an API key with the record the store returned. A custom
+<code>ApiKeyStore</code> that normalized or swapped the prefix of a record (lowercased it, padded it, returned the record of
+another prefix) still authenticated the key.</p>
+<p><strong>After.</strong> <code>verify</code> compares the prefix of the record with the presented one, inside the constant-time check that
+compares the hash. A mismatch is refused with the one generic 401, before the revoked and expired checks, and without
+writing its last use, although the secret is right.</p>
+<p><strong>Who is affected.</strong> An application with an <code>ApiKeyStore</code> of its own that returns a record under another spelling of the
+prefix than the one it was asked for.</p>
+<p><strong>Migration.</strong> Return the record for the exact prefix you were asked for. See
+<a href="ferra-auth.html">Authentication and Authorization</a>.</p>
+<h2 id="the-401-of-the-protected-docs-routes-carries-www-authenticate-bearer"><a class="header" href="#the-401-of-the-protected-docs-routes-carries-www-authenticate-bearer">The 401 of the protected docs routes carries <code>WWW-Authenticate: Bearer</code></a></h2>
+<p>This is a fix, not a breaking change.</p>
+<p><strong>Before.</strong> The 401 of <code>with_docs_protected</code> and <code>with_docs_protected_at</code> carried no <code>WWW-Authenticate</code>.</p>
+<p><strong>After.</strong> It carries the fixed <code>WWW-Authenticate: Bearer</code>, as every other 401 of Ferra. The verifier declares nothing: a
+verifier that accepts another scheme still sends <code>Bearer</code>.</p>
+<p><strong>Who is affected.</strong> A client or a test that asserts the absence of the header on the docs 401.</p>
+<p><strong>Migration.</strong> Expect the header. See <a href="foundry.html">Foundry</a> and <a href="ferra-error-handling.html">Error Handling</a>.</p>
+<h2 id="a-path-no-route-serves-is-a-bare-404"><a class="header" href="#a-path-no-route-serves-is-a-bare-404">A path no route serves is a bare <code>404</code></a></h2>
+<p>This is a fix, not a breaking change.</p>
+<p><strong>Before.</strong> The answer to a path no route serves inherited the layers of the last model mounted: it could be a <code>401</code>
+under <code>with_docs_protected</code> or after a model under <code>auth = "bearer"</code>, pass that model’s CORS and rate limiter, and
+carry the <code>Deprecation</code> and <code>Sunset</code> headers of a deprecated version.</p>
+<p><strong>After.</strong> It is a <code>404</code> with an empty body, whoever asks and whatever the chain mounts. The docs verifier and a model’s
+token check guard their own routes only. A preflight to an unknown path is a bare <code>404</code>, and a token sent to it is not
+read.</p>
+<p><strong>Who is affected.</strong> A client or a test that expected a <code>401</code> on a path the API does not serve, or a header of a
+model’s layers there.</p>
+<p><strong>Migration.</strong> Expect the <code>404</code>. See <a href="ferra-error-handling.html">Error Handling</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="stability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="migrating-to-0.17.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="stability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="migrating-to-0.17.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/ferra-32527555.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

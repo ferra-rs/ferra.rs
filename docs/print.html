@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -605,9 +605,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // commit stays under the lowest common default, Envoy's 15 s route
     // timeout (API Gateway allows 29 s, Heroku 30 s, ALB and nginx 60 s). It is
     // a margin, not a maximum: a slow `COMMIT` is not cut, and with a
-    // `BelongsTo` the read of the written row's parents after the commit is
-    // under no deadline either (`acquire_timeout` bounds the wait for the
-    // connection, `statement_timeout` the query).
+    // `BelongsTo` the read of the written row's parents after the commit
+    // shares that second: when it expires the answer is a 500, the row written.
     let app = Foundry::new(conn)
         .etag_key(std::env::var("ETAG_KEY")?)?
         .with_auth::&lt;Claims&gt;(jwt)
@@ -1051,7 +1050,7 @@ serde   = { version = "1", features = ["derive"] }
 <tbody>
 <tr><td><code>Foundry::new(conn)</code></td><td>begins the chain</td><td>—</td></tr>
 <tr><td><code>.with_auth::&lt;Claims&gt;(jwt)</code></td><td>configures JWT bearer validation; required to mount a model whose rules need an identity (without it, <code>.mount::&lt;M&gt;()</code> is a compile error, FRG-151 — see <a href="#authentication--authorization"><code>ferra-auth.md</code></a> § Compile-time auth defense)</td><td>—</td></tr>
-<tr><td><code>.with_api_keys(keys)</code></td><td>accepts API keys next to the JWT (after <code>.with_auth()</code>; see <a href="#authentication--authorization"><code>ferra-auth.md</code></a>)</td><td>—</td></tr>
+<tr><td><code>.with_api_keys(keys)</code></td><td>accepts API keys next to the JWT (after <code>.with_auth()</code>, once: a second call is <code>BuildError::ApiKeysTwice</code>; see <a href="#authentication--authorization"><code>ferra-auth.md</code></a>)</td><td>—</td></tr>
 <tr><td><code>.etag_key(secret)?</code></td><td>the key that signs the entity tags: at least 32 bytes, the same on every replica, never the JWT secret (see <a href="#entity-tag-key">Entity-tag key</a>)</td><td>—</td></tr>
 <tr><td><code>.api_version("v1")?</code></td><td>nests every route under <code>/v1/</code></td><td>—</td></tr>
 <tr><td><code>.default_representation(Representation::Flat)</code></td><td>the shape of a 2xx for a client that states no <code>Accept</code> preference (<code>Hal</code> unless set); see <a href="#response-representations"><code>ferra-http.md</code></a></td><td>—</td></tr>
@@ -1061,7 +1060,7 @@ serde   = { version = "1", features = ["derive"] }
 <tr><td><code>.with_base_url(origin)</code></td><td>absolute <code>_links</code> and <code>Location</code> on <code>origin</code> (<code>https://…</code>); relative links otherwise</td><td>—</td></tr>
 <tr><td><code>.with_docs()</code></td><td>publishes <code>/docs/openapi.json</code> + <code>/docs</code> (Scalar UI); <code>/docs/v1/…</code> on a versioned chain</td><td><code>.with_docs_at(path)</code></td></tr>
 <tr><td><code>.with_docs_info(title, version)</code></td><td><code>info.title</code> / <code>info.version</code> of the served document and the Scalar page title (default <code>"API"</code>, <code>"1"</code>)</td><td>—</td></tr>
-<tr><td><code>.with_docs_protected(verifier)</code></td><td>gates docs behind the verifier (RFC 7807 401 on rejection)</td><td><code>.with_docs_protected_at(path, verifier)</code></td></tr>
+<tr><td><code>.with_docs_protected(verifier)</code></td><td>gates docs behind the verifier (RFC 7807 401 with <code>WWW-Authenticate: Bearer</code> on rejection)</td><td><code>.with_docs_protected_at(path, verifier)</code></td></tr>
 <tr><td><code>.build()</code></td><td>finalizes the chain into <code>axum::Router</code></td><td>—</td></tr>
 </tbody>
 </table>
@@ -1222,7 +1221,9 @@ same JWT layer and the same authorization rules as on an un-versioned chain.</p>
 <p><code>.deprecated(since, sunset)</code> takes two dates: the day the version was
 deprecated, and the last day it is served as documented. It returns
 <code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused
-(<code>DeprecationError::SunsetBeforeDeprecation</code>). It activates these signals:</p>
+(<code>DeprecationError::SunsetBeforeDeprecation</code>), and so is a date in a year outside
+<code>0..=9999</code> (<code>DeprecationError::YearOutOfRange</code>; a <code>Date</code> above 9999 cannot be built, so
+it is a year below zero). It activates these signals:</p>
 <ul>
 <li>a <code>Deprecation: @&lt;seconds&gt;</code> header on every response under the
 version (RFC 9745): the start of <code>since</code>, 00:00:00 UTC, in Unix
@@ -1234,6 +1235,8 @@ seconds — <code>@1782864000</code> for <code>2026-07-01</code>;</li>
 the emitted spec, plus an <code>info.x-sunset</code> mirror at the document
 root.</li>
 </ul>
+<p>The two headers, the warn-event and the counter below are of a route served under the
+version: a path no route serves is the bare <code>404</code>, with none of them.</p>
 <pre class="playground"><code class="language-rust">use ferra::{Foundry, date};
 <span class="boring">use ferra::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
@@ -1352,10 +1355,11 @@ the API but does not serve resource data; gating it would block the
 constitutional zero-to-documented-API standard for every new
 consumer.</p>
 <p>For any publicly-reachable network surface, switch to
-<code>.with_docs_protected(verifier)</code>. The verifier closure receives the
-inbound request and returns <code>bool</code>; a <code>false</code> produces an RFC 7807
+<code>.with_docs_protected(verifier)</code>. The verifier closure receives the head of
+the inbound request, an <code>http::request::Parts</code> (method, URI and headers, never the body),
+and returns <code>bool</code>; a <code>false</code> produces an RFC 7807
 <code>401 Unauthorized</code> response with
-<code>type: "https://ferra.rs/errors/unauthorized"</code>:</p>
+<code>type: "https://ferra.rs/errors/unauthorized"</code>, and the request body is never read:</p>
 <pre class="playground"><code class="language-rust">use axum::http::header::AUTHORIZATION;
 use ferra::Foundry;
 <span class="boring">use ferra::FerraModel;
@@ -1384,8 +1388,8 @@ fn same(a: &amp;[u8], b: &amp;[u8]) -&gt; bool {
 let app = Foundry::new(conn)
     .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;Film&gt;()
-    .with_docs_protected(|req: &amp;axum::extract::Request| {
-        let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
+    .with_docs_protected(|parts: &amp;axum::http::request::Parts| {
+        let sent = parts.headers.get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
         same(sent, b"Bearer secret")
     })
     .build();
@@ -1393,11 +1397,12 @@ let app = Foundry::new(conn)
 </span><span class="boring">Ok(())
 </span><span class="boring">}
 </span><span class="boring">fn main() {}</span></code></pre>
-<p>The verifier runs synchronously and MUST NOT perform I/O — the
-underlying primitive does not yet integrate with the
-<code>ferra-auth</code> provider chain (that landing is scheduled for 0.8.5
-beta). The current API accepts any <code>Fn(&amp;Request) -&gt; bool + Send + Sync + 'static</code>; the future <code>Provider</code> arm of <code>DocsAuthVerifier</code>
-will be additive.</p>
+<p>The verifier guards the two docs routes only; a path nothing serves stays a <code>404</code>.</p>
+<p>The verifier runs synchronously and MUST NOT perform I/O. The current API
+accepts any <code>Fn(&amp;http::request::Parts) -&gt; bool + Send + Sync + 'static</code> (before
+0.18.0, <code>Fn(&amp;axum::extract::Request) -&gt; bool</code>). <code>DocsAuthVerifier</code> is
+<code>#[non_exhaustive]</code>, so an arm can be added without a break; this guide promises
+no other arm and no version for one. A verifier that panics serves nothing.</p>
 <hr>
 <h2 id="layer-ordering-invariance"><a class="header" href="#layer-ordering-invariance">Layer-ordering invariance</a></h2>
 <p>Every resource mounted through <code>Foundry</code> carries the per-resource
@@ -1784,9 +1789,13 @@ infrastructure’s timeout (a gateway, a proxy, a platform limit): 10 s plus
 the 1 s Ferra may spend after a commit stays under the lowest common
 default, Envoy’s 15 s route timeout (API Gateway allows 29 s, Heroku 30 s,
 ALB and nginx 60 s). It is a margin, not a maximum: a slow <code>COMMIT</code> is not
-cut, and for a model with a <code>BelongsTo</code> the read of the written row’s parents
-after the commit is under no deadline either (<code>acquire_timeout</code> bounds the wait
-for the connection, <code>statement_timeout</code> the query).</p>
+cut. For a model with a <code>BelongsTo</code>, the read of the written row’s parents after
+the commit of the write’s own transaction shares the 1 s Ferra may spend after a
+commit: when it expires the answer is a <code>500</code>, the row written. The reads of a
+route of yours after an earlier commit (<code>Resource::get</code>, <code>list</code>, <code>list_cursor</code>)
+and of a hook’s <code>tx.resource</code> are under no deadline of their own
+(<code>acquire_timeout</code> bounds the wait for the connection, <code>statement_timeout</code> the
+query).</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::Foundry;
@@ -1836,8 +1845,7 @@ then declare the route on the builder before <code>.build()</code>:
 afterwards (axum’s <code>.merge</code> or <code>.route</code> on the value <code>build()</code> returns)
 does not give those routes the budget, and escapes the conflict check
 below too.
-Writes through an application-owned raw <code>DatabaseConnection</code> are outside
-this guarantee.</p>
+Writes through an application-owned raw <code>DatabaseConnection</code> are outside this guarantee, and so is a <code>Resource&lt;M&gt;</code> write run in a task of your own (<code>tokio::spawn</code>): the budget sees the commits of the handler’s own future only, so it can answer 503 <code>timeout</code> while that task goes on and commits. Make every <code>Resource&lt;M&gt;</code> write in the handler’s future and await it there.</p>
 <p>Declared routes mount at the root, outside the <code>.api_version(...)</code> prefix:
 a <code>/live</code> probe or a webhook keeps its URL when the version changes, and
 gets no <code>Deprecation</code> or <code>Sunset</code> header. They receive only the
@@ -1980,6 +1988,11 @@ variant per refusal:</p>
 <tr><td><code>RouteOverlap { path, owned }</code></td><td>a route declared with <code>.route</code> overlaps a route Ferra mounts, or the docs page</td></tr>
 <tr><td><code>EtagKeyMissing</code></td><td>a model is mounted and the chain has no <code>.etag_key(...)</code>; a chain with only <code>.route(..)</code> needs none (see <a href="#entity-tag-key">Entity-tag key</a>)</td></tr>
 <tr><td><code>EtagKeyEqualsJwtSecret</code></td><td>the entity-tag key equals an HMAC secret of <code>.with_auth(...)</code></td></tr>
+<tr><td><code>ApiKeysTwice</code></td><td><code>.with_api_keys(...)</code> was called twice: the second store would replace the first</td></tr>
+<tr><td><code>RelationBackKey</code></td><td>a <code>HasMany</code> or <code>HasOne</code> whose target is mounted on the same <code>Foundry</code> has none, or more than one, <code>BelongsTo</code> back to its model, or its back <code>BelongsTo</code> has no <code>from</code> foreign key; the text names both models and the relation</td></tr>
+<tr><td><code>RelationNameCollision</code></td><td>a <code>HasMany</code> or <code>HasOne</code> is named like a row action, or the built-in <code>restore</code>, of its own model: the sub-collection would take the path of that route</td></tr>
+<tr><td><code>SubCollectionKeyNotPrimary</code></td><td>the back <code>BelongsTo</code> of a mounted child has a <code>to</code> other than the parent’s primary key: the sub-collection would answer another parent’s rows (see <a href="#relations">Relations</a>)</td></tr>
+<tr><td><code>EmbedCycle { path }</code></td><td>projections embed each other in a loop: <code>path</code> is the loop, as <code>resource.projection</code> names joined by <code>→</code></td></tr>
 <tr><td><code>Docs</code></td><td>the <code>OpenAPI</code> document cannot be finished: a Ferra bug, please report it</td></tr>
 </tbody>
 </table>
@@ -2078,7 +2091,9 @@ entity with the derive.</p>
 <p>A tag identifying the Rust type of a field. Option variants are spelled out so
 every field’s nullability is visible without indirection. <code>FieldType</code> is
 <code>#[non_exhaustive]</code>: a <code>match</code> on it needs a <code>_ =&gt;</code> arm to stay
-forward-compatible. This function names every variant of 0.9, and compiles:</p>
+forward-compatible. This function names every variant of 0.9 that is in the
+contract (one, a routing token for a <code>#[ferra(computed)]</code> field, is hidden), and
+compiles:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::meta::FieldType;
@@ -2094,7 +2109,6 @@ fn label(ty: FieldType) -&gt; &amp;'static str {
         FieldType::Timestamp | FieldType::OptionTimestamp =&gt; "instant (DateTime)",
         FieldType::Date | FieldType::OptionDate =&gt; "calendar date",
         FieldType::Time | FieldType::OptionTime =&gt; "time of day",
-        FieldType::ComputedUserNamed =&gt; "a type of the user's, on a `#[ferra(computed)]` field",
         _ =&gt; "a type added after 0.9",
     }
 }
@@ -2202,7 +2216,12 @@ checks of the derive, which are the only checks of these combinations. Two examp
 what a hand-built description can hold and the derive never emits: a <code>FieldMode::Computed</code>
 field marked <code>filterable</code>, and a <code>PaginationMode::Cursor { key, .. }</code> whose <code>key</code> names a
 hidden or write-only column. Trust a description only when <code>#[derive(FerraModel)]</code>
-produced it.</p>
+produced it. A hand-built description whose projection table has no default read or no
+default write projection does not mount: <code>Foundry::mount</code> panics at startup, naming it.
+For the <code>OpenAPI</code> document, the one loop over the projections hides a <code>WriteOnly</code> field
+from a <code>DefaultRead</code>, hides a <code>ReadOnly</code> or <code>Computed</code> field from a <code>DefaultWrite</code>, and a
+default kind present twice trips FRG-153; none of these is refused earlier or tested for a
+hand-built description.</p>
 <p><code>primary_key_fields</code> carries the primary-key column names in <strong>declaration
 order</strong>. A single-key model holds a one-element slice and the route shape is
 <code>/{resource}/{&lt;pk&gt;}</code>; a composite-key model holds several and the route becomes
@@ -2350,11 +2369,10 @@ RFC 3339 timestamp text (<code>"2023-11-14T22:13:20Z"</code>).</p>
 <tr><th>Constructor</th><th>Returns</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>DateTime::from_second(seconds: i64)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>seconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_millisecond(milliseconds: i64)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>milliseconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_microsecond(microseconds: i64)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>microseconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_nanosecond(nanoseconds: i128)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>nanoseconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_duration(duration: jiff::SignedDuration)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>epoch-relative duration</td></tr>
+<tr><td><code>DateTime::from_second(seconds: i64)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>seconds since the Unix epoch</td></tr>
+<tr><td><code>DateTime::from_millisecond(milliseconds: i64)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>milliseconds since the Unix epoch</td></tr>
+<tr><td><code>DateTime::from_microsecond(microseconds: i64)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>microseconds since the Unix epoch</td></tr>
+<tr><td><code>DateTime::from_nanosecond(nanoseconds: i128)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>nanoseconds since the Unix epoch</td></tr>
 <tr><td><code>DateTime::now()</code></td><td><code>DateTime</code></td><td>reads the system clock; not <code>const</code></td></tr>
 </tbody>
 </table>
@@ -2362,22 +2380,33 @@ RFC 3339 timestamp text (<code>"2023-11-14T22:13:20Z"</code>).</p>
 <p>The constructor names mirror the underlying time library verbatim;
 they are not invented. Names that do <strong>not</strong> exist on <code>DateTime</code> and
 will <strong>not</strong> be added: <code>from_unix_timestamp</code>, <code>from_unix_nanos</code>.</p>
-<p>Each <code>from_*</code> constructor returns a <code>Result</code> and propagates an
-out-of-range argument as the underlying time library’s error type.
+<p>Each <code>from_*</code> constructor returns a <code>Result</code> and answers an
+out-of-range argument with a <code>ferra::TimeError</code>, as do the <code>FromStr</code>
+of <code>DateTime</code>, <code>Date</code> and <code>Time</code>. A <code>TimeError</code> is opaque and
+<code>#[non_exhaustive]</code>: its <code>Display</code> is the one sentence
+<code>invalid date or time value</code>, which quotes no part of the input
+(<code>a_time_error_display_quotes_no_part_of_its_input</code>), and there is no
+<code>From&lt;TimeError&gt; for FerraError</code>, so you choose the answer where you
+catch it. The time library’s own error is dropped, not kept behind
+<code>Error::source</code>: that is <code>None</code>, so no error chain carries the input
+(<code>no_link_of_the_chain_quotes_the_input</code>).
+A bad date in a JSON body does not pass through <code>TimeError</code>: the body is
+refused as <code>invalid_json</code>, and the <code>message</code> of that error is the time
+library’s text, which may quote the value (<code>a_bad_date_in_a_body_keeps_jiffs_text_in_invalid_json</code>).
 The methods are not <code>const fn</code> — call sites use the standard <code>?</code>
 operator, not <code>const</code>-context evaluation.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use ferra::DateTime;
+</span>use ferra::{DateTime, TimeError};
 
-fn epoch_seconds(seconds: i64) -&gt; Result&lt;DateTime, jiff::Error&gt; {
+fn epoch_seconds(seconds: i64) -&gt; Result&lt;DateTime, TimeError&gt; {
     DateTime::from_second(seconds)
 }
 
 let now = DateTime::now();
 let later = epoch_seconds(1_700_000_000)?;
 <span class="boring">let _ = (now, later);
-</span><span class="boring">Ok::&lt;(), jiff::Error&gt;(())
+</span><span class="boring">Ok::&lt;(), TimeError&gt;(())
 </span><span class="boring">}</span></code></pre>
 <h3 id="date--calendar-date"><a class="header" href="#date--calendar-date"><code>Date</code> — calendar date</a></h3>
 <p><code>Date</code> represents a time-zone-free calendar date. Wire format: RFC
@@ -2426,7 +2455,7 @@ optional fraction (<code>"09:30:00"</code>, <code>"23:59:59.5"</code>).</p>
 </thead>
 <tbody>
 <tr><td><code>Time::new(hour: i8, minute: i8, second: i8)</code></td><td><code>Time</code></td><td><code>const fn</code>; an out-of-range triple is a <code>const</code>-eval error</td></tr>
-<tr><td><code>"09:30:00".parse::&lt;Time&gt;()</code></td><td><code>Result&lt;Time, jiff::Error&gt;</code></td><td><code>FromStr</code></td></tr>
+<tr><td><code>"09:30:00".parse::&lt;Time&gt;()</code></td><td><code>Result&lt;Time, TimeError&gt;</code></td><td><code>FromStr</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -2479,8 +2508,9 @@ them, behind its <code>sea-orm</code> Cargo feature. <strong>Do not enable that 
 facade. It is tied to Sea-ORM 2.x and adds no I/O dependency to <code>ferra-core</code>.</p>
 <h3 id="use-as-deprecation-dates"><a class="header" href="#use-as-deprecation-dates">Use as deprecation dates</a></h3>
 <p><code>FoundryBuilder::deprecated(since, sunset)</code> takes two <code>Date</code>s and returns
-<code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused. Every
-response under the deprecated version carries <code>Deprecation: @&lt;seconds&gt;</code> (RFC 9745: the start of <code>since</code>,
+<code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused, and so is a date
+in a year outside <code>0..=9999</code> (<code>DeprecationError::YearOutOfRange</code>). Every
+response of a route served under the deprecated version carries <code>Deprecation: @&lt;seconds&gt;</code> (RFC 9745: the start of <code>since</code>,
 UTC) and <code>Sunset: &lt;HTTP-date&gt;</code> (RFC 8594: the last second of <code>sunset</code>, for example
 <code>Tue, 05 Jan 2027 23:59:59 GMT</code>):</p>
 <pre class="playground"><code class="language-rust">use ferra::{Foundry, date};
@@ -3062,12 +3092,14 @@ they expire.</p>
 <h2 id="when-no-connection-can-be-had"><a class="header" href="#when-no-connection-can-be-had">When no connection can be had</a></h2>
 <p>A generated route, or a <code>Resource&lt;M&gt;</code> call, that gets no connection from your pool within its <code>acquire_timeout</code> answers
 <code>503</code> <code>service_unavailable</code> (0.17.0). The answer comes before the operation: nothing of it was applied, no hook ran, and
-the client may retry it. The <code>detail</code> is one fixed text; it names neither the pool, the database nor a delay
+the client may retry it. The exception is a route of your own that writes twice: an earlier write of the same request
+stands, so the client must not retry a non-idempotent request blindly
+(<a href="#what-ferra-does-not-do-in-one-request">What Ferra does not do in one request</a>). The <code>detail</code> is one fixed text; it names neither the pool, the database nor a delay
 (<a href="#service_unavailable--503"><code>service_unavailable</code></a> shows the body). It is a <code>503</code> and not a
 <code>500</code> because the service could not handle the request in time, whatever the cause: a saturated pool, and also a
 database that is down or still starting, since sqlx retries a refused connection until the <code>acquire_timeout</code> and the
 pool then reports a timeout. Say “a connection could not be had”, not “the pool is full”, when you read it. A
-connection the database refuses at once (a wrong password, an unknown database) stays a <code>500</code>. Ferra does not retry
+connection the database refuses at once (a wrong password, an unknown database, a TLS handshake it refuses) stays a <code>500</code>. Ferra does not retry
 it: only <code>40001</code> and <code>40P01</code> are retried, and a retry would add to the saturation.</p>
 <ul>
 <li><strong>Set <code>acquire_timeout</code> under the request budget.</strong> The deadline that comes first answers. With the pool’s timeout at
@@ -3331,17 +3363,25 @@ primary key may be single or composite. Serve with
 <tr><th>Operation</th><th>Method</th><th>Path</th><th>Request</th><th>Success</th><th>Error surfaces</th></tr>
 </thead>
 <tbody>
-<tr><td><code>get</code></td><td><code>GET</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>)</td><td>400 on path-extractor rejection · 404 on missing row · 500 on DB error</td></tr>
-<tr><td><code>list</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + the collection as JSON (HAL: with <code>_links</code>)</td><td>500 on DB error</td></tr>
-<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row</td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td><code>update</code></td><td><code>PATCH</code></td><td><code>/{resource}/{id}</code></td><td><code>Content-Type: application/merge-patch+json</code>: a JSON object of the write projection’s fields to change</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>), <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row</td><td>400 · 401/403 · 404 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 401/403 · 404 · 412 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
-<tr><td>a declared action</td><td><code>POST</code></td><td><code>/{resource}/{id}/{name}</code></td><td>nothing, or the JSON body the action declares</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the written row (0.14.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 422 · 429 · 500 · 503, and 413 · 415 when the action has a body</td></tr>
+<tr><td><code>get</code></td><td><code>GET</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>)</td><td>400 on path-extractor rejection · 401/403 · 404 on missing row · 413 · 500 on DB error · 503</td></tr>
+<tr><td><code>list</code></td><td><code>GET</code></td><td><code>/{resource}</code></td><td><code>?page={u32}&amp;per_page={u32}</code></td><td><code>200 OK</code> + the collection as JSON (HAL: with <code>_links</code>)</td><td>400 on a query that does not parse · 401/403 · 413 · 500 on DB error · 503</td></tr>
+<tr><td><code>create</code></td><td><code>POST</code></td><td><code>/{resource}</code></td><td>JSON body of the write projection</td><td><code>201 Created</code> + <code>Location: {base}/{resource}/{id}</code> + the row as JSON (HAL: with <code>_links</code>); <code>201</code> with no body and no <code>Location</code> when the caller may not <code>GET</code> the new row; <code>204</code> with no body under <code>Prefer: return=minimal</code></td><td>400 on body parse · 401/403 from the rule · 409 on unique violation · 413 on oversized body · 415 on a body not declared as JSON · 422 on a field outside the write projection or a <code>#[field(...)]</code> rule · 429 on rate limit · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>update</code></td><td><code>PUT</code></td><td><code>/{resource}/{id}</code></td><td>JSON body of the write projection</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> with no body under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row (0.13.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>update</code></td><td><code>PATCH</code></td><td><code>/{resource}/{id}</code></td><td><code>Content-Type: application/merge-patch+json</code>: a JSON object of the write projection’s fields to change</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>), <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the updated row</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td><code>delete</code></td><td><code>DELETE</code></td><td><code>/{resource}/{id}</code></td><td>—</td><td><code>204 No Content</code> (no body)</td><td>400 · 401/403 · 404 · 409 on a foreign key that refers to the row · 412 · 413 · 429 · 500 · 503 <code>retry_exhausted</code></td></tr>
+<tr><td>a declared action</td><td><code>POST</code></td><td><code>/{resource}/{id}/{name}</code></td><td>nothing, or the JSON body the action declares</td><td><code>200 OK</code> + the row as JSON (HAL: with <code>_links</code>); <code>204</code> under <code>Prefer: return=minimal</code> or when the caller may not <code>GET</code> the written row (0.14.0)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 422 · 429 · 500 · 503, and 415 when the action has a body</td></tr>
 <tr><td>a declared collection action</td><td><code>POST</code></td><td><code>/{resource}/{name}</code></td><td>the envelope <code>{"ids": [...], "body": ...}</code>, 1 to 100 ids; <code>body</code> only when the action declares one</td><td><code>204</code> (no body, no <code>ETag</code>)</td><td>400 · 401/403 · 404 · 409 · 412 · 413 · 415 · 422 · 429 · 500 · 503</td></tr>
 </tbody>
 </table>
 </div>
+<p>The document declares a 401 only for a model that reads tokens and a 403 only where the rule, an authority,
+a <code>write</code> rule or an action’s handler can refuse a caller who has a token, on the <code>create</code> of a model with an
+owner field (an identity that is no value of the owner column is refused; not under <code>owner(from)</code>), and, under a
+cookie, on every mutation of a model that reads tokens (the CSRF guard refuses a write whose <code>Origin</code> is not
+allowed). It declares a 404 on a <code>list</code> or a <code>create</code> under a projection whose rule can refuse a caller, as on
+every item route
+(<a href="#ferra-openapi"><code>ferra-openapi.md</code></a>); every row above lists what an operation can
+answer, and a 413, a 500 and a 503 are the answers of every operation.</p>
 <p>Every write above, <code>restore</code> and the actions included, runs in a transaction the
 framework owns, and answers <code>503</code> <code>retry_exhausted</code> (with <code>Retry-After: 1</code>) when the
 database aborts it on each of its three attempts; nothing is written. See
@@ -3448,7 +3488,7 @@ let app = Foundry::new(conn)
 <tr><td><code>FerraError::Unauthorized</code></td><td>401</td><td><code>https://ferra.rs/errors/unauthorized</code></td><td><code>Unauthorized</code> (with <code>WWW-Authenticate: Bearer</code>)</td></tr>
 <tr><td><code>FerraError::Forbidden</code></td><td>403</td><td><code>https://ferra.rs/errors/forbidden</code></td><td><code>Forbidden</code></td></tr>
 <tr><td><code>FerraError::Conflict(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code></td></tr>
-<tr><td><code>FerraError::ConflictWith(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code> (your hook’s <code>HookError::conflict</code>; the detail is yours, served as given; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
+<tr><td><code>FerraError::ConflictDetail(String)</code></td><td>409</td><td><code>https://ferra.rs/errors/conflict</code></td><td><code>Conflict</code> (your hook’s <code>HookError::conflict</code>; the detail is yours, served as given; see <code>ferra-error-handling.md</code> § Hook errors)</td></tr>
 <tr><td><code>FerraError::UnsupportedMediaType</code></td><td>415</td><td><code>https://ferra.rs/errors/unsupported_media_type</code></td><td><code>Unsupported Media Type</code></td></tr>
 <tr><td><code>FerraError::Internal(InternalError)</code></td><td>500</td><td><code>https://ferra.rs/errors/internal</code></td><td><code>Internal Server Error</code> (the cause stays in <code>source()</code>, never on the wire; see <code>ferra-error-handling.md</code> § Rust errors and their causes)</td></tr>
 <tr><td><code>FerraError::Timeout</code></td><td>503</td><td><code>https://ferra.rs/errors/timeout</code></td><td><code>Request Timeout Budget Exceeded</code> (no <code>Retry-After</code>; see <code>foundry.md</code> § Request time budget)</td></tr>
@@ -3880,7 +3920,7 @@ let layer = FerraLayer::new().cors(cors).build();
 <tr><td>2</td><td>Cache defaults</td><td><code>Cache-Control</code> and <code>Vary</code> on every response</td></tr>
 <tr><td>3</td><td>Request budget</td><td>The 503 <code>timeout</code>, when a budget is set</td></tr>
 <tr><td>4</td><td>ETag layer, and the extensions</td><td>The ETag key, the base URL, the default representation and the mounted models, which the handlers read</td></tr>
-<tr><td>5</td><td>Version prefix (with <code>.api_version</code>)</td><td>The <code>VersionPrefix</code> extension and, with <code>.deprecated</code>, the middleware that adds <code>Sunset</code>/<code>Deprecation</code> and the post-sunset warn and counter</td></tr>
+<tr><td>5</td><td>Version prefix (with <code>.api_version</code>)</td><td>The <code>VersionPrefix</code> extension and, with <code>.deprecated</code>, the middleware that adds <code>Sunset</code>/<code>Deprecation</code> and the post-sunset warn and counter, on a route served under the version: a path no route serves is the bare <code>404</code>, with none of them</td></tr>
 <tr><td>6</td><td>Base path</td><td>The <code>FerraLayer::base_path</code> prefix of hypermedia links</td></tr>
 <tr><td>7</td><td>Cookie origin check</td><td>Only with <code>JwtConfig::with_cookie</code> (see <a href="#cors-with-the-cookie">CORS with the cookie</a>)</td></tr>
 <tr><td>8</td><td>CORS</td><td><code>FerraLayer::cors</code>, or the cookie origins</td></tr>
@@ -5052,7 +5092,7 @@ pub struct Model {
 <span class="boring">}</span></code></pre>
 <p>The framework’s <code>ModelMeta</code> for <code>Film</code> carries:</p>
 <ul>
-<li>A <code>behaviors</code> slice containing <code>BehaviorKind::soft_delete("deleted_at")</code>; <code>ModelMeta::soft_delete_column()</code> reads the name.</li>
+<li>A <code>behaviors</code> slice holding the soft-delete entry on <code>deleted_at</code>; <code>ModelMeta::soft_delete_column()</code> reads the name.</li>
 <li>An automatically injected <code>deleted_at: Option&lt;ferra::DateTime&gt;</code> field at the end of the user’s field list, flagged <code>skip</code>, so no read projection and no read schema lists it and no write projection takes it. It is a column the database keeps: the model has no such field, so no response carries it, for any caller.</li>
 <li>No entry for <code>restore</code>: Ferra serves <code>POST /{resource}/{id}/restore</code> from its one list of served operations (CRUD, then <code>restore</code> when the model soft-deletes and is not <code>system_only</code>), the same list the links and the OpenAPI document read. <code>ModelMeta</code> has no <code>operations</code> field since 0.14.0.</li>
 </ul>
@@ -5492,19 +5532,28 @@ committed: the answer is a <code>500</code> and the row stands, and a replayed <
 return <code>Ok(())</code>; keep <code>Err</code> for the failures a client may safely hear about.</li>
 <li><strong>The request budget cuts it.</strong> With <a href="#request-time-budget"><code>.request_budget(..)</code></a>, after a
 confirmed commit, the post-commit work Ferra runs for the request (every <code>after_commit</code>, and every <a href="#when-the-hooks-run">computed
-field</a> served after the commit) is attempted once, guaranteeing neither
+field</a> served after the commit, and the read of the written row’s parents) is attempted once, guaranteeing neither
 completion nor durable delivery, under one post-commit deadline per request,
 <code>max(deadline, first post-commit work + 1 s)</code>; when it expires the work is dropped and the answer is <code>500</code>
 <code>internal</code>, the commit standing. The budget has thus three phases: until a <code>COMMIT</code> starts it cuts (<code>503</code> <code>timeout</code>, nothing written); a started <code>COMMIT</code> is
 not cancelled; after a confirmed commit the post-commit deadline bounds that work. A cut after a commit is never a
 <code>503</code> <code>timeout</code>. The hook’s future is dropped where it waits (at an <code>.await</code>); there is no call that reads the
 time left. The deadline is the request’s, not the hook’s: every <code>after_commit</code> call of the request, the rows of a
-collection action included, and the computed fields share it, so, without a <code>BelongsTo</code>, a response is held at most for the budget + the
+collection action included, the computed fields and the read of the written row’s parents share it, so a response is held at most for the budget + the
 overrun of the <code>COMMIT</code> + 1 s, whatever the number of events. The overrun is the time the <code>COMMIT</code> took past the
 budget; a slow <code>COMMIT</code> can use up the whole budget, and the hook still has its second. For a model with a
-<code>BelongsTo</code>, the read of the written row’s parents after the commit is under no deadline either: <code>acquire_timeout</code>
-bounds the wait for the connection and <code>statement_timeout</code> bounds the query; a connection not had in time for that
-read answers <code>500</code>, the commit standing. Each call cut is one
+<code>BelongsTo</code>, the read of the written row’s parents after the commit of the write’s own transaction is post-commit
+work too: when the deadline expires the answer is <code>500</code> <code>internal</code>, the commit standing, the row written
+(a create, an update, a patch, a restore, a row action, a <code>Resource&lt;M&gt;</code> write), and a replayed create then
+makes a duplicate unless it is <a href="#idempotent-creates">idempotent</a>. A connection not had in time for that read answers <code>500</code> as well. Inside a hook’s open
+transaction (<code>tx.resource</code>) the read of the parents is not cut by this deadline, with nothing committed or after an
+earlier commit of the request (with no commit started, the budget layer still cuts the request); a computed field
+served there is bounded after an earlier commit.
+A deadline already used up by earlier post-commit work is accepted: a row with a parent to read then answers the
+<code>500</code>, one with none to read the 2xx.
+The reads a route of yours makes with <code>Resource::get</code>, <code>list</code> and <code>list_cursor</code> after an earlier commit, and the
+reads of <code>tx.resource</code>, are under no deadline of their own: <code>acquire_timeout</code> bounds the wait for the connection
+and <code>statement_timeout</code> bounds the query. Each call cut is one
 <code>error!</code> line; a call that starts after the deadline is polled once and cut at its first <code>.await</code>. Without a
 budget nothing bounds it. A gateway or process timeout that fires before the response leaves the client with the
 outcome unknown: the write may be committed. Choose a budget below that timeout, and make a create safe to
@@ -6053,7 +6102,7 @@ own, but a rule that needs an identity (<code>IsOwner</code>, <code>HasRole</cod
 repeated key), <code>FRG-142</code> (a missing <code>name</code>, <code>authorize</code> or <code>handler</code>), <code>FRG-143</code> (<code>collection</code> on a composite key),
 <code>FRG-144</code> (an action on a <code>system_only</code> model), <code>FRG-145</code> (a body type that cannot be one) and <code>FRG-146</code> (a <code>writes</code>
 entry the action cannot write). The rule’s own errors
-are <code>FRG-101</code> to <code>FRG-103</code> and <code>FRG-110</code>. <a href="#frg-139--an-action-name-that-is-not-allowed">The codes</a>
+are <code>FRG-101</code> to <code>FRG-103</code> and <code>FRG-110</code>, and <code>FRG-023</code> for an <code>authorize</code> that does not parse. <a href="#frg-139--an-action-name-that-is-not-allowed">The codes</a>
 each have a section. A wrong handler path, a wrong handler signature or a <code>body = T</code> without the derive is rustc’s
 error, spanned on the path or the type you wrote. At <code>Foundry::build()</code>, two operations that get one <code>operationId</code>,
 or two body components with one name, are refused by <a href="#frg-153--an-openapi-name-produced-twice"><code>FRG-153</code></a>.</p>
@@ -6463,6 +6512,12 @@ is the 422 <code>reference_not_found</code>; a <code>POST</code> under it (<code
 <p><strong>A relation that shares its name with a route.</strong> A <code>HasMany</code> or <code>HasOne</code> named like a row action, or <code>restore</code>, of
 its own model would take the path of that route: <code>build()</code> refuses it, naming the model and both names
 (<code>BuildError::RelationNameCollision</code>). Rename the relation or the action.</p>
+<p><strong>A back <code>BelongsTo</code> that points at another column than the key (0.18.0).</strong> The sub-collection lists the rows of the
+child whose foreign key equals the parent’s primary key. A child whose <code>BelongsTo</code> back to the parent has a <code>to</code> that is
+not that key (<code>to = "code"</code> where <code>id</code> is the key) would be filtered by the key all the same, and answer another
+parent’s rows: <code>build()</code> refuses the pair, naming the parent, the child and the column
+(<code>BuildError::SubCollectionKeyNotPrimary</code>). Point <code>to</code> at the primary key, or do not mount both models on one
+<code>Foundry</code>.</p>
 <p><strong>To serve none of them</strong>, write the parent in the split form (it declares no relation) or do not mount the child.
 There is no per-relation opt-out yet.</p>
 <h2 id="the-aggregate-protocol"><a class="header" href="#the-aggregate-protocol">The aggregate protocol</a></h2>
@@ -6573,7 +6628,10 @@ read (one bit). A non-nullable key has none.</li>
 <h2 id="embedding"><a class="header" href="#embedding">Embedding</a></h2>
 <p>A projection’s <code>read</code> list may name a <code>BelongsTo</code> relation (0.16.0, FR-040). The response then carries the parent’s
 row, under the relation’s name, next to the link to it. The row is served in the parent’s projection of the same name:
-the <code>summary</code> of a review embeds the <code>summary</code> of its film.</p>
+the <code>summary</code> of a review embeds the <code>summary</code> of its film. A name that is neither a field nor a <code>BelongsTo</code> is
+<a href="#frg-301--projection-references-an-unknown-field">FRG-301</a>, a <code>HasMany</code> or a <code>HasOne</code>
+is <a href="#frg-363--a-hasmany-or-hasone-in-a-read-list">FRG-363</a>, whether the <code>#[ferra(..)]</code>
+attribute is written beside <code>#[sea_orm(..)]</code> or inside its <code>model_attrs(..)</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
@@ -6711,8 +6769,8 @@ the child’s table (0.16.0, FR-033). Ferra asks the database and answers what i
 <ul>
 <li><strong><code>ON DELETE RESTRICT</code></strong> (or the default, <code>NO ACTION</code>): the database refuses the <code>DELETE</code>. Ferra answers the 409
 <code>conflict</code> with its fixed <code>detail</code>, nothing is deleted, and the statement is run once (a foreign-key violation is
-not a transient failure, so it is not retried). The OpenAPI document declares the 409 on the <code>DELETE</code> of every model
-that a <code>BelongsTo</code> targets. The server log holds the constraint’s name (<code>INFO</code>, target <code>ferra_http::conflict</code>), never
+not a transient failure, so it is not retried). The OpenAPI document declares the 409 on the <code>DELETE</code> of every model,
+whether or not a <code>BelongsTo</code> targets it. The server log holds the constraint’s name (<code>INFO</code>, target <code>ferra_http::conflict</code>), never
 the key value that Postgres prints in its detail line.</li>
 <li><strong><code>ON DELETE CASCADE</code></strong>: the database deletes the children itself. Ferra does not see them: their <code>before_delete</code> and
 <code>after_delete</code> hooks do not run, their rules and their soft delete are not applied. Use it only for rows nothing else
@@ -7996,7 +8054,10 @@ A key is <code>ferra_&lt;16 hex&gt;_&lt;64 hex&gt;</code>: a public prefix that 
 secret of which only the SHA-256 is stored. Keys live in a table Ferra owns,
 <code>ferra_api_keys</code> (<code>ferra::api_key::SCHEMA_SQL</code> is its DDL: run it with your own
 migration tool), behind the <code>ApiKeyStore</code> trait; <code>PgApiKeyStore</code> is the Postgres
-implementation.</p>
+implementation. A store returns the record it was asked for: a record whose
+<code>prefix</code> is not the presented one is refused as an unrecognized key (the same 401),
+whatever its secret, and before it is read as revoked or expired. A store that
+normalizes a prefix (case, padding) refuses its own keys.</p>
 <pre class="playground"><code class="language-rust">use ferra::api_key::{PgApiKeyStore, issue};
 use ferra::{ApiKeyConfig, DatabaseConnection, FerraIdentity, Foundry, JwtConfig};
 use serde::Deserialize;
@@ -8074,6 +8135,9 @@ server’s clock, whatever store holds it.</li>
 fast hash is enough for 256 random bits; slow password hashes protect human
 passwords), the subject, the roles and the dates. <code>issue</code> and <code>revoke</code> log one <code>info</code>
 event with the prefix; nothing logs a secret.</li>
+<li><strong>One <code>with_api_keys</code> per chain.</strong> A second call would replace the first store without a
+word, so <code>.try_build()</code> refuses it with <code>BuildError::ApiKeysTwice</code> and <code>.build()</code> panics with
+its text; configure the one <code>ApiKeyConfig</code> you want and call <code>with_api_keys</code> once.</li>
 <li><strong>Only the configured header is a credential.</strong> On a chain without <code>with_api_keys</code>, an
 <code>X-Api-Key</code> header is ignored. <code>Vary</code> names the configured header on every response.</li>
 <li><strong>One credential per request.</strong> A key next to an <code>Authorization</code> header, or two key
@@ -8256,11 +8320,9 @@ compute. Put an API Gateway or WAF throttle in front, and watch the refusal <cod
 events for bursts.</li>
 </ul>
 <h2 id="model-auth-posture--ferraauth--"><a class="header" href="#model-auth-posture--ferraauth--">Model auth posture — <code>#[ferra(auth = ...)]</code></a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[ferra(auth = "bearer")]   // every operation requires a valid bearer token
+<pre><code class="language-text">#[ferra(auth = "bearer")]   // every operation requires a valid bearer token
 #[ferra(auth = "none")]     // deliberately, explicitly public
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>A model declaring <strong>neither</strong> <code>auth</code> nor <code>#[authorize(...)]</code> <strong>fails to compile</strong>.
 This is deliberate: for a framework that mounts SQL-backed CRUD, the only safe
 default is to refuse to build until you have made the auth surface an explicit
@@ -9252,16 +9314,22 @@ serde   = { version = "1", features = ["derive"] }
 <li><strong><code>GET /docs/openapi.json</code></strong> — the full OpenAPI 3.2 document (<code>openapi: "3.2.0"</code>).</li>
 <li><strong><code>GET /docs</code></strong> — interactive Scalar UI rendering the spec.</li>
 <li><strong>Every answer is documented.</strong> Each operation lists the error statuses the server
-can return for it — 400; 401 when the model reads tokens; 403 when the rule needs an
-identity; 404 on item routes; 409 on writes; 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
-<code>restore</code> and the actions; 413 and 422 on bodies (422 on every action too); 429 on
+can return for it — 400; 401 when the model reads tokens (a parent next to a child that needs an identity reads them: a broken token is a 401 on a sub-collection whose own rules are <code>Anyone</code>); 403 when the rule can refuse a caller who has a token (a role, an
+authority; <code>IsOwner</code> alone is a 404 for a stranger of a row, so an item route under it declares none; an action declares one only when its rule refuses the owner himself, the model has an authority, or a field its handler may change is one the framework refuses: outside the write set of the bare route (the promoted projection’s when the model promotes one) or carrying a <code>write</code> rule, and not listed in the action’s <code>writes</code>; a sub-collection declares the 401 when its parent or its child reads tokens, and the optional <code>security</code> of an <code>Anyone</code> operation when neither the parent’s rules nor its promoted projection need an identity (its <code>get</code>, and for the create its <code>update</code> too: the create judges both, the <code>get</code> first; the rule of a projection promoted with <code>default = true</code> on both), and declares the 403 from the parent’s <code>get</code> and <code>update</code> rules and the child’s own, an <code>IsOwner</code> list of the child not refusing the owner of a parent only its owner can read), or on a list or a create under an owner field (an identity that is no value
+of the owner column is refused; an <code>owner(from)</code> create is a 422 and declares none unless an authority or a write rule can refuse it; <code>Authenticated</code> and <code>Anyone</code> refuse nobody, so a <code>bearer</code> model
+with no rule declares none; under a cookie every mutation of a model that reads tokens also declares the CSRF
+guard’s); 404 on item routes and on any operation, a list and a create included, under a projection whose rule
+can refuse a caller; 409 on writes and on every <code>DELETE</code> (a foreign key can refuse
+it, whichever model it is); 412 on <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>,
+<code>restore</code> and the actions; 413 on every operation, a read as well as a write (a request over
+the body cap is refused before the route runs); 415 and 422 on bodies (422 on every action too); 429 on
 mutations (not under <code>no_rate_limit()</code>); 503; 500 — each an <code>application/problem+json</code> body.
 Every operation, a read as well as a write, declares a 503, whatever the chain (0.17.0): the pool may give
 no connection in time (<code>service_unavailable</code>). Every write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, <code>restore</code>) can
 also end in <code>retry_exhausted</code> (0.14.0, with <code>Retry-After: 1</code>). A chain
-with <code>request_budget</code> adds <code>timeout</code>, and a chain whose JWT
+with <code>request_budget</code> can answer <code>timeout</code>, and a chain whose JWT
 source is a key set (<code>JwtConfig::key_set</code>), or that accepts API keys (<code>with_api_keys</code>),
-adds <code>identity_unavailable</code> to the operations of the models that read tokens: all are the one named response
+can answer <code>identity_unavailable</code>: all are the one named response
 <code>ServiceUnavailable</code> of <code>components/responses</code> (<code>$ref</code> to <code>ProblemDetails</code>; its <code>type</code> is <code>service_unavailable</code>
 (the pool, or a hook’s or an action handler’s <code>unavailable</code>), <code>retry_exhausted</code>, <code>timeout</code> or
 <code>identity_unavailable</code>), never an inline response. Its description says that <code>retry_exhausted</code>
@@ -9285,10 +9353,13 @@ in the document as the router serves it: none under a projection prefix. Its <co
 on <code>Job</code> is <code>markSeenJob</code> (the <code>v1.</code> prefix of a versioned API is kept, and a promoted default
 projection adds its suffix as it does to every bare operation). It takes the key, <code>Prefer</code>,
 <code>If-Match</code> and <code>If-None-Match</code> as <code>PUT</code> does, and answers <code>200</code> with the model’s read schema and
-the <code>ETag</code> header, or <code>204</code>, with <code>400</code>, <code>401</code> (when the model reads tokens), <code>403</code>, <code>404</code>, <code>409</code> (a
-handler’s <code>conflict</code>), the one named <code>412</code>, <code>422</code> (a handler’s <code>unprocessable</code>, the validators of
+the <code>ETag</code> header, or <code>204</code>, with <code>400</code>, <code>401</code> (when the model reads tokens), <code>403</code> (only where the
+action can be refused: its rule refuses the owner himself, the model has an authority, or a field its
+handler may change is one the framework refuses, and, under a cookie, the CSRF guard’s, which every mutation of a
+model that reads tokens declares), <code>404</code>, <code>409</code> (a
+handler’s <code>conflict</code>), the one named <code>412</code>, <code>413</code>, <code>422</code> (a handler’s <code>unprocessable</code>, the validators of
 the state it returns, <code>owner(from)</code>), <code>429</code> (not under <code>no_rate_limit()</code>), <code>500</code> and the one
-named <code>503</code>. An action that declares a <code>body</code> adds <code>413</code> and <code>415</code>, and its request body is a
+named <code>503</code>. An action that declares a <code>body</code> adds <code>415</code>, and its request body is a
 <code>$ref</code> to a component of its own, <code>{Name}{Model}Input</code> in PascalCase (<code>MarkSeenJobInput</code>): the
 fields of the body type, with their validation keywords, <code>additionalProperties: false</code> (a key
 outside the list is the <code>422</code> <code>unknown_field</code>). An action without a body documents none. Because the
@@ -9306,8 +9377,8 @@ envelope, a component of its own, <code>{Name}{Model}Request</code> (<code>AckAl
 <code>minItems: 1</code>, <code>maxItems: 100</code>, <code>uniqueItems: true</code> whose items have the schema of the key; and <code>body</code>, a
 <code>$ref</code> to the typed body’s component (<code>{Name}{Model}Input</code>), present and required only when the action
 declares one. It answers <code>204</code> with no body and no <code>ETag</code> (a batch serves no row), and <code>400</code>, <code>401</code> (when the
-model reads tokens), <code>403</code>, <code>404</code>, <code>409</code>, the one named <code>412</code>, <code>413</code>, <code>415</code>, <code>422</code>, <code>429</code> (not under
-<code>no_rate_limit()</code>), <code>500</code> and the one named <code>503</code>: the three body errors always, since the envelope is a
+model reads tokens), <code>403</code> (on the same clauses as a row action’s, the cookie’s included), <code>404</code>, <code>409</code>, the one named <code>412</code>, <code>413</code>, <code>415</code>, <code>422</code>, <code>429</code> (not under
+<code>no_rate_limit()</code>), <code>500</code> and the one named <code>503</code>: <code>415</code> and <code>422</code> always, since the envelope is a
 body. The 100 is the one the server enforces.</li>
 <li><strong>API keys are a security scheme.</strong> On a chain that accepts API keys, the document
 declares <code>components/securitySchemes/apiKey</code> (<code>type: apiKey</code>, <code>in: header</code>, <code>name</code> the
@@ -9328,7 +9399,10 @@ flat schemas, without <code>_links</code>.</li>
 <code>&lt;Model&gt;CollectionHal</code> are <code>&lt;Model&gt;Hal</code>, since each item of a HAL list carries its own
 <code>_links</code> (0.13.0). In <code>&lt;Model&gt;Hal</code>, <code>_links.self</code> and <code>_links.collection</code> are optional: an item
 served to a caller who may <code>list</code> but not <code>GET</code> it has no <code>self</code> (0.13.0). A list’s own
-<code>_links.self</code> stays required.</li>
+<code>_links.self</code> stays required. A row also names one optional link per relation and per row action
+of the model, the action’s name being the key. A list names its pagination links by mode: <code>page</code>
+requires <code>first</code>, <code>last</code>, <code>next</code> and <code>prev</code> (each <code>next</code> and <code>prev</code> a link, or <code>null</code> on a boundary
+page); <code>cursor</code> has <code>next</code> and <code>prev</code> only, each optional; <code>both</code> has the four, each optional.</li>
 <li><strong>A gated field is declared optional.</strong> A field with a <code>#[field(read = …)]</code> rule is never in the
 <code>required</code> list of its read schema and is described “absent when the caller may not read it”; its
 examples stay synthetic (a placeholder of its type, never a value of yours). The <code>POST</code> and <code>PUT</code> of a
@@ -9361,7 +9435,7 @@ against it.</li>
 </ul>
 <p><code>Foundry::with_docs()</code> serves both routes to anyone who reaches the port. For any surface a
 network can reach, use <code>Foundry::with_docs_protected(verifier)</code>, which answers an anonymous
-request with a <code>401</code>: see <a href="#enabling-the-docs-surface">Enabling the docs surface</a>.</p>
+request with a <code>401</code>, on the docs routes only: an unknown path stays a <code>404</code>. See <a href="#enabling-the-docs-surface">Enabling the docs surface</a>.</p>
 <p>For each mounted model <code>M</code> (PascalCase struct name), the spec
 contains:</p>
 <ul>
@@ -9398,12 +9472,13 @@ version prefix: <code>/v1/me</code>), with the operationId <code>getMe</code> an
 parameter. Its responses are <code>200</code> (the model’s read schema), <code>401</code>, <code>403</code> (a
 <code>get</code> rule that reads no row), <code>404</code> (every refusal that depends on the row
 answers it, see <a href="#projections-and-routing"><code>projections-and-routing.md</code></a>
-§ <code>/me</code>), and the <code>400</code> and <code>500</code> of every generated operation, all as
+§ <code>/me</code>), and the <code>400</code>, <code>413</code>, <code>500</code> and <code>503</code> of every generated operation, all as
 <code>ProblemDetails</code>. The path has no other method.</p>
 <hr>
 <h2 id="enabling-the-docs-surface"><a class="header" href="#enabling-the-docs-surface">Enabling the docs surface</a></h2>
 <p>For any surface a network can reach, the call site is <code>Foundry::with_docs_protected(verifier)</code>: an
-anonymous request gets a <code>401</code> with an RFC 7807 body, and the verifier is yours to write.</p>
+anonymous request gets a <code>401</code> with an RFC 7807 body and the fixed <code>WWW-Authenticate: Bearer</code>, and the verifier is
+yours to write; it declares nothing, the challenge is Ferra’s.</p>
 <pre class="playground"><code class="language-rust">use ferra::Foundry;
 use axum::http::header::AUTHORIZATION;
 <span class="boring">use ferra::FerraModel;
@@ -9433,8 +9508,8 @@ let docs_token = std::env::var("DOCS_TOKEN").unwrap_or_default();
 let app = Foundry::new(conn)
     .etag_key(std::env::var("ETAG_KEY")?)?
     .mount::&lt;Film&gt;()
-    .with_docs_protected(move |req: &amp;axum::extract::Request| {
-        let sent = req.headers().get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
+    .with_docs_protected(move |parts: &amp;axum::http::request::Parts| {
+        let sent = parts.headers.get(AUTHORIZATION).map_or(&amp;[][..], |v| v.as_bytes());
         !docs_token.is_empty() &amp;&amp; same(sent, format!("Bearer {docs_token}").as_bytes())
     })
     .build();
@@ -9483,7 +9558,7 @@ zero boilerplate.</p>
 <tr><th>Method</th><th>Effect</th></tr>
 </thead>
 <tbody>
-<tr><td><code>.with_docs_protected(verifier)</code></td><td>Auth-gated docs at <code>/docs</code>; anonymous requests get 401 + RFC 7807 body.</td></tr>
+<tr><td><code>.with_docs_protected(verifier)</code></td><td>Auth-gated docs at <code>/docs</code>; anonymous requests get 401 + RFC 7807 body + <code>WWW-Authenticate: Bearer</code>.</td></tr>
 <tr><td><code>.with_docs_protected_at("/api-docs", verifier)</code></td><td>Auth-gated at the supplied prefix.</td></tr>
 <tr><td><code>.with_docs()</code></td><td>Public docs at <code>/docs</code> and <code>/docs/openapi.json</code>, for local or internal use.</td></tr>
 <tr><td><code>.with_docs_at("/api-docs")</code></td><td>Public docs at the supplied prefix.</td></tr>
@@ -9538,7 +9613,8 @@ stay public; <code>with_docs_protected</code> gates them.</p>
 <code>example</code> keyword is deprecated since OpenAPI 3.1), every request body, parameter and
 header an <code>example</code>, and error responses are shared <code>components.responses</code>
 (<code>BadRequest</code>, <code>Unauthorized</code>, <code>Forbidden</code>, <code>NotFound</code>, <code>Conflict</code>,
-<code>PreconditionFailed</code>, <code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>).</p>
+<code>PreconditionFailed</code>, <code>PayloadTooLarge</code>, <code>ValidationError</code>, <code>TooManyRequests</code>, <code>InternalServerError</code>),
+each with its own <code>example</code>: the <code>type</code>, <code>title</code> and <code>status</code> of that answer, not one body shared by all.</p>
 <p>The document is built once, at <code>Foundry::build()</code>. If Ferra cannot finish it — a
 Ferra bug — <code>build()</code> panics with an explicit message rather than serve a document that silently lost part of its content.</p>
 <h3 id="response-headers-of-the-docs-page"><a class="header" href="#response-headers-of-the-docs-page">Response headers of the docs page</a></h3>
@@ -9879,10 +9955,25 @@ for the <code>FerraComputed</code> trait, <code>ModelComputed</code>, when the h
     "title":    { "type": "string" },
     "status":   { "type": "integer", "format": "int32" },
     "detail":   { "type": "string" },
-    "instance": { "type": "string", "format": "uri-reference" }
+    "instance": { "type": "string", "format": "uri-reference" },
+    "errors":   {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "code", "message"],
+        "properties": {
+          "field":   { "type": "string" },
+          "code":    { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
   }
 }
 </code></pre>
+<p><code>errors</code> is optional: the 400 <code>validation</code> and the 422 carry it, one <code>{field, code, message}</code> entry
+per failing field in a single top-level array (the <code>{field: [message]}</code> map left in 0.11.0); every
+other answer has none.</p>
 <p>The closed enum on <code>type</code> is the load-bearing constraint: SDK
 generators produce a typed union over the URI set in the target
 language. An AI agent generating client code is foreclosed from
@@ -10250,7 +10341,7 @@ returned). <code>#[sea_orm(rename_all = "...")]</code> is unrelated: it names SQ
 <tr><td><code>rename_all</code></td><td><code>"camelCase"</code> or <code>"snake_case"</code></td><td>JSON names of the model’s fields. Default <code>"snake_case"</code> (the Rust names). See § Field names on the wire.</td></tr>
 <tr><td><code>client_pk</code></td><td>flag</td><td>The client supplies the primary key in the create body (composite or natural keys). Without it the server chooses the key.</td></tr>
 <tr><td><code>authority</code></td><td>flag</td><td>The application decides access with its own code: <code>impl FerraAuthority</code> (and <code>FerraListAuthority</code>) for the model, and <code>Model::FIELDS</code> to build conditions. See <a href="#authentication--authorization"><code>ferra-auth.md</code></a> § Programmatic authority.</td></tr>
-<tr><td><code>action(...)</code></td><td><code>name = "…"</code>, <code>authorize = &lt;rule&gt;</code>, <code>handler = path</code>, <code>body = Type</code>, <code>writes = [field, ..]</code>, <code>collection</code></td><td>Declares an action, served as <code>POST /{resource}/{id}/{name}</code>; repeatable, in one or several <code>#[ferra(...)]</code>. <a href="#declared-actions"><code>actions.md</code></a> is the page of the feature: the rule, the handler, the refusals, the answer. <code>name</code> (snake case, not a CRUD verb, <code>self</code> or <code>collection</code>), <code>authorize</code> (a rule of the <code>#[authorize]</code> grammar) and <code>handler</code> are required: an action has no default rule, and does not borrow <code>update</code>’s. <code>body</code> is a type that derives <a href="#the-body-of-an-action-deriveferraactionbody"><code>ActionBody</code></a>, read from the request. <code>writes</code> lists the <code>read_only</code> fields, or fields with a <code>write</code> rule, that the action alone may set (<a href="#writes"><code>actions.md</code></a>). <code>collection</code> is a flag that makes it a collection action, which needs a single-column key. Refused: a name outside the grammar or reserved (<code>FRG-139</code>), a name declared twice (<code>FRG-140</code>), an unknown or repeated key (<code>FRG-141</code>), a missing key (<code>FRG-142</code>), <code>collection</code> on a composite key (<code>FRG-143</code>), an action on a <code>system_only</code> model (<code>FRG-144</code>), <code>#[derive(ActionBody)]</code> on a type a body cannot be (<code>FRG-145</code>), a <code>writes</code> entry that no action may write (<code>FRG-146</code>); the rule’s own errors are <code>FRG-101</code>..<code>FRG-103</code> and <code>FRG-110</code>. See <a href="#frg-139--an-action-name-that-is-not-allowed"><code>ferra-forge-diagnostics.md</code></a>.</td></tr>
+<tr><td><code>action(...)</code></td><td><code>name = "…"</code>, <code>authorize = &lt;rule&gt;</code>, <code>handler = path</code>, <code>body = Type</code>, <code>writes = [field, ..]</code>, <code>collection</code></td><td>Declares an action, served as <code>POST /{resource}/{id}/{name}</code>; repeatable, in one or several <code>#[ferra(...)]</code>. <a href="#declared-actions"><code>actions.md</code></a> is the page of the feature: the rule, the handler, the refusals, the answer. <code>name</code> (snake case, not a CRUD verb, <code>self</code> or <code>collection</code>), <code>authorize</code> (a rule of the <code>#[authorize]</code> grammar) and <code>handler</code> are required: an action has no default rule, and does not borrow <code>update</code>’s. <code>body</code> is a type that derives <a href="#the-body-of-an-action-deriveferraactionbody"><code>ActionBody</code></a>, read from the request. <code>writes</code> lists the <code>read_only</code> fields, or fields with a <code>write</code> rule, that the action alone may set (<a href="#writes"><code>actions.md</code></a>). <code>collection</code> is a flag that makes it a collection action, which needs a single-column key. Refused: a name outside the grammar or reserved (<code>FRG-139</code>), a name declared twice (<code>FRG-140</code>), an unknown or repeated key (<code>FRG-141</code>), a missing key (<code>FRG-142</code>), <code>collection</code> on a composite key (<code>FRG-143</code>), an action on a <code>system_only</code> model (<code>FRG-144</code>), <code>#[derive(ActionBody)]</code> on a type a body cannot be (<code>FRG-145</code>), a <code>writes</code> entry that no action may write (<code>FRG-146</code>); the rule’s own errors are <code>FRG-101</code>..<code>FRG-103</code> and <code>FRG-110</code>, and <code>FRG-023</code> for an <code>authorize</code> that does not parse. See <a href="#frg-139--an-action-name-that-is-not-allowed"><code>ferra-forge-diagnostics.md</code></a>.</td></tr>
 </tbody>
 </table>
 </div>
@@ -11187,7 +11278,7 @@ through <code>FRG-334</code> retired), the behavior codes (<code>FRG-320</code> 
 collection-read codes (<code>FRG-350</code> through <code>FRG-358</code>), the field-mode codes <code>FRG-359</code> through <code>FRG-365</code>, the authorization codes
 (<code>FRG-100</code> through <code>FRG-152</code>; <code>#[operation(...)]</code> is refused with <code>FRG-335</code>,
 <code>groups</code> with <code>FRG-137</code>, an attribute where the derive does not read it with <code>FRG-138</code>, and
-<code>action(...)</code> declarations with <code>FRG-139</code> through <code>FRG-146</code>),
+<code>action(...)</code> declarations with <code>FRG-139</code> through <code>FRG-146</code>, a Ferra attribute in <code>model_ex_attrs</code> with <code>FRG-147</code>, an <code>owner(from)</code> whose <code>to</code> is not the parent’s key with <code>FRG-148</code>, a <code>sea_orm</code> key given twice with <code>FRG-149</code>),
 the <code>FerraLayer::base_path</code> codes (<code>FRG-340</code> through <code>FRG-342</code>) and the
 dependency code <code>FRG-400</code>.</p>
 <blockquote>
@@ -11226,7 +11317,7 @@ the page of the subject for a few (<code>pagination.md</code>, <code>ferra-auth.
                                                  FRG-013, FRG-014, FRG-016..FRG-023; FRG-002, FRG-004,
                                                  FRG-010, FRG-012, FRG-015 intentionally unallocated)
 FRG-100 .. FRG-199   authorization errors       (0.8.0, 0.9.0 — FRG-100..FRG-113, FRG-150, FRG-151; 0.10.0 — FRG-152;
-                                                 0.13.0 — FRG-117..FRG-136; 0.14.0 — FRG-137..FRG-146, FRG-153;
+                                                 0.13.0 — FRG-117..FRG-136; 0.14.0 — FRG-137..FRG-146, FRG-153; 0.18.0 — FRG-147, FRG-148, FRG-149;
                                                  FRG-105 retired)
 FRG-200 .. FRG-299   validation-attribute       (0.6.0 Welding — FRG-201..FRG-215)
 FRG-300 .. FRG-399   projection / computed /    (0.6.5 Chasing — FRG-301..FRG-316,
@@ -11268,7 +11359,7 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-020</code></td><td>A <code>#[ferra(auth = ...)]</code> value that is not <code>"bearer"</code> or <code>"none"</code></td><td><a href="#frg-020--auth-takes-bearer-or-none">link</a></td></tr>
 <tr><td><code>FRG-021</code></td><td>A flag key (<code>authority</code>, <code>system_only</code>, <code>me</code>, <code>hooks</code>, <code>client_pk</code>, and <code>collection</code> in <code>action(...)</code>) given a value</td><td><a href="#frg-021--a-flag-given-a-value">link</a></td></tr>
 <tr><td><code>FRG-022</code></td><td>A key written as a path, not a bare identifier</td><td><a href="#frg-022--a-key-that-is-a-path">link</a></td></tr>
-<tr><td><code>FRG-023</code></td><td>An attribute that does not parse: a bare <code>#[ferra]</code> or <code>#[field]</code>, a key with no <code>=</code>, <code>projection</code> with no parentheses</td><td><a href="#frg-023--an-attribute-that-does-not-parse">link</a></td></tr>
+<tr><td><code>FRG-023</code></td><td>An attribute that does not parse: a bare <code>#[ferra]</code>, <code>#[field]</code> or <code>#[authorize]</code>, a key with no <code>=</code>, <code>projection</code> with no parentheses</td><td><a href="#frg-023--an-attribute-that-does-not-parse">link</a></td></tr>
 <tr><td><code>FRG-100</code></td><td>The model declares no authorization posture</td><td><a href="#frg-100--model-declares-no-authorization-posture">link</a></td></tr>
 <tr><td><code>FRG-101</code></td><td><code>#[authorize]</code> is empty, leaves one of the five CRUD operations without a rule, or names an empty role</td><td><a href="#frg-101--authorize-is-empty-or-incomplete">link</a></td></tr>
 <tr><td><code>FRG-102</code></td><td>A predicate mixes <code>+</code> and <code>|</code> without parentheses</td><td><a href="#frg-102--mixed--and--without-parentheses">link</a></td></tr>
@@ -11309,6 +11400,9 @@ note on Class 4 retirement); future codes append to the namespace.</p>
 <tr><td><code>FRG-144</code></td><td>An <code>action(...)</code> on a <code>#[ferra(system_only)]</code> model</td><td><a href="#frg-144--an-action-on-a-system_only-model">link</a></td></tr>
 <tr><td><code>FRG-145</code></td><td><code>#[derive(ActionBody)]</code> on a type a body cannot be: not a struct with named fields, a generic one, a field that is not a scalar Ferra field type, a <code>#[field(...)]</code> key outside the eight validation keys, or a <code>#[serde(...)]</code> attribute <code>FRG-116</code> does not list</td><td><a href="#frg-145--a-type-an-action-body-cannot-be">link</a></td></tr>
 <tr><td><code>FRG-146</code></td><td>A <code>writes</code> entry of an <code>action(...)</code> that is no field of the model, or that is not a <code>read_only</code> field or a field with a <code>write</code> rule, or that is the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> or <code>skip</code> field or a field a behavior adds</td><td><a href="#frg-146--a-field-an-action-cannot-write">link</a></td></tr>
+<tr><td><code>FRG-147</code></td><td>A Ferra attribute (<code>#[ferra]</code>, <code>#[authorize]</code>, <code>#[behavior]</code>, <code>#[operation]</code>, <code>#[field]</code>) in <code>#[sea_orm(model_ex_attrs(..))]</code>, which reaches <code>ModelEx</code> alone</td><td><a href="#frg-147--a-ferra-attribute-in-model_ex_attrs">link</a></td></tr>
+<tr><td><code>FRG-148</code></td><td><code>#[field(owner(from = parent))]</code> whose <code>BelongsTo</code> has a <code>to</code> other than the parent’s primary key</td><td><a href="#frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key">link</a></td></tr>
+<tr><td><code>FRG-149</code></td><td><code>from</code>, <code>to</code> or <code>enum_name</code> given twice on one field, in one <code>#[sea_orm(..)]</code> or across two</td><td><a href="#frg-149--a-sea_orm-key-given-twice-on-one-field">link</a></td></tr>
 <tr><td><code>FRG-117</code></td><td>A projection widens exposure without <code>authorize</code>, or is the sibling of a ruled default projection without it</td><td><a href="#frg-117--a-projection-widens-exposure-without-authorize">link</a></td></tr>
 <tr><td><code>FRG-118</code></td><td><code>IsOwner</code> in a projection’s <code>authorize</code></td><td><a href="#frg-118--isowner-in-a-projections-authorize">link</a></td></tr>
 <tr><td><code>FRG-115</code></td><td>A projection writes the owner field</td><td><a href="#frg-115--a-projection-writes-the-owner-field">link</a></td></tr>
@@ -12229,9 +12323,11 @@ the unit tests <code>frg_022_*</code> of <code>crates/ferra-forge/src/diagnostic
 value that is not the expected token. The derive reads attributes with <code>syn</code>, the Rust parser crate, and <code>syn</code> says what
 it expected; the derive adds the code and keeps <code>syn</code>’s span, so the error points at the token <code>syn</code> stopped on: the
 attribute’s name for a missing argument list, the token after the key (often the closing parenthesis) for a missing <code>=</code>.
-A message that already carries a code is left as it is. <code>#[authorize]</code> is not in this class: the same mistakes in
-<code>#[authorize]</code> (a bare <code>#[authorize]</code>, a key with no <code>=</code>) keep their code
-<a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>, with <code>syn</code>’s message, as they always had.</p>
+A message that already carries a code is left as it is. <code>#[authorize]</code> is in this class since 0.18.0: the same
+mistakes in <code>#[authorize]</code> (a bare <code>#[authorize]</code>, a key with no <code>=</code>) are <code>FRG-023</code>, with <code>syn</code>’s message after the
+code and a help of their own, <code>an #[authorize] body is operation = predicate pairs</code>; before, they carried
+<a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>, which is now only an unknown, qualified or malformed
+checker.</p>
 <pre><code class="language-text">error: FRG-023: the attribute does not parse: expected attribute arguments in parentheses: #[ferra(...)]
          help: write the attribute as the guide shows it: `name(...)` for a list, `name = value` for a key
          note: see docs/user-guide/ferra-forge-diagnostics.md § FRG-023
@@ -12356,7 +12452,7 @@ rule, restoring a soft-deleted row requires both the <code>update</code> and the
 rule to pass.</p>
 <p>On a <code>#[ferra(system_only)]</code> model the block asks for <code>list</code> and <code>get</code> only: Ferra
 serves no write for it (see <a href="#frg-135--a-write-rule-on-a-system_only-model"><code>FRG-135</code></a>).</p>
-<p>FRG-101 also appears <strong>next to</strong> FRG-102 or FRG-103: a rule that fails to
+<p>FRG-101 also appears <strong>next to</strong> FRG-023, FRG-102 or FRG-103: a rule that fails to
 parse is dropped, so its operation then counts as missing. Fix the first error
 and the FRG-101 goes away with it.</p>
 <p><strong>Bad.</strong></p>
@@ -12486,11 +12582,11 @@ typo such as <code>IsOwnr</code> is refused, never treated as a pass-through;</l
 <li>a checker written as a path, such as <code>AuthRule::IsAdmin</code> — the vocabulary is
 spelled bare, and the help names the bare form;</li>
 <li><code>HasRole</code> without exactly one string-literal argument (<code>HasRole</code>,
-<code>HasRole(editor)</code>, <code>HasRole("a", "b")</code>), or an operator other than <code>+</code> and <code>|</code>;</li>
-<li>an <code>#[authorize]</code> that does not parse at all (a bare <code>#[authorize]</code>, a key with no <code>=</code>): <code>syn</code>’s message after the
-code, at the token <code>syn</code> stopped on. This is a grammar error, not a checker, and the code is misleading; it is kept
-as it has always been, not folded into <a href="#frg-023--an-attribute-that-does-not-parse"><code>FRG-023</code></a>.</li>
+<code>HasRole(editor)</code>, <code>HasRole("a", "b")</code>), or an operator other than <code>+</code> and <code>|</code>.</li>
 </ul>
+<p>An <code>#[authorize]</code> that does not parse at all (a bare <code>#[authorize]</code>, a key with no <code>=</code>) is not this code since 0.18.0:
+it is a grammar error, not a checker, and it is
+<a href="#frg-023--an-attribute-that-does-not-parse"><code>FRG-023</code></a>.</p>
 <p>Each offending predicate is reported where it is written. When some rules still
 parse, FRG-101 follows for the dropped ones (see FRG-101).</p>
 <p><strong>Bad.</strong></p>
@@ -14930,7 +15026,8 @@ rule: it does not borrow the model’s <code>update</code> rule, nor its posture
 operations anonymous, and gives an action no rule), so an action without <code>authorize</code> would have
 none to check. One error per missing key. An empty or malformed <code>authorize</code> is not this code:
 it is <a href="#frg-101--authorize-is-empty-or-incomplete"><code>FRG-101</code></a>, <a href="#frg-102--mixed--and--without-parentheses"><code>FRG-102</code></a>
-or <a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>. Reported at the <code>action</code> key.</p>
+or <a href="#frg-103--unknown-qualified-or-malformed-checker"><code>FRG-103</code></a>, or <a href="#frg-023--an-attribute-that-does-not-parse"><code>FRG-023</code></a>
+when the attribute does not parse. Reported at the <code>action</code> key.</p>
 <p><strong>Bad.</strong></p>
 <pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -15220,10 +15317,221 @@ error: FRG-146: the field `id` cannot be written by an action: it is the primary
 <code>owner(from = ..)</code> follows to the parent; moving it would hand the row to another owner” (when it is <code>read_only</code> or has a <code>write</code> rule: a foreign key that any caller may write gets the last reason), “it is <code>computed</code>; Ferra
 derives its value”, “it is <code>skip</code>: the API never reads or writes it”, “a behavior adds it; Ferra stamps it”, and “any caller who may write the row can
 already write it; <code>writes</code> opens only a closed field”.</p>
+<p>With the action in <code>#[sea_orm(model_attrs(..))]</code>, the foreign key behind <code>owner(from = ..)</code> is refused in the
+compiler, not by the derive: the <code>ModelEx</code> run that reads that foreign key sees no action. The message is the same, as a
+constant-evaluation error (<code>E0080</code>, “evaluation panicked: FRG-146: …”), underlined on the name in <code>writes</code>.</p>
 <p><strong>Fix.</strong> List only a <code>read_only</code> field or a field with a <code>write</code> rule. Remove a field that any caller who may write the
 row can already write, and the key, the owner, the <code>owner(from)</code> foreign key, a <code>computed</code> field, a <code>skip</code> field and a field a behavior adds: an action cannot set them, listed or not. Check the spelling of
 a name the model does not have.</p>
-<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_free_field.rs"><code>frg_146_free_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_key.rs"><code>frg_146_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner.rs"><code>frg_146_owner.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner_from_fk.rs"><code>frg_146_owner_from_fk.rs</code></a> (the foreign key left writable: the reason of a free field), <a href="../../crates/ferra-http/tests/ui/fail_action_writes_owner_from_fk_read_only.rs"><code>fail_action_writes_owner_from_fk_read_only.rs</code></a> (the foreign key <code>read_only</code>: its own reason), <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_computed.rs"><code>frg_146_computed.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_skip.rs"><code>frg_146_skip.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_behavior_field.rs"><code>frg_146_behavior_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_unknown_name.rs"><code>frg_146_unknown_name.rs</code></a></p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_free_field.rs"><code>frg_146_free_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_key.rs"><code>frg_146_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner.rs"><code>frg_146_owner.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_owner_from_fk.rs"><code>frg_146_owner_from_fk.rs</code></a> (the foreign key left writable: the reason of a free field), <a href="../../crates/ferra-http/tests/ui/fail_action_writes_owner_from_fk_read_only.rs"><code>fail_action_writes_owner_from_fk_read_only.rs</code></a> (the foreign key <code>read_only</code>: its own reason), <a href="../../crates/ferra-http/tests/ui/dense_model_attrs_action_writes_owner_fk.rs"><code>dense_model_attrs_action_writes_owner_fk.rs</code></a> (the same, with the action in <code>model_attrs(..)</code>), <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_computed.rs"><code>frg_146_computed.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_skip.rs"><code>frg_146_skip.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_behavior_field.rs"><code>frg_146_behavior_field.rs</code></a>, <a href="../../crates/ferra-forge/tests/diagnostics/actions/writes/frg_146_unknown_name.rs"><code>frg_146_unknown_name.rs</code></a></p>
+<hr>
+<h2 id="frg-147--a-ferra-attribute-in-model_ex_attrs"><a class="header" href="#frg-147--a-ferra-attribute-in-model_ex_attrs">FRG-147 — a Ferra attribute in <code>model_ex_attrs</code></a></h2>
+<p><strong>Trigger.</strong> A <code>#[ferra(..)]</code>, <code>#[authorize(..)]</code>, <code>#[behavior(..)]</code>, <code>#[operation(..)]</code> or <code>#[field(..)]</code> written
+inside <code>#[sea_orm(model_ex_attrs(..))]</code> of a model in the dense form (<code>#[sea_orm::model]</code>). Sea-ORM puts the items of
+<code>model_ex_attrs(..)</code> on <code>ModelEx</code> alone; Ferra reads the rules, the projections and the behaviors from <code>Model</code>. The
+attribute would declare nothing: an <code>#[authorize(delete = HasRole("admin"))]</code> there left <code>delete</code> to the default of
+the posture. The refusal comes from the compiler, as a constant-evaluation error (<code>E0080</code>, “evaluation panicked:
+FRG-147: …”), underlined on the struct’s name; the message quotes the attribute. One error per model: the first
+such attribute.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films", model_ex_attrs(behavior(soft_delete)))]
+#[ferra(auth = "none")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[behavior(soft_delete)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Message.</strong></p>
+<pre><code class="language-text">error[E0080]: evaluation panicked: FRG-147: `#[behavior(soft_delete)]` is written in `#[sea_orm(model_ex_attrs(..))]`, which puts it on `ModelEx` alone: Ferra reads `#[behavior(..)]` from `Model`, so it would declare nothing
+                help: move it into `model_attrs(..)`, or out of `#[sea_orm(..)]` beside the other Ferra attributes
+</code></pre>
+<p><strong>Fix.</strong> Write the attribute outside <code>#[sea_orm(..)]</code>, where both expansions carry it, or in <code>model_attrs(..)</code>, which
+reaches <code>Model</code>.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_ex_attrs_authorize.rs"><code>dense_model_ex_attrs_authorize.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_ex_attrs_ferra.rs"><code>dense_model_ex_attrs_ferra.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_ex_attrs_behavior.rs"><code>dense_model_ex_attrs_behavior.rs</code></a>; accepted: <a href="../../crates/ferra-forge/tests/ui_relations/dense_pass_mixed_container_attrs.rs"><code>dense_pass_mixed_container_attrs.rs</code></a></p>
+<hr>
+<h2 id="frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key"><a class="header" href="#frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key">FRG-148 — an <code>owner(from)</code> whose <code>BelongsTo</code> does not point at the parent’s key</a></h2>
+<p><strong>Trigger.</strong> <code>#[field(owner(from = parent))]</code> on a model whose <code>BelongsTo</code> field <code>parent</code> has a <code>to</code> other than the
+parent’s primary key (one field). Ferra locks the parent and judges it under its <code>update</code> rule by its primary key,
+and the row takes that parent’s owner: with <code>to</code> naming another column, the parent whose key equals the foreign key’s
+value would be judged, while the row points at another one. <code>to</code> is read as Sea-ORM reads it, a <code>Column</code> variant, so a
+key with an <code>enum_name</code> is named by that name (<code>to = "Key"</code>); a <code>to</code> whose variant no field of the parent carries is
+refused too, never read as written. The refusal comes from the compiler, as a
+constant-evaluation error (<code>E0080</code>, “evaluation panicked: FRG-148: …”), underlined on the <code>from</code> value. A
+<code>BelongsTo</code> with no <code>owner(from)</code> may point <code>to</code> another column: its embed and its reference check read <code>to</code>.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[sea_orm(unique)]
+        pub code: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod order {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "orders")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub vendor_code: i32,
+        #[field(owner(from = vendor))]
+        pub owner_id: Uuid,
+        #[sea_orm(belongs_to, from = "vendor_code", to = "code")]
+        pub vendor: BelongsTo&lt;super::vendor::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod order {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "orders")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub vendor_id: i32,
+        #[field(owner(from = vendor))]
+        pub owner_id: Uuid,
+        #[sea_orm(belongs_to, from = "vendor_id", to = "id")]
+        pub vendor: BelongsTo&lt;super::vendor::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Message.</strong></p>
+<pre><code class="language-text">error[E0080]: evaluation panicked: FRG-148: `owner(from = ..)` follows a `BelongsTo` whose `to` names `Column::Code`, not the primary key of the parent: Ferra locks and judges the parent by its primary key, so another row than the one the foreign key names would be judged
+                help: point the `BelongsTo` `to` at the parent's primary key, or declare the owner on this model with `#[field(owner)]` instead of `owner(from = ..)`
+</code></pre>
+<p><strong>Fix.</strong> Point the <code>BelongsTo</code> <code>to</code> at the parent’s primary key, or drop <code>owner(from = ..)</code> and declare the owner on
+the model with <code>#[field(owner)]</code>.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/ui_relations/frg_148_owner_from_to_not_the_parent_key.rs"><code>frg_148_owner_from_to_not_the_parent_key.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/frg_148_owner_from_to_through_enum_name.rs"><code>frg_148_owner_from_to_through_enum_name.rs</code></a> (<code>to = "id"</code> naming another field through its <code>enum_name</code>), <a href="../../crates/ferra-forge/tests/ui_relations/spaced_enum_name_owner_from_to.rs"><code>spaced_enum_name_owner_from_to.rs</code></a> (a variant no field carries as Ferra reads it); accepted: <a href="../../crates/ferra-forge/tests/ui_relations/pass_owner_from_to_the_key_through_enum_name.rs"><code>pass_owner_from_to_the_key_through_enum_name.rs</code></a></p>
+<hr>
+<h2 id="frg-149--a-sea_orm-key-given-twice-on-one-field"><a class="header" href="#frg-149--a-sea_orm-key-given-twice-on-one-field">FRG-149 — a <code>sea_orm</code> key given twice on one field</a></h2>
+<p><strong>Trigger.</strong> <code>from</code>, <code>to</code> or <code>enum_name</code> given twice on one field, in one <code>#[sea_orm(..)]</code> or across two. Ferra reads
+these keys to decide what a check judges (the parent an <code>owner(from)</code> locks, the column a <code>to</code> names), and it read the
+first occurrence; Sea-ORM reads the last one of an attribute, and only the first <code>#[sea_orm]</code> of a relation field. The
+two could disagree on the column. The refusal is underlined on the second occurrence.</p>
+<p><strong>Bad.</strong></p>
+<pre class="playground"><code class="language-rust compile_fail"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key, enum_name = "Code", enum_name = "Key")]
+        pub id: i32,
+        pub code: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Good.</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod vendor {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "vendors")]
+    #[ferra(auth = "bearer")]
+    pub struct Model {
+        #[sea_orm(primary_key, enum_name = "Key")]
+        pub id: i32,
+        pub code: i32,
+        #[field(owner)]
+        pub owner_id: Uuid,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Message.</strong></p>
+<pre><code class="language-text">error: FRG-149: `enum_name` is given twice in the `#[sea_orm]` attributes of this field: Ferra and Sea-ORM do not pick the same occurrence, so Ferra could check another column than the one Sea-ORM uses
+         help: keep one `enum_name = ".."` on the field
+</code></pre>
+<p><strong>Fix.</strong> Keep one occurrence of the key, the one you mean.</p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/ui_relations/frg_149_to_repeated.rs"><code>frg_149_to_repeated.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/frg_149_to_in_two_attributes.rs"><code>frg_149_to_in_two_attributes.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/frg_149_enum_name_repeated.rs"><code>frg_149_enum_name_repeated.rs</code></a></p>
 <hr>
 <h2 id="frg-150--mounting-a-model-without-posture"><a class="header" href="#frg-150--mounting-a-model-without-posture">FRG-150 — mounting a model without posture</a></h2>
 <p><strong>Trigger.</strong> Two sites share this code.</p>
@@ -16576,6 +16884,11 @@ listed in a <code>read = [...]</code>; see FRG-305 for that refinement).</p>
 relation field: it is not unknown, it is an embed
 (<a href="#embedding">Embedding</a>). The name of a <code>HasMany</code> or a <code>HasOne</code> is
 <a href="#frg-363--a-hasmany-or-hasone-in-a-read-list">FRG-363</a>. Any other name that is no field is still unknown here.</p>
+<p>When the Ferra attributes are written in <code>#[sea_orm(model_attrs(..))]</code>, Sea-ORM puts them on the dense <code>Model</code> only,
+and the derive’s second run, on <code>ModelEx</code>, the only one that sees the relation fields, reads none of them. The
+check then runs in the compiler instead: the <code>Model</code> run asks the model’s relations, in a constant, whether each
+name of a <code>read</code> list that is no field is one of them, and a name that is not fails the constant evaluation (<code>E0080</code>,
+“evaluation panicked: FRG-301: …”), with the same text, underlined on the name.</p>
 <p><strong>Bad.</strong></p>
 <pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -16618,7 +16931,7 @@ pub struct Model {
 struct, or add the field. Identifiers in <code>read</code>/<code>write</code> lists must
 match field names exactly (case-sensitive). A <code>read</code> list may name a
 <code>BelongsTo</code> relation too, to embed the parent.</p>
-<p><strong>Fixture.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs"><code>crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs</code></a></p>
+<p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs"><code>crates/ferra-forge/tests/diagnostics/frg_301_projection_unknown_field.rs</code></a>; in <code>model_attrs(..)</code>: <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_read_unknown.rs"><code>dense_model_attrs_read_unknown.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_read_typo.rs"><code>dense_model_attrs_read_typo.rs</code></a>, <a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_derive_in_model_attrs.rs"><code>dense_model_attrs_derive_in_model_attrs.rs</code></a> (the derive itself in <code>model_attrs</code> and <code>model_ex_attrs</code>)</p>
 <hr>
 <h2 id="frg-302--write_only-and-read_only-on-the-same-field"><a class="header" href="#frg-302--write_only-and-read_only-on-the-same-field">FRG-302 — <code>write_only</code> and <code>read_only</code> on the same field</a></h2>
 <p><strong>Trigger.</strong> A field carries both <code>#[ferra(write_only)]</code> and
@@ -19157,9 +19470,13 @@ mod review {
 <p><strong>Fix.</strong> Remove the name from <code>read</code>. The relation is still in every response, as the link <code>reviews</code> to its
 sub-collection (<a href="#links-and-foreign-keys">Links and foreign keys</a>). To show the rows of the other side
 inside this one, embed from that side: the <code>BelongsTo</code> of <code>review</code> to <code>film</code> is a name its <code>read</code> list may carry.</p>
+<p>With the Ferra attributes in <code>#[sea_orm(model_attrs(..))]</code> the check runs in the compiler, as for
+<a href="#frg-301--projection-references-an-unknown-field">FRG-301</a>: the same text, as a constant-evaluation error
+(<code>E0080</code>, “evaluation panicked: FRG-363: …”), underlined on the name.</p>
 <p><strong>Fixtures.</strong> <a href="../../crates/ferra-forge/tests/diagnostics/frg_363_has_many_in_read.rs"><code>frg_363_has_many_in_read.rs</code></a>
 and <a href="../../crates/ferra-forge/tests/diagnostics/frg_363_has_one_in_read.rs"><code>frg_363_has_one_in_read.rs</code></a>,
-in <code>crates/ferra-forge/tests/diagnostics/</code>.</p>
+in <code>crates/ferra-forge/tests/diagnostics/</code>; in <code>model_attrs(..)</code>:
+<a href="../../crates/ferra-forge/tests/ui_relations/dense_model_attrs_read_has_many.rs"><code>dense_model_attrs_read_has_many.rs</code></a>.</p>
 <hr>
 <h2 id="frg-364--an-ignored-field-without-computed"><a class="header" href="#frg-364--an-ignored-field-without-computed">FRG-364 — an ignored field without <code>computed</code></a></h2>
 <p><strong>Trigger.</strong> A field declares <code>#[sea_orm(ignore)]</code> and no <code>#[ferra(computed)]</code>. A field with no column
@@ -19679,12 +19996,19 @@ request, not one per write. After the first write has committed, the rest of the
 write has no deadline before its <code>COMMIT</code>, and its retry is bounded by the three attempts only. The <code>after_commit</code> of
 every write of the request shares one post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code>
 (<a href="#after-commit">After commit</a>). So the <code>after_commit</code> of a later write can be cut at once, and its
-<code>Resource&lt;M&gt;</code> call then returns <code>Err</code> while that write <strong>is committed</strong>. A <code>503</code> <code>service_unavailable</code> (no connection
+<code>Resource&lt;M&gt;</code> call then returns <code>Err</code> while that write <strong>is committed</strong>. The read of a later write’s parents is
+post-commit work under the same deadline: once the first write and a wait have used it up, a later write with a
+parent to read returns <code>Err</code> (the <code>500</code>) while it is committed, and one with none to read returns <code>Ok</code>. The
+<code>Resource::get</code>, <code>list</code> and <code>list_cursor</code> calls a route makes after an earlier commit are under no deadline of their
+own. A <code>503</code> <code>service_unavailable</code> (no connection
 in time) or <code>retry_exhausted</code> met by a later write speaks for the operation given up, not for the request: the
 earlier write stands, and a client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2). Keep <strong>one
 write per route of your own</strong>. If a route must write twice, make a replay safe with the
 <a href="#idempotent-creates">idempotent create</a> recipe, and never send the client an error that tells it
 nothing was written.</p>
+</blockquote>
+<blockquote>
+<p><strong>A write in a task of your own.</strong> Writes through an application-owned raw <code>DatabaseConnection</code> are outside this guarantee, and so is a <code>Resource&lt;M&gt;</code> write run in a task of your own (<code>tokio::spawn</code>): the budget sees the commits of the handler’s own future only, so it can answer 503 <code>timeout</code> while that task goes on and commits. Make every <code>Resource&lt;M&gt;</code> write in the handler’s future and await it there.</p>
 </blockquote>
 <blockquote>
 <p><strong>No response envelope in 0.9.0.</strong> The routes <code>Foundry</code> generates answer with
@@ -20049,7 +20373,7 @@ any drift.</p>
 <tr><td><code>https://ferra.rs/errors/not_found</code></td><td style="text-align: right"><code>404 Not Found</code></td><td>Resource Not Found</td><td><code>FerraError::NotFound</code> (<code>&lt;resource&gt;/&lt;id&gt; not found</code>); <code>FerraError::CollectionNotFound</code> (0.13.0: a collection the caller may not use, <code>&lt;resource&gt; not found</code>, no id)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation</code></td><td style="text-align: right"><code>400 Bad Request</code></td><td>Validation Error</td><td><code>FerraError::Validation</code> (extractor failures: malformed JSON body, unparseable path parameter)</td></tr>
 <tr><td><code>https://ferra.rs/errors/validation_failed</code></td><td style="text-align: right"><code>422 Unprocessable Content</code></td><td>Validation Failed</td><td><code>FerraError::Unprocessable</code> (well-formed body whose values violate <code>#[field(...)]</code> rules — see § Validation failures (422))</td></tr>
-<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>; a unique constraint, or a <code>DELETE</code> a foreign key refuses, 0.16.0); <code>FerraError::ConflictWith</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
+<tr><td><code>https://ferra.rs/errors/conflict</code></td><td style="text-align: right"><code>409 Conflict</code></td><td>Conflict</td><td><code>FerraError::Conflict</code> (fixed <code>detail</code>; a unique constraint, or a <code>DELETE</code> a foreign key refuses, 0.16.0); <code>FerraError::ConflictDetail</code> (0.13.0: your hook’s <code>HookError::conflict</code>, your <code>detail</code> as given)</td></tr>
 <tr><td><code>https://ferra.rs/errors/internal</code></td><td style="text-align: right"><code>500 Internal Server Error</code></td><td>Internal Server Error</td><td><code>FerraError::Internal</code></td></tr>
 <tr><td><code>https://ferra.rs/errors/payload_too_large</code></td><td style="text-align: right"><code>413 Payload Too Large</code></td><td>Payload Too Large</td><td>request-body-limit middleware</td></tr>
 <tr><td><code>https://ferra.rs/errors/rate_limited</code></td><td style="text-align: right"><code>429 Too Many Requests</code></td><td>Too Many Requests</td><td>rate-limit middleware</td></tr>
@@ -20340,6 +20664,10 @@ unauthenticated request reaches the docs surface. New in 0.5.0.</p>
   "detail": "authentication required"
 }
 </code></pre>
+<p>The docs 401 carries the fixed <code>WWW-Authenticate: Bearer</code> too, the same value
+as every other 401, on both docs routes and on a path set with
+<code>with_docs_protected_at</code>; the verifier declares nothing, whatever it checks. It
+sent no challenge before 0.18.0.</p>
 <p>Every other 401 (missing, malformed, expired or badly signed token, wrong
 <code>iss</code> or <code>aud</code>, unknown <code>kid</code>) has the same bytes and the headers
 <code>WWW-Authenticate: Bearer</code> and <code>application/problem+json</code>, whatever the reason,
@@ -20354,6 +20682,7 @@ so a caller cannot probe which check failed. Since 0.12.0 its <code>detail</code
   "detail": "valid credentials are required to access this resource"
 }
 </code></pre>
+<p>A path no route serves is a <code>404</code> with an empty body, whoever asks and whatever the chain mounts: the docs verifier and the JWT layer of a model guard their own routes only. Before 0.18.0 the fallback inherited the layers of the last router merged, so an unknown path could answer <code>401</code> under <code>with_docs_protected</code> or after a bearer model.</p>
 <h3 id="validation_failed--422"><a class="header" href="#validation_failed--422"><code>validation_failed</code> — <code>422</code></a></h3>
 <p>Returned when an inbound <code>POST</code> or <code>PUT</code> body parses cleanly but
 violates one or more <code>#[field(...)]</code> rules declared on the target
@@ -21199,8 +21528,9 @@ request budget of 23 seconds. The function timeout is 30 seconds.</p>
 <p>The budget has three phases (the detail is in
 <a href="#after-commit">Behaviors</a>): until a <code>COMMIT</code> starts it cuts, with a 503
 <code>timeout</code> and nothing written; a started <code>COMMIT</code> is awaited, never canceled; after a confirmed
-commit, the <code>after_commit</code> hooks and the computed fields share one post-commit deadline,
-<code>max(deadline, first post-commit work + 1 s)</code> (a 500 when cut, the commit standing). The raw
+commit, the <code>after_commit</code> hooks, the computed fields and the read of the written row’s parents
+share one post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code> (a 500 when cut,
+the commit standing). The raw
 connection escape is outside the rollback guarantee.</p>
 <p><strong>Choose the budget under every timeout in front of it.</strong> A gateway or function timeout that fires
 before the response leaves the client with the outcome unknown: the write may be committed, so
@@ -21209,12 +21539,14 @@ margin here is the first data request’s secret loading (up to 4 seconds), plus
 1-second post-commit floor: 4 + 23 + 1 = 28 seconds, under the template’s 29-second API Gateway
 integration timeout. It is a margin, not a guaranteed maximum: a <code>COMMIT</code> that overruns the budget
 is awaited and is not bounded, and the time it takes past the budget adds to the 28.
-For a model with a <code>BelongsTo</code>, the read of the written row’s parents after the commit
-is outside that 28-second margin and under no deadline of its own: <code>acquire_timeout</code>
-bounds the wait for the connection and <code>statement_timeout</code> bounds the query, so the read
-can add up to <code>acquire_timeout</code> + <code>statement_timeout</code>. On a create with a <code>BelongsTo</code>, a
-saturated pool can therefore push the answer past the gateway’s 29 seconds, and the gateway
-answers <code>504</code>. The recipe keeps its 10-second <code>acquire_timeout</code>, which Neon cold connects need.</p>
+For a model with a <code>BelongsTo</code>, the read of the written row’s parents after the commit of the
+write’s own transaction is inside that 28-second margin: it shares the post-commit deadline, and
+a read still running at the deadline answers a 500, the row written. Only the reads of a route of
+yours after an earlier commit (<code>Resource::get</code>, <code>list</code>, <code>list_cursor</code>) and of a hook’s
+<code>tx.resource</code> stay outside it, under no deadline of their own: <code>acquire_timeout</code> bounds the wait
+for the connection and <code>statement_timeout</code> bounds the query, so such a read can add up to
+<code>acquire_timeout</code> + <code>statement_timeout</code>. The recipe keeps its 10-second <code>acquire_timeout</code>, which
+Neon cold connects need.</p>
 <p>Keep <code>DATABASE_URL</code>, <code>JWT_SECRET</code> and <code>ETAG_KEY</code> (the entity-tag key, at least 32
 bytes, never the JWT secret) in SSM Parameter Store <code>SecureString</code>
 parameters. The template carries only their names and ARNs. The operator sets
@@ -21230,6 +21562,11 @@ first invocation’s total time and the container extension’s installation mus
 be measured by the operator canary. Do not wrap writes in an unconditional
 outer timeout, which could cancel a commit already in progress.
 See <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/ps-integration-lambda-extensions.html">AWS’s extension lifecycle</a>.</p>
+<p>The deployed example mounts no <code>/docs</code>. If a deployment needs the documentation in production, the idiom is
+<code>Foundry::with_docs_protected(verifier)</code>, with a verifier that reads the <code>Authorization</code> header of the
+<code>http::request::Parts</code>, refuses an empty configured token and compares in constant time, as in
+<a href="#enabling-the-docs-surface">Enabling the docs surface</a>. <code>with_docs()</code> stays for a local or
+internal service. No deployment profile changes <code>/docs</code>: the call site is the choice.</p>
 <h2 id="opentofu-walkthrough"><a class="header" href="#opentofu-walkthrough">OpenTofu walkthrough</a></h2>
 <ol>
 <li>Create Neon outside OpenTofu; choose the pooled connection string. Create
@@ -21249,8 +21586,7 @@ idle cost, and the first-request initialization in the canary journal.</li>
 acceptance step. The canary feature should be disabled in production images.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stability-policy"><a class="header" href="#stability-policy">Stability policy</a></h1>
-<p>What a Ferra release guarantees, what may change between 0.9 and 1.0, and how
-to upgrade. It applies from <code>v0.9.0</code>.</p>
+<p>What a Ferra release guarantees: the API frozen in <code>v0.18.0</code> is the API of <code>v1.0.0</code>, and this page says what holds from 1.0 and what each release before it allowed. What changed release by release is in the changelog and the migration pages.</p>
 <h2 id="how-ferra-is-released"><a class="header" href="#how-ferra-is-released">How Ferra is released</a></h2>
 <ul>
 <li>
@@ -21259,7 +21595,7 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.17.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
 </code></pre>
 </li>
 <li>
@@ -21275,6 +21611,8 @@ to upgrade. It applies from <code>v0.9.0</code>.</p>
 <li><code>Foundry</code>, <code>FoundryBuilder</code> and their options;</li>
 <li><code>JwtConfig</code> and its types; the <code>FerraIdentity</code> trait; <code>testing::bearer</code>;</li>
 <li><code>Id</code>, <code>DateTime</code>, <code>Date</code>, <code>Time</code>;</li>
+<li><code>SortDirection</code>, exactly <code>Asc</code> and <code>Desc</code>. It is closed on purpose: a third variant would break a <code>match</code>, so it
+is a major change after 1.0;</li>
 <li>the error types, and the <code>problem+json</code> documents they render — status,
 <code>type</code> URI, <code>title</code>;</li>
 <li><code>ferra::hooks</code>: <code>FerraHooks</code>, <code>Saving</code>, <code>Saved</code>, <code>Committed</code>, <code>HookTx</code> (with <code>HookTx::system</code>), <code>TxResource</code>,
@@ -21289,8 +21627,8 @@ model’s actions, and <code>OperationMeta</code> and <code>ModelMeta::operation
 <li>the HTTP behavior of the generated routes: paths, methods, statuses, the
 shape of bodies and of the OpenAPI document.</li>
 </ul>
-<p>The exact list, name by name, is <code>api/ferra.txt</code>; the signatures are in the
-other files of <code>api/</code>.</p>
+<p>The exact list, name by name, is the file <code>api/ferra.txt</code> of the
+<a href="https://github.com/ferra-rs/ferra/tree/main/api">repository</a>; the signatures are in the other files of that folder.</p>
 <p><strong>Not in the contract</strong>, whatever its visibility:</p>
 <ul>
 <li>the implementation crates taken directly (<code>ferra-core</code>, <code>ferra-db</code>,
@@ -21312,8 +21650,8 @@ beyond its <code>FRG-</code> code;</li>
 <code>DatabaseTransaction</code>, <code>FerraDbError</code>) and <code>FerraState</code> are not exported: a
 route of your own reaches a model’s rows through <code>Resource&lt;M&gt;</code>, which applies
 the model’s rules. See <a href="#migrating-from-09-to-010"><code>migrating-to-0.10.md</code></a>.</p>
-<h2 id="what-a-version-number-means"><a class="header" href="#what-a-version-number-means">What a version number means</a></h2>
-<p>Ferra is 0.x: it follows Semantic Versioning as Cargo reads it for 0.x.</p>
+<h2 id="what-a-version-number-meant-before-10"><a class="header" href="#what-a-version-number-meant-before-10">What a version number meant before 1.0</a></h2>
+<p>Ferra 0.x followed Semantic Versioning as Cargo reads it for 0.x.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -21338,6 +21676,67 @@ it, so end the match with <code>_ =&gt; false</code> and name <code>Action(_)</c
 <p><strong>A removed attribute keeps a migration diagnostic for at least one minor
 version</strong>: the compiler says what to write instead (as FRG-105, FRG-106 and
 FRG-335 do for what 0.9.0 removed).</p>
+<h2 id="what-10-guarantees"><a class="header" href="#what-10-guarantees">What 1.0 guarantees</a></h2>
+<p>From <code>v1.0.0</code> the contract above is frozen under Semantic Versioning as Cargo reads it for 1.x:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>From → to</th><th>May it break the contract?</th><th>What you do</th></tr>
+</thead>
+<tbody>
+<tr><td><code>v1.0.0</code> → <code>v1.0.1</code> (patch)</td><td><strong>No.</strong> Fixes only, with exceptions (i) and (iv) below.</td><td>Change the tag.</td></tr>
+<tr><td><code>v1.0.x</code> → <code>v1.1.0</code> (minor)</td><td><strong>No.</strong> Additions, and changes of the “Changed (not breaking)” class below, with exceptions (ii) and (iii).</td><td>Change the tag.</td></tr>
+<tr><td><code>v1.x</code> → <code>v2.0.0</code> (major)</td><td><strong>Yes</strong>, each break listed in <code>CHANGELOG.md</code> under “Changed — breaking”, with what to do.</td><td>Read the changelog, change the tag, follow the compiler.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The exceptions, each written in the changelog when it happens:</p>
+<ul>
+<li><strong>(i) A security fix comes in a patch</strong>, and may refuse what was wrongly accepted: a request that was served
+answers a refusal status, or a model that compiled is refused by the derive.</li>
+<li><strong>(ii) Becoming more permissive is an addition</strong>, in a minor: a refusal that becomes a success (a 400 that
+becomes a 200), a new optional attribute, a new variant of a <code>#[non_exhaustive]</code> enum.</li>
+<li><strong>(iii) The minimum supported Rust version may rise in a minor</strong>, never in a patch (<a href="#rust-version">Rust version</a>).</li>
+<li><strong>(iv) A patch of a crate Ferra pins exactly comes in a Ferra patch</strong>: if your application names the same crate,
+it follows that version (<a href="#third-party-crates-in-the-contract">Third-party crates in the contract</a>).</li>
+</ul>
+<p>What the changelog heading says is the class of a change, and the class decides the version number:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Class</th><th>After 1.0</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Changed — breaking</strong></td><td>A major.</td><td>A public signature moves: <code>DocsAuthVerifier</code> is built from a closure over <code>&amp;http::request::Parts</code>, where it took <code>&amp;axum::extract::Request</code> (0.18.0). A public item is removed: <code>DateTime::from_duration</code> (0.18.0). A generated route answers another status: the wait for a pool connection is a 503 where it was a 500 (0.17.0). An <code>FRG-</code> code changes: an <code>#[authorize]</code> that does not parse is FRG-023, it was FRG-103 (0.18.0). A pattern or a literal stops compiling: <code>JwtSecret</code> and <code>HmacAlgorithm</code> became <code>#[non_exhaustive]</code> (0.18.0), which is why they were closed before 1.0 and not after.</td></tr>
+<tr><td><strong>Added</strong></td><td>A minor.</td><td>A variant of a <code>#[non_exhaustive]</code> enum: <code>FerraError::RetryExhausted</code> (0.16.0), <code>ValidationCode::MinItems</code> (0.14.0). A new method on <code>Resource</code>. A new member in a response object.</td></tr>
+<tr><td><strong>Fixed</strong></td><td>A patch.</td><td>A request wrongly served is refused, exception (i): <code>verify</code> refuses a key whose stored record holds another prefix than the one presented, a <code>200</code> that becomes a <code>401</code> (0.18.0). A fix that can stop a client working carries a migration entry.</td></tr>
+<tr><td><strong>Changed</strong> (not breaking)</td><td>A minor.</td><td>The OpenAPI document comes closer to what the routes serve, the answers unchanged: a <code>413</code> declared on every operation, a <code>403</code> no longer declared where no caller can be refused (0.18.0).</td></tr>
+<tr><td><strong>Outside the contract</strong></td><td>Any release.</td><td>A <code>#[doc(hidden)]</code> item (<code>JsonBounds::new</code>, <code>BehaviorKind::soft_delete</code> left <code>api/</code> in 0.18.0), the text of a <code>detail</code>, a log event.</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>A change of status is breaking.</strong> The status of a generated route’s answer is in the contract (above), so a
+route that answers another status, <code>type</code> or <code>title</code> is “Changed — breaking”, whatever the two statuses are, but
+for exceptions (i) and (ii): a security fix in a patch, which may change a status toward the refusal, and a
+refusal that becomes a success, in a minor. A 500 that becomes a 503 is therefore breaking, although both tell the
+client the operation failed: the pool’s wait (0.17.0) is listed under “Changed — breaking”. The 0.14.0 section
+classed <code>retry_exhausted</code>, a 500 that became a 503 after three aborted attempts, as not breaking; that line stays
+as history, and from 0.18.0 this is the rule.</p>
+<p><strong>A derive that refuses more is a break.</strong> A model that compiles today and is refused by a later derive is
+“Changed — breaking”, a major, but for exception (i): a security fix may refuse it in a patch.
+<code>FRG-147</code> and the refusals of <code>model_attrs(..)</code> mistakes are such breaks, made before 1.0 (0.18.0).</p>
+<p><strong>The OpenAPI document alone.</strong> A change of the document that leaves every answer as it was is “Changed”, not
+breaking, when it brings the document closer to what is served. A change of what is served follows the rule on
+statuses above. A status a route still serves is never removed from the document, and a change that takes the
+document away from what is served is a defect, fixed as such.</p>
+<h3 id="traits-you-implement"><a class="header" href="#traits-you-implement">Traits you implement</a></h3>
+<p><code>ApiKeyStore</code>, <code>FerraAuthority</code>, <code>FerraListAuthority</code> and <code>FerraIdentity</code> are traits an application implements,
+and none is sealed. After 1.0 a method added to one of them has a default body, and the default refuses or
+changes nothing: an implementation written for 1.0 keeps compiling, and a default can narrow what it accepts,
+never widen it. A refusing default is fail closed: an implementation that does not answer the new
+method may see the new check refused, and is never granted more. A default method added to a trait you implement
+(<code>FerraHooks</code>, <code>FerraComputed</code>, …) arrives in a minor release; its default changes nothing and refuses nothing that
+passed before.</p>
 <h2 id="metrics-and-spans"><a class="header" href="#metrics-and-spans">Metrics and spans</a></h2>
 <p>With the <code>observability</code> feature, Ferra records five metrics. With or without it, each request has a request span and its phase spans (the names and labels are in
 <a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a>). The compatibility rule: from 0.18.0, a metric’s name, unit and label set are frozen (a
@@ -21348,8 +21747,9 @@ shown: <code>http_server_request_duration_seconds</code> with OpenTelemetry expo
 the <code>metrics</code> major is in the table of third-party crates in the contract, below.</p>
 <h2 id="third-party-crates-in-the-contract"><a class="header" href="#third-party-crates-in-the-contract">Third-party crates in the contract</a></h2>
 <p>Types of other crates appear in Ferra’s signatures, and two crates are
-re-exported whole. A major version change of one of them is a break of Ferra,
-made in a minor release and listed in the changelog.</p>
+re-exported whole. A major version change of one of them (a minor of a <code>0.x</code> crate) is a break of Ferra, listed in
+the changelog: from 1.0, a Ferra major, since a type of that crate in a Ferra signature changes with it. Before 1.0
+it came in a minor.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -21357,13 +21757,18 @@ made in a minor release and listed in the changelog.</p>
 </thead>
 <tbody>
 <tr><td><code>axum</code></td><td><code>Foundry::build()</code> returns an <code>axum::Router</code>; extractors, middlewares</td><td>0.8</td></tr>
-<tr><td>Sea-ORM</td><td><code>ferra::sea_orm</code>, whole; the entity derives; <code>DatabaseConnection</code></td><td>2.x</td></tr>
-<tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
+<tr><td>Sea-ORM</td><td><code>ferra::sea_orm</code>, whole; the entity derives; <code>DatabaseConnection</code>; and <code>sea_query</code>, Sea-ORM’s query builder, in the impls that make <code>Id</code>, <code>Date</code>, <code>DateTime</code> and <code>Time</code> Sea-ORM values and in the bounds on a model’s key</td><td>2.x</td></tr>
+<tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole, with its <code>derive</code> feature on, so <code>#[derive(ferra::garde::Validate)]</code> works and stays; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
 <tr><td><code>metrics</code></td><td>with <code>observability</code>, Ferra records through its facade: the recorder you install (<code>metrics-exporter-prometheus</code>, <a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a>) must be built on the same copy</td><td>0.24</td></tr>
 <tr><td><code>tower-http</code></td><td><code>FerraLayerBuilder::cors</code>, <code>trace_layer</code></td><td>0.7</td></tr>
 <tr><td><code>secrecy</code></td><td><code>JwtConfig::single_secret</code> takes <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
 <tr><td><code>serde</code></td><td>every model derives it</td><td>1</td></tr>
-<tr><td><code>uuid</code></td><td><code>ConditionType</code> is implemented for <code>uuid::Uuid</code>: a <code>Uuid</code> column is a <code>Field&lt;M, Uuid&gt;</code> (ADR-0070)</td><td>1</td></tr>
+<tr><td><code>uuid</code></td><td><code>ConditionType</code> is implemented for <code>uuid::Uuid</code>: a <code>Uuid</code> column is a <code>Field&lt;M, Uuid&gt;</code></td><td>1</td></tr>
+<tr><td><code>http</code></td><td><code>DocsAuthVerifier</code> is built from a closure over <code>&amp;http::request::Parts</code>; <code>RateLimitKey::from_fn</code> takes a <code>fn(&amp;http::request::Parts)</code>; <code>ForwardedFor::header</code> takes a <code>HeaderName</code>; the <code>Rejection</code> of the extractors <code>Principal</code>, <code>CurrentUser</code> and <code>Resource</code> is an <code>http::response::Response</code>, and <code>FerraPath</code> reads <code>&amp;mut http::request::Parts</code></td><td>1</td></tr>
+<tr><td><code>jiff</code></td><td><code>Date::as_inner</code>, <code>DateTime::as_inner</code> and <code>Time::as_inner</code> return a jiff type, and nothing else names jiff: <code>jiff::Error</code> and <code>from_duration</code> left in 0.18.0</td><td>0.2</td></tr>
+<tr><td><code>utoipa</code></td><td><code>Date</code>, <code>DateTime</code> and <code>Time</code> implement <code>utoipa::ToSchema</code> and <code>utoipa::PartialSchema</code></td><td>6</td></tr>
+<tr><td><code>serde_json</code></td><td><code>JsonBounds::schema</code> is an <code>Option&lt;fn() -&gt; serde_json::Value&gt;</code></td><td>1</td></tr>
+<tr><td><code>bytes</code></td><td>the <code>OnBody</code> bound of <code>FerraLayerBuilder::trace_layer</code> names <code>bytes::Bytes</code></td><td>1</td></tr>
 </tbody>
 </table>
 </div>
@@ -21371,22 +21776,22 @@ made in a minor release and listed in the changelog.</p>
 version numbers: Ferra’s snapshots do not cover it, and no tool can see inside a
 re-export. Four things stand in for that:</p>
 <ul>
-<li><strong>Five of them are exact requirements.</strong> <code>garde</code>, <code>utoipa-scalar</code>, <code>jiff</code>,
-<code>tower-http</code> and <code>base64</code> are declared <code>=x.y.z</code> in Ferra’s manifests. If your
+<li><strong>Six of them are exact requirements.</strong> <code>garde</code>, <code>utoipa-scalar</code>, <code>jiff</code>,
+<code>tower-http</code>, <code>base64</code> and <code>secrecy</code> are declared <code>=x.y.z</code> in Ferra’s manifests. If your
 application also names one of them, it must name the same version (or a
 requirement that version satisfies): another patch fails to resolve. A patch
 of one of them, for an advisory for instance, reaches you in a Ferra patch
-release.</li>
+release, exception (iv): align your requirement with it.</li>
 <li><strong>Sea-ORM is a public dependency of Ferra.</strong> A new major version of Sea-ORM
-(or a new minor of <code>garde</code>, a <code>0.x</code> crate) is a breaking change of Ferra: it
-ships in a minor release, and the changelog says so.</li>
+(or a new minor of <code>garde</code> or of <code>jiff</code>, <code>0.x</code> crates) is a breaking change of Ferra: a Ferra major from 1.0 on,
+and the changelog says so. A new <code>jiff</code> minor reaches <code>as_inner</code> alone.</li>
 <li><strong>Your <code>sea-orm</code> follows Ferra’s major.</strong> The documented way to use Sea-ORM is
 to declare <code>sea-orm</code> yourself, at the major version the release you use was built
 with. Each release’s changelog names it and gives the line to change in your
 <code>Cargo.toml</code>. A different major is two copies of the crate; <code>#[derive(FerraModel)]</code>
 refuses it with <code>FRG-400</code>, and <code>cargo tree -d -i sea-orm</code> shows it. Declaring no
 <code>sea-orm</code> and writing <code>ferra::sea_orm::…</code> is supported as well.</li>
-<li><strong>A gate pins it.</strong> <code>reexport_pin</code> fails CI when the lockfile holds two copies of
+<li><strong>Ferra’s CI pins it.</strong> A check fails when Ferra’s lockfile holds two copies of
 <code>sea-orm</code>, <code>garde</code> or <code>metrics</code>, or another version than the one documented here; changing the pin
 is a decision made in one change with this page and the changelog. A new <code>metrics</code>
 minor (<code>0.x</code>) is a breaking change of Ferra too: a recorder built on another copy
@@ -21399,7 +21804,7 @@ would receive none of Ferra’s metrics.</li>
 <li>the constructors that take the application’s connection, <code>Foundry::new(DatabaseConnection)</code>
 and <code>api_key::PgApiKeyStore::new(DatabaseConnection)</code>, and the <code>DatabaseConnection</code> re-export;</li>
 <li>the trait bounds that make a model a Sea-ORM entity (<code>Mountable</code>’s, the
-builder’s, <code>Resource</code>’s, <code>HookTx::resource</code>’s and <code>SystemAccess</code>’s <code>where</code> clauses: <code>ModelTrait</code>, <code>EntityTrait</code>, <code>ActiveModelTrait</code>,
+builder’s, <code>Resource</code>’s, <code>HookTx::resource</code>’s, <code>TxResource</code>’s and <code>SystemAccess</code>’s <code>where</code> clauses: <code>ModelTrait</code>, <code>EntityTrait</code>, <code>ActiveModelTrait</code>,
 <code>ActiveModelBehavior</code>, <code>FromQueryResult</code>, <code>IntoActiveModel</code>, <code>IntoValueTuple</code>,
 <code>PrimaryKeyTrait</code>), and <code>PkValue&lt;M&gt;</code>, the key type the entity declares;</li>
 <li>the trait impls that make a Ferra value type (<code>Id</code>, <code>Date</code>, <code>DateTime</code>,
@@ -21410,45 +21815,379 @@ That covers hooks, authority, actions, computed fields, the request context and
 resource access: they take and return Ferra’s types (<code>FerraError</code>, <code>Resource&lt;M&gt;</code>).
 Your own code reaches Sea-ORM through your own <code>DatabaseConnection</code>, outside
 Ferra’s contract.</p>
-<p>The gate <strong><code>sea_orm_surface</code></strong> reads <code>api/*.txt</code> and fails on any other line that
-names <code>sea_orm::</code>. The internal items of <code>ferra-db</code> (<code>PgRepository</code>,
-<code>FerraRepository</code>, <code>FerraDbError</code>, <code>WriteGuard</code>) are not in the facade; the gate lists them
-apart.</p>
+<p>Ferra’s CI fails on any other public signature that names a Sea-ORM, <code>sea_query</code> or <code>sqlx</code> type.</p>
 <h2 id="rust-version"><a class="header" href="#rust-version">Rust version</a></h2>
 <ul>
 <li>The minimum supported Rust version is <strong>1.94</strong>, checked in CI. Raising it is
-allowed in a minor release, never in a patch, and is listed in the changelog.</li>
+allowed in a minor release, never in a patch, and is listed in the changelog (exception (iii) above).</li>
 <li>The repository pins the toolchain it is developed with
 (<code>rust-toolchain.toml</code>); an application is free to use a newer one.</li>
-<li>Ferra builds and tests natively on Linux, macOS and Windows. What is proven:
-a real trial on Windows 11 on 2026-09-30, before lot L4, built the workspace,
-ran both test suites and <code>check_compile_error_spans</code> there. The checklist L4.28
-runs it again on the final state of the lot, with a default clone; until it has
-passed, the claim rests on that first trial.</li>
+<li>Ferra builds natively on Linux, macOS and Windows. Its CI runs on Linux at each push to <code>main</code>, the whole test
+suite with a database; on Windows and macOS a workflow started by hand builds it and runs the tests that need no
+database.</li>
 </ul>
 <h2 id="what-is-planned-and-will-not-break-you"><a class="header" href="#what-is-planned-and-will-not-break-you">What is planned, and will not break you</a></h2>
 <p>Each of these is an addition under the rules above: an external authenticator
 next to <code>.with_auth</code> (RS256/JWKS, sessions); a response envelope for custom
 routes.</p>
 <h2 id="how-the-contract-is-kept"><a class="header" href="#how-the-contract-is-kept">How the contract is kept</a></h2>
-<p>Four gates block CI (<code>CONTRIBUTING.md</code> has the commands):</p>
-<ul>
-<li><strong><code>public_api_snapshot</code></strong> — the public API of each crate is a text file under
-<code>api/</code>. Any difference fails until the snapshot is regenerated and committed
-with the change, which makes every change of the contract visible in review.</li>
-<li><strong><code>semver_checks</code></strong> — <code>cargo-semver-checks</code> compares each crate with the
-previous tag: a break without the minor version bump that allows it fails.</li>
-<li><strong><code>sea_orm_surface</code></strong> — fails when a line of <code>api/</code> names <code>sea_orm::</code> outside the
-places listed in “Sea-ORM in Ferra’s signatures”.</li>
-<li><strong><code>reexport_pin</code></strong> — <code>ferra::sea_orm</code> and <code>ferra::garde</code> are the crates
-themselves, and neither of the two gates above can see inside a re-export: this
-one fails when <code>Cargo.lock</code> holds two copies of either, or a version other than
-the documented one (Sea-ORM 2.x, <code>garde</code> 0.23.x). It pins <code>metrics</code> (0.24.x) the
-same way, the facade Ferra records its metrics through.</li>
-</ul>
-<p>And one test names the contract item by item
-(<code>crates/ferra/tests/contract_surface.rs</code>), so that removing one breaks the
-build on the stable toolchain too.</p>
+<p>Ferra’s CI fails a change that moves the contract without saying so: the public API of each crate is recorded as
+text in the repository’s <code>api/</code> folder and any difference fails until the record is updated with the change; each
+crate is compared with the previous tag for a break the version number does not allow; the Sea-ORM and HTTP types
+are kept to the places this page names; and one test names the contract item by item, so removing one breaks the
+build.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="migrating-from-017-to-018-the-10-api"><a class="header" href="#migrating-from-017-to-018-the-10-api">Migrating from 0.17 to 0.18 (the 1.0 API)</a></h1>
+<p>The public API frozen in 0.18.0 is the API of 1.0.0: the release candidates add nothing public, and the only
+exceptions are those of <a href="#stability-policy">the stability policy</a>, a security fix among them. Each entry below is a change
+from 0.17 that can stop a build, refuse a startup or change an answer you rely on. Read the entries, then point the
+application’s git dependency at the 0.18 tag:</p>
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+</code></pre>
+<p>How 1.0 is distributed, crates.io or a git tag, is decided before its last release candidate; the 1.0 changelog says
+which line to write.</p>
+<p><strong>From a release before 0.17</strong>, follow the pages of the releases in between first, in order:
+<a href="#migrating-from-08-to-09">0.9</a>, <a href="#migrating-from-09-to-010">0.10</a>, <a href="#migrating-from-010-to-011">0.11</a>, <a href="#migrating-from-011-to-012">0.12</a>,
+<a href="#migrating-from-012-to-013">0.13</a>, <a href="#migrating-from-013-to-014">0.14</a>, <a href="#migrating-from-014-to-015">0.15</a>, <a href="#migrating-from-015-to-016">0.16</a>,
+<a href="#migrating-from-016-to-017">0.17</a>.</p>
+<p><strong>What does not move.</strong> Sea-ORM stays at 2.x: your <code>sea-orm</code> line is unchanged. The minimum supported Rust version
+stays 1.94.</p>
+<p>The <a href="https://github.com/ferra-rs/ferra/blob/main/CHANGELOG.md">changelog</a> lists every change. The entries come in
+its order: the fourteen breaking changes, the last two security fixes, then the three fixes that can stop a client or a custom store. A “Before” is
+0.17 code, which no longer compiles; the “After” blocks compile against 0.18.</p>
+<h2 id="datetime-date-and-time-report-timeerror-and-from_duration-is-gone"><a class="header" href="#datetime-date-and-time-report-timeerror-and-from_duration-is-gone"><code>DateTime</code>, <code>Date</code> and <code>Time</code> report <code>TimeError</code>, and <code>from_duration</code> is gone</a></h2>
+<p><strong>Before.</strong> <code>DateTime::from_second</code>, <code>from_millisecond</code>, <code>from_microsecond</code>, <code>from_nanosecond</code> and the <code>FromStr</code> of
+<code>DateTime</code>, <code>Date</code> and <code>Time</code> returned <code>jiff::Error</code>. <code>DateTime::from_duration</code> took a <code>jiff</code> duration.</p>
+<pre><code class="language-text">fn parse(raw: &amp;str) -&gt; Result&lt;DateTime, jiff::Error&gt; { raw.parse::&lt;DateTime&gt;() }
+let at = DateTime::from_duration(jiff::SignedDuration::from_secs(90))?;
+</code></pre>
+<p><strong>After.</strong> They return <code>ferra::TimeError</code>, an opaque <code>#[non_exhaustive]</code> type whose <code>Display</code> is the fixed sentence
+<code>invalid date or time value</code>: it quotes no part of the input, and <code>source()</code> is <code>None</code>. There is no
+<code>From&lt;TimeError&gt; for FerraError</code>: a route of your own maps it to the error it answers. <code>DateTime::from_duration</code> is
+removed: <code>from_nanosecond</code> takes the nanoseconds since the Unix epoch as an <code>i128</code>, which a <code>jiff::SignedDuration</code>
+gives with <code>as_nanos()</code>. <code>as_inner</code> stays the one documented hatch to the time library. A bad date in a JSON body still
+reaches the client as the time library’s text, in the <code>message</code> of the <code>invalid_json</code> error (<code>errors[0].message</code>):
+<code>Deserialize</code> is unchanged.</p>
+<pre class="playground"><code class="language-rust">use ferra::{DateTime, TimeError};
+
+fn parse(raw: &amp;str) -&gt; Result&lt;DateTime, TimeError&gt; {
+    raw.parse::&lt;DateTime&gt;()
+}
+
+<span class="boring">fn main() -&gt; Result&lt;(), TimeError&gt; {
+</span>let since_epoch = jiff::SignedDuration::from_secs(90);
+let at = DateTime::from_nanosecond(since_epoch.as_nanos())?;
+<span class="boring">let _ = (parse, at);
+</span><span class="boring">Ok(())
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that names <code>jiff::Error</code> where it parses a Ferra date, and code that calls <code>from_duration</code>.</p>
+<p><strong>Migration.</strong> Name <code>ferra::TimeError</code> where you named <code>jiff::Error</code>. Replace <code>from_duration(d)</code> with
+<code>from_nanosecond(d.as_nanos())</code>. See <a href="#ferra-core">Ferra Core</a>.</p>
+<h2 id="the-docs-verifier-reads-httprequestparts"><a class="header" href="#the-docs-verifier-reads-httprequestparts">The docs verifier reads <code>http::request::Parts</code></a></h2>
+<p><strong>Before.</strong> <code>with_docs_protected</code> and <code>with_docs_protected_at</code> took a closure over the whole request.</p>
+<pre><code class="language-text">.with_docs_protected(|req: &amp;axum::extract::Request| req.headers().contains_key(AUTHORIZATION))
+</code></pre>
+<p><strong>After.</strong> They take <code>Fn(&amp;http::request::Parts) -&gt; bool + Send + Sync + 'static</code>, a closure that reads the head of the
+request (method, URI, headers, extensions) and never the body, that may be shared between threads and that borrows
+nothing: a refusal serves nothing and leaves the body unread. <code>DocsAuthVerifier</code> is built from that closure, and
+<code>ferra_openapi::docs_routes_protected</code> takes the same one. <code>Parts</code> is the <code>http</code> crate’s: name it through <code>axum</code>,
+which an application declares already, as <code>axum::http::request::Parts</code>, or add <code>http = "1"</code> to your <code>Cargo.toml</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use axum::http::{header::AUTHORIZATION, request::Parts};
+use ferra::DocsAuthVerifier;
+
+let verifier = DocsAuthVerifier::from(|parts: &amp;Parts| parts.headers.contains_key(AUTHORIZATION));
+<span class="boring">let _ = verifier;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Every application that protects its docs routes with a closure of its own.</p>
+<p><strong>Migration.</strong> Write the closure over <code>parts</code>, and read <code>parts.headers</code> where it read <code>req.headers()</code>. A closure that
+read the body of the request cannot any more. See <a href="#foundry">Foundry</a> and <a href="#ferra-openapi">Ferra OpenAPI</a>.</p>
+<h2 id="with-a-request-budget-the-read-of-a-written-rows-parents-is-bounded"><a class="header" href="#with-a-request-budget-the-read-of-a-written-rows-parents-is-bounded">With a request budget, the read of a written row’s parents is bounded</a></h2>
+<p><strong>Before.</strong> After the commit of a write, the read of the written row’s parents (a create, an update, a patch, a
+restore, a row action, or a <code>Resource&lt;M&gt;</code> write, on a model with a <code>BelongsTo</code>) was bounded by the pool’s
+<code>acquire_timeout</code> and the server’s <code>statement_timeout</code> only. A slow read still answered the <code>2xx</code>.</p>
+<p><strong>After.</strong> With a request budget (<code>.request_budget(..)</code>, <a href="#foundry">Foundry</a>), that read has to finish by the
+request’s post-commit deadline: the later of the budget’s end and one second after the first work the request does
+once a row is committed. A read still running at that deadline answers the <code>500</code> <code>internal</code> with one <code>error!</code> line,
+and the row is written. Nothing is cut inside a hook’s open <code>tx.resource</code> transaction, without a budget, or under
+<code>Prefer: return=minimal</code>. A deadline already used up by earlier post-commit work answers the <code>500</code> for a row with a
+parent to read, and the <code>2xx</code> for a row with none. The reads of <code>Resource::get</code>, <code>list</code> and <code>list_cursor</code>, and of
+<code>tx.resource</code>, stay under no deadline of their own.</p>
+<p>Nothing in your code changes: this is an answer that changes.</p>
+<p><strong>Who is affected.</strong> An application that sets <code>.request_budget(..)</code> and mounts a model with a <code>BelongsTo</code>; a client
+that retries a create when it gets a <code>500</code>.</p>
+<p><strong>Migration.</strong> Expect the <code>500</code> at the deadline where the late <code>2xx</code> came, and make a create safe to replay before
+retrying it: see the <a href="#idempotent-creates">idempotent create</a> recipe.</p>
+<h2 id="a-second-with_api_keys-is-refused-at-startup"><a class="header" href="#a-second-with_api_keys-is-refused-at-startup">A second <code>with_api_keys</code> is refused at startup</a></h2>
+<p><strong>Before.</strong> A second <code>FoundryBuilder::with_api_keys</code> on a chain silently replaced the first store.</p>
+<p><strong>After.</strong> <code>try_build</code> returns the new <code>BuildError::ApiKeysTwice</code>, and <code>build()</code> panics with its text.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::api_key::PgApiKeyStore;
+</span><span class="boring">use ferra::{ApiKeyConfig, DatabaseConnection, FerraIdentity, Foundry, JwtConfig};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">#[derive(Clone, Deserialize)]
+</span><span class="boring">struct Claims { sub: String }
+</span><span class="boring">impl FerraIdentity for Claims {
+</span><span class="boring">    fn id(&amp;self) -&gt; &amp;str { &amp;self.sub }
+</span><span class="boring">    fn has_role(&amp;self, _role: &amp;str) -&gt; bool { false }
+</span><span class="boring">}
+</span><span class="boring">fn demo(conn: DatabaseConnection, jwt: JwtConfig) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let keys = ApiKeyConfig::new(PgApiKeyStore::new(conn.clone()));
+let builder = Foundry::new(conn)
+    .etag_key(std::env::var("ETAG_KEY")?)?
+    .with_auth::&lt;Claims&gt;(jwt)
+    .with_api_keys(keys); // once: a second call is `BuildError::ApiKeysTwice`
+<span class="boring">let _ = builder;
+</span><span class="boring">Ok(())
+</span><span class="boring">}
+</span><span class="boring">fn main() {}</span></code></pre>
+<p><strong>Who is affected.</strong> A chain that calls <code>with_api_keys</code> twice.</p>
+<p><strong>Migration.</strong> Call <code>with_api_keys</code> once, with the one <code>ApiKeyConfig</code>. See <a href="#foundry">Foundry</a>.</p>
+<h2 id="a-deprecation-date-outside-the-years-0-to-9999-is-refused-at-startup"><a class="header" href="#a-deprecation-date-outside-the-years-0-to-9999-is-refused-at-startup">A deprecation date outside the years 0 to 9999 is refused at startup</a></h2>
+<p><strong>Before.</strong> <code>FoundryBuilder::deprecated</code> accepted a date in a year below zero, and <code>x-sunset</code> read <code>-001-01-01</code>. (A
+<code>Date</code> above year 9999 cannot be built.)</p>
+<p><strong>After.</strong> <code>deprecated</code> refuses a year outside <code>0..=9999</code> with the new <code>DeprecationError::YearOutOfRange</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Year, month, day: a year from 0 to 9999.
+let sunset = ferra::Date::new(2027, 1, 5);
+<span class="boring">let _ = sunset;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> A chain whose <code>deprecated</code> or sunset date is in a year below zero.</p>
+<p><strong>Migration.</strong> Pass dates from year 0 on. See <a href="#foundry">Foundry</a>.</p>
+<h2 id="a-malformed-authorize-is-frg-023-not-frg-103"><a class="header" href="#a-malformed-authorize-is-frg-023-not-frg-103">A malformed <code>#[authorize]</code> is <code>FRG-023</code>, not <code>FRG-103</code></a></h2>
+<p><strong>Before.</strong> An <code>#[authorize]</code> that does not parse (a bare <code>#[authorize]</code>, a key with no <code>=</code>) was refused with <code>FRG-103</code>.</p>
+<p><strong>After.</strong> It is refused with <code>FRG-023</code>, the code of every attribute that does not parse. <code>FRG-103</code> now only names an
+unknown, qualified or malformed checker. The message, its span and its help are unchanged. Nothing in your code
+changes: the model was refused before and is refused now.</p>
+<p><strong>Who is affected.</strong> A script, a test or a note that matches <code>FRG-103</code> on these two mistakes.</p>
+<p><strong>Migration.</strong> Match <code>FRG-023</code> for them. See <a href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time Diagnostics</a>.</p>
+<h2 id="two-types-and-six-variants-are-non_exhaustive"><a class="header" href="#two-types-and-six-variants-are-non_exhaustive">Two types and six variants are <code>#[non_exhaustive]</code></a></h2>
+<p><strong>Before.</strong> <code>JwtSecret</code> and <code>HmacAlgorithm</code> were closed, and so were the variants <code>Saving::Create</code>, <code>Saving::Update</code>,
+<code>Saving::Restore</code>, <code>FieldMode::Key</code>, <code>PaginationMode::Cursor</code> and <code>PaginationMode::Both</code>.</p>
+<pre><code class="language-text">let secret = JwtSecret { kid: "key-1".into(), key: secret.into(), algorithm: HmacAlgorithm::Hs256 };
+match algorithm { HmacAlgorithm::Hs256 =&gt; 256, HmacAlgorithm::Hs384 =&gt; 384, HmacAlgorithm::Hs512 =&gt; 512 }
+</code></pre>
+<p><strong>After.</strong> All of them are <code>#[non_exhaustive]</code>, so a later field or algorithm is not a major version.
+<code>FieldMode::Key</code>, <code>PaginationMode::Cursor</code> and <code>PaginationMode::Both</code> are built by the derive; your code only
+matches them.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{HmacAlgorithm, JwtSecret};
+
+fn bits(algorithm: HmacAlgorithm) -&gt; u16 {
+    match algorithm {
+        HmacAlgorithm::Hs256 =&gt; 256,
+        HmacAlgorithm::Hs384 =&gt; 384,
+        HmacAlgorithm::Hs512 =&gt; 512,
+        _ =&gt; 0, // a later algorithm
+    }
+}
+
+let secret = JwtSecret::new("key-1", std::env::var("JWT_SECRET").unwrap_or_default(), HmacAlgorithm::Hs256);
+<span class="boring">let _ = (secret, bits);
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that builds a <code>JwtSecret</code> with a struct literal, that matches <code>HmacAlgorithm</code> without a
+wildcard arm, or that matches the six variants without <code>..</code>.</p>
+<p><strong>Migration.</strong> Build a <code>JwtSecret</code> with <code>JwtSecret::new(kid, key, algorithm)</code>, give a <code>match</code> on <code>HmacAlgorithm</code> a
+wildcard arm, and end a pattern on these variants with <code>..</code>. See <a href="#authentication--authorization">Authentication and Authorization</a>.</p>
+<h2 id="twelve-names-leave-the-contract"><a class="header" href="#twelve-names-leave-the-contract">Twelve names leave the contract</a></h2>
+<p><strong>Before.</strong> <code>JsonBounds::new</code>, <code>FieldMeta::with_json</code>, <code>BehaviorKind::soft_delete</code>, <code>BehaviorKind::timestampable</code>,
+<code>BehaviorKind::blameable</code>, <code>ModelMeta::blame_columns</code>, <code>FieldType::ComputedUserNamed</code>, <code>ModelMeta::filterable_fields</code>,
+<code>ModelMeta::sortable_fields</code>, <code>ProjectionMeta::schema_base_name</code>, <code>HmacAlgorithm::min_secret_len</code> and <code>Date::days_since</code>
+were part of the public API.</p>
+<p><strong>After.</strong> They are hidden, so they can change without a major version. They still compile where they are used, but
+a use is outside the contract.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::meta::ModelMeta;
+
+fn filterable(meta: &amp;ModelMeta) -&gt; impl Iterator&lt;Item = &amp;'static str&gt; + '_ {
+    meta.fields.iter().filter(|field| field.filterable).map(|field| field.name)
+}
+<span class="boring">let _ = filterable;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that calls one of them.</p>
+<p><strong>Migration.</strong> Let the derive build <code>BehaviorKind</code> and <code>FieldMeta</code> values, read the filterable and sortable fields from
+<code>ModelMeta::fields</code> as above, and read the minimum secret length from the <code>min</code> of <code>JwtConfigError::SecretTooShort</code>.
+For <code>Date::days_since</code>, subtract through <code>as_inner</code>. See <a href="#stability-policy">the stability policy</a>.</p>
+<h2 id="ferraerrorconflictwith-is-ferraerrorconflictdetail"><a class="header" href="#ferraerrorconflictwith-is-ferraerrorconflictdetail"><code>FerraError::ConflictWith</code> is <code>FerraError::ConflictDetail</code></a></h2>
+<p><strong>Before.</strong> The variant that serves its text verbatim as the <code>detail</code> of a 409 was named <code>ConflictWith</code>.</p>
+<p><strong>After.</strong> It is <code>ConflictDetail</code>, because <code>FerraError::Conflict(String)</code> hides its text behind a fixed <code>detail</code> and this
+variant does not. The answer is unchanged: status <code>409</code>, <code>type</code> <code>https://ferra.rs/errors/conflict</code>, title <code>Conflict</code>,
+<code>detail</code> as given.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::FerraError;
+
+let refusal = FerraError::ConflictDetail("this title is taken".to_owned());
+<span class="boring">let _ = refusal;
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> Code that names <code>FerraError::ConflictWith</code>. <code>HookError::conflict</code> is unchanged.</p>
+<p><strong>Migration.</strong> Write <code>FerraError::ConflictDetail</code>. See <a href="#error-handling">Error Handling</a>.</p>
+<h2 id="a-sub-collection-keyed-on-a-column-that-is-not-the-parents-primary-key-is-refused"><a class="header" href="#a-sub-collection-keyed-on-a-column-that-is-not-the-parents-primary-key-is-refused">A sub-collection keyed on a column that is not the parent’s primary key is refused</a></h2>
+<p><strong>Before.</strong> A <code>HasMany</code> or <code>HasOne</code> whose mounted child’s back <code>BelongsTo</code> has a <code>to</code> other than the parent’s primary
+key was served, and listed the child rows by the parent’s key, whatever <code>to</code> said.</p>
+<p><strong>After.</strong> <code>try_build</code> returns the new <code>BuildError::SubCollectionKeyNotPrimary</code> (<code>build()</code> panics with its text), naming
+the parent, the child and the column. The child’s <code>BelongsTo</code> points <code>to</code> at the parent’s primary key:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>mod client {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "clients")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub name: String,
+        #[sea_orm(has_many)]
+        pub contexts: HasMany&lt;super::context::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+mod context {
+    use super::*;
+
+    #[sea_orm::model]
+    #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+    #[sea_orm(table_name = "contexts")]
+    #[ferra(auth = "none")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub client_id: i32,
+        // `to` names the parent's primary key.
+        #[sea_orm(belongs_to, from = "client_id", to = "id")]
+        pub client: BelongsTo&lt;super::client::Entity&gt;,
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+<span class="boring">fn main() {}</span></code></pre>
+<p><strong>Who is affected.</strong> A chain that mounts a parent and a child whose <code>BelongsTo</code> points at another column than the
+parent’s key.</p>
+<p><strong>Migration.</strong> Point <code>to</code> at the parent’s primary key, or do not mount both models on one <code>Foundry</code>: each is then served
+alone, with no sub-collection. See <a href="#relations">Relations</a>.</p>
+<h2 id="on-a-dense-model-model_attrs-mistakes-are-refused"><a class="header" href="#on-a-dense-model-model_attrs-mistakes-are-refused">On a dense model, <code>model_attrs(..)</code> mistakes are refused</a></h2>
+<p>A dense model is one written with <code>#[sea_orm::model]</code>, which expands the struct into <code>Model</code> (the columns) and
+<code>ModelEx</code> (the columns and the relations); <code>#[sea_orm(model_attrs(..))]</code> puts attributes on <code>Model</code> alone
+(<a href="#relations">Relations</a>).</p>
+<p><strong>Before.</strong> On a dense model whose Ferra attributes are written in <code>model_attrs(..)</code>, three mistakes compiled that the
+derive refuses with the same attributes outside <code>model_attrs</code>: a name in the <code>read</code> list of a projection that is
+neither a field nor a <code>BelongsTo</code> (<code>FRG-301</code>), a <code>HasMany</code> or <code>HasOne</code> in it (<code>FRG-363</code>), and the foreign key behind
+<code>owner(from = ..)</code> in the <code>writes</code> of an action (<code>FRG-146</code>).</p>
+<p><strong>After.</strong> The three are refused, as a constant-evaluation error (<code>E0080</code>, “evaluation panicked: FRG-…”), underlined
+on the name at fault. A <code>read</code> list of names the model has compiles as before:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films", model_attrs(ferra(auth = "none"), ferra(projection(name = "admin", read = [id]))))]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> A dense model with Ferra attributes in <code>model_attrs(..)</code> that made one of the three mistakes.</p>
+<p><strong>Migration.</strong> Correct the name in <code>read</code>, or remove the foreign key from <code>writes</code>. See
+<a href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time Diagnostics</a>.</p>
+<h2 id="a-ferra-attribute-in-model_ex_attrs-is-refused-frg-147"><a class="header" href="#a-ferra-attribute-in-model_ex_attrs-is-refused-frg-147">A Ferra attribute in <code>model_ex_attrs(..)</code> is refused (<code>FRG-147</code>)</a></h2>
+<p><strong>Before.</strong> A Ferra attribute (<code>#[ferra]</code>, <code>#[authorize]</code>, <code>#[behavior]</code>, <code>#[operation]</code>, <code>#[field]</code>) written in
+<code>#[sea_orm(model_ex_attrs(..))]</code> compiled and declared nothing, so an <code>#[authorize(delete = HasRole("admin"))]</code> there
+left <code>delete</code> to the rule the model’s <code>auth</code> gives by default.</p>
+<pre><code class="language-text">#[sea_orm(table_name = "films", model_ex_attrs(behavior(soft_delete)))]
+</code></pre>
+<p><strong>After.</strong> It is refused with <code>FRG-147</code>, as a constant-evaluation error (<code>E0080</code>). Sea-ORM puts <code>model_ex_attrs</code> on
+<code>ModelEx</code> alone, and Ferra reads the rules, projections and behaviors from <code>Model</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use ferra::FerraModel;
+</span><span class="boring">use sea_orm::entity::prelude::*;
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span>#[sea_orm::model]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, FerraModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "films")]
+#[ferra(auth = "none")]
+#[behavior(soft_delete)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+}
+<span class="boring">impl ActiveModelBehavior for ActiveModel {}
+</span><span class="boring">}</span></code></pre>
+<p><strong>Who is affected.</strong> A model that wrote a Ferra attribute there: its rules were not in force.</p>
+<p><strong>Migration.</strong> Write the attribute outside <code>#[sea_orm(..)]</code>, or in <code>model_attrs(..)</code>. See
+<a href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time Diagnostics</a>.</p>
+<h2 id="an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key-is-refused-frg-148"><a class="header" href="#an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key-is-refused-frg-148">An <code>owner(from)</code> whose <code>BelongsTo</code> does not point at the parent’s key is refused (<code>FRG-148</code>)</a></h2>
+<p>A security fix that refuses a model that compiled (<a href="#stability-policy">the stability policy</a>, exception (i)).</p>
+<p><strong>Before.</strong> <code>#[field(owner(from = parent))]</code> compiled whatever the <code>to</code> of the <code>BelongsTo</code> it follows. Ferra locked and
+judged the parent by its primary key: with <code>to</code> naming another column, the parent whose key equalled the foreign key’s
+value was judged and gave the row its owner, while the row pointed at another parent.</p>
+<pre><code class="language-text">#[sea_orm(belongs_to, from = "vendor_code", to = "code")]
+pub vendor: BelongsTo&lt;super::vendor::Entity&gt;,
+</code></pre>
+<p><strong>After.</strong> It is refused with <code>FRG-148</code>, as a constant-evaluation error (<code>E0080</code>) on the <code>from</code> value. The <code>BelongsTo</code>
+of an <code>owner(from)</code> chain points <code>to</code> the parent’s primary key, as in the
+<a href="#frg-148--an-ownerfrom-whose-belongsto-does-not-point-at-the-parents-key">example of the diagnostic</a>.</p>
+<p><strong>Who is affected.</strong> A model with <code>owner(from = ..)</code> whose <code>BelongsTo</code> names another column of the parent in <code>to</code>. A
+<code>BelongsTo</code> without <code>owner(from)</code> is not affected.</p>
+<p><strong>Migration.</strong> Point <code>to</code> at the parent’s primary key (and the foreign key at that key’s values), or declare the owner on
+the model with <code>#[field(owner)]</code>. See <a href="#compile-time-diagnostics--the-frg-nnn-namespace">Compile-time Diagnostics</a>.</p>
+<h2 id="a-sea_orm-key-given-twice-on-one-field-is-refused-frg-149"><a class="header" href="#a-sea_orm-key-given-twice-on-one-field-is-refused-frg-149">A <code>sea_orm</code> key given twice on one field is refused (<code>FRG-149</code>)</a></h2>
+<p>A security fix that refuses a model that compiled (<a href="#stability-policy">the stability policy</a>, exception (i)).</p>
+<p><strong>Before.</strong> <code>from</code>, <code>to</code> or <code>enum_name</code> could be given twice on one field. Ferra read the first occurrence; Sea-ORM reads the
+last one of an attribute, and only the first <code>#[sea_orm]</code> of a relation field. The column Ferra checked was not always
+the one Sea-ORM used.</p>
+<pre><code class="language-text">#[sea_orm(primary_key, enum_name = "Code", enum_name = "Key")]
+pub id: i32,
+</code></pre>
+<p><strong>After.</strong> It is refused with <code>FRG-149</code>, on the second occurrence.</p>
+<p><strong>Who is affected.</strong> A model that repeats one of these keys on a field, in one attribute or across two.</p>
+<p><strong>Migration.</strong> Keep one occurrence, the one Sea-ORM used: the last of an attribute, or, on a relation field split over
+two <code>#[sea_orm]</code>, the one in the first (Sea-ORM ignored the second). See
+<a href="#frg-149--a-sea_orm-key-given-twice-on-one-field">Compile-time Diagnostics</a>.</p>
+<h2 id="a-key-whose-stored-record-holds-another-prefix-is-refused"><a class="header" href="#a-key-whose-stored-record-holds-another-prefix-is-refused">A key whose stored record holds another prefix is refused</a></h2>
+<p>This is a security fix, not a breaking change, and it can stop a custom store working.</p>
+<p><strong>Before.</strong> <code>verify</code> compared only the secret hash of an API key with the record the store returned. A custom
+<code>ApiKeyStore</code> that normalized or swapped the prefix of a record (lowercased it, padded it, returned the record of
+another prefix) still authenticated the key.</p>
+<p><strong>After.</strong> <code>verify</code> compares the prefix of the record with the presented one, inside the constant-time check that
+compares the hash. A mismatch is refused with the one generic 401, before the revoked and expired checks, and without
+writing its last use, although the secret is right.</p>
+<p><strong>Who is affected.</strong> An application with an <code>ApiKeyStore</code> of its own that returns a record under another spelling of the
+prefix than the one it was asked for.</p>
+<p><strong>Migration.</strong> Return the record for the exact prefix you were asked for. See
+<a href="#authentication--authorization">Authentication and Authorization</a>.</p>
+<h2 id="the-401-of-the-protected-docs-routes-carries-www-authenticate-bearer"><a class="header" href="#the-401-of-the-protected-docs-routes-carries-www-authenticate-bearer">The 401 of the protected docs routes carries <code>WWW-Authenticate: Bearer</code></a></h2>
+<p>This is a fix, not a breaking change.</p>
+<p><strong>Before.</strong> The 401 of <code>with_docs_protected</code> and <code>with_docs_protected_at</code> carried no <code>WWW-Authenticate</code>.</p>
+<p><strong>After.</strong> It carries the fixed <code>WWW-Authenticate: Bearer</code>, as every other 401 of Ferra. The verifier declares nothing: a
+verifier that accepts another scheme still sends <code>Bearer</code>.</p>
+<p><strong>Who is affected.</strong> A client or a test that asserts the absence of the header on the docs 401.</p>
+<p><strong>Migration.</strong> Expect the header. See <a href="#foundry">Foundry</a> and <a href="#error-handling">Error Handling</a>.</p>
+<h2 id="a-path-no-route-serves-is-a-bare-404"><a class="header" href="#a-path-no-route-serves-is-a-bare-404">A path no route serves is a bare <code>404</code></a></h2>
+<p>This is a fix, not a breaking change.</p>
+<p><strong>Before.</strong> The answer to a path no route serves inherited the layers of the last model mounted: it could be a <code>401</code>
+under <code>with_docs_protected</code> or after a model under <code>auth = "bearer"</code>, pass that model’s CORS and rate limiter, and
+carry the <code>Deprecation</code> and <code>Sunset</code> headers of a deprecated version.</p>
+<p><strong>After.</strong> It is a <code>404</code> with an empty body, whoever asks and whatever the chain mounts. The docs verifier and a model’s
+token check guard their own routes only. A preflight to an unknown path is a bare <code>404</code>, and a token sent to it is not
+read.</p>
+<p><strong>Who is affected.</strong> A client or a test that expected a <code>401</code> on a path the API does not serve, or a header of a
+model’s layers there.</p>
+<p><strong>Migration.</strong> Expect the <code>404</code>. See <a href="#error-handling">Error Handling</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="migrating-from-016-to-017"><a class="header" href="#migrating-from-016-to-017">Migrating from 0.16 to 0.17</a></h1>
 <p>0.17.0 (Soaking) makes a service under load answer what it can, and says so when it cannot. Each entry below is a
@@ -21921,7 +22660,9 @@ model no longer reports a <code>#[field(cursor_key)]</code> field. The hidden co
 
 fn cursor_key(mode: PaginationMode) -&gt; Option&lt;(&amp;'static str, FieldType)&gt; {
     match mode {
-        PaginationMode::Cursor { key, ty } | PaginationMode::Both { key, ty } =&gt; Some((key, ty)),
+        PaginationMode::Cursor { key, ty, .. } | PaginationMode::Both { key, ty, .. } =&gt; {
+            Some((key, ty))
+        }
         _ =&gt; None,
     }
 }
@@ -22876,8 +23617,8 @@ read projection allows them. Their wire names follow <code>rename_all</code>.</p
 <p><code>BehaviorKind::SoftDelete</code> and <code>BehaviorKind::Timestampable</code> carry the column
 names (<code>deleted_at</code>, <code>created_at</code>, <code>updated_at</code> unless the model names its
 own). The enum and both variants are <code>#[non_exhaustive]</code>: a <code>match</code> keeps
-its wildcard arm and ends a variant pattern with <code>..</code>;
-<code>BehaviorKind::soft_delete</code> and <code>BehaviorKind::timestampable</code> build a value.</p>
+its wildcard arm and ends a variant pattern with <code>..</code>; the derive builds the
+values, you never do.</p>
 <p>Before:</p>
 <pre><code class="language-text">use ferra::meta::BehaviorKind;
 
@@ -22900,7 +23641,6 @@ fn deletion_column(kind: &amp;BehaviorKind) -&gt; Option&lt;&amp;'static str&gt;
         _ =&gt; None,
     }
 }
-assert_eq!(deletion_column(&amp;BehaviorKind::soft_delete("removed_at")), Some("removed_at"));
 <span class="boring">}</span></code></pre>
 <p><code>ModelMeta::soft_delete_column</code> and <code>ModelMeta::timestamp_columns</code> read the
 names for you.</p>

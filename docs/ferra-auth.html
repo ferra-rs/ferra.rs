@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -543,7 +543,10 @@ A key is <code>ferra_&lt;16 hex&gt;_&lt;64 hex&gt;</code>: a public prefix that 
 secret of which only the SHA-256 is stored. Keys live in a table Ferra owns,
 <code>ferra_api_keys</code> (<code>ferra::api_key::SCHEMA_SQL</code> is its DDL: run it with your own
 migration tool), behind the <code>ApiKeyStore</code> trait; <code>PgApiKeyStore</code> is the Postgres
-implementation.</p>
+implementation. A store returns the record it was asked for: a record whose
+<code>prefix</code> is not the presented one is refused as an unrecognized key (the same 401),
+whatever its secret, and before it is read as revoked or expired. A store that
+normalizes a prefix (case, padding) refuses its own keys.</p>
 <pre class="playground"><code class="language-rust">use ferra::api_key::{PgApiKeyStore, issue};
 use ferra::{ApiKeyConfig, DatabaseConnection, FerraIdentity, Foundry, JwtConfig};
 use serde::Deserialize;
@@ -621,6 +624,9 @@ server’s clock, whatever store holds it.</li>
 fast hash is enough for 256 random bits; slow password hashes protect human
 passwords), the subject, the roles and the dates. <code>issue</code> and <code>revoke</code> log one <code>info</code>
 event with the prefix; nothing logs a secret.</li>
+<li><strong>One <code>with_api_keys</code> per chain.</strong> A second call would replace the first store without a
+word, so <code>.try_build()</code> refuses it with <code>BuildError::ApiKeysTwice</code> and <code>.build()</code> panics with
+its text; configure the one <code>ApiKeyConfig</code> you want and call <code>with_api_keys</code> once.</li>
 <li><strong>Only the configured header is a credential.</strong> On a chain without <code>with_api_keys</code>, an
 <code>X-Api-Key</code> header is ignored. <code>Vary</code> names the configured header on every response.</li>
 <li><strong>One credential per request.</strong> A key next to an <code>Authorization</code> header, or two key
@@ -803,11 +809,9 @@ compute. Put an API Gateway or WAF throttle in front, and watch the refusal <cod
 events for bursts.</li>
 </ul>
 <h2 id="model-auth-posture--ferraauth--"><a class="header" href="#model-auth-posture--ferraauth--">Model auth posture — <code>#[ferra(auth = ...)]</code></a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[ferra(auth = "bearer")]   // every operation requires a valid bearer token
+<pre><code class="language-text">#[ferra(auth = "bearer")]   // every operation requires a valid bearer token
 #[ferra(auth = "none")]     // deliberately, explicitly public
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>A model declaring <strong>neither</strong> <code>auth</code> nor <code>#[authorize(...)]</code> <strong>fails to compile</strong>.
 This is deliberate: for a framework that mounts SQL-backed CRUD, the only safe
 default is to refuse to build until you have made the auth surface an explicit

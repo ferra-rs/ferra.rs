@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -427,12 +427,19 @@ request, not one per write. After the first write has committed, the rest of the
 write has no deadline before its <code>COMMIT</code>, and its retry is bounded by the three attempts only. The <code>after_commit</code> of
 every write of the request shares one post-commit deadline, <code>max(deadline, first post-commit work + 1 s)</code>
 (<a href="behaviors.html#after-commit">After commit</a>). So the <code>after_commit</code> of a later write can be cut at once, and its
-<code>Resource&lt;M&gt;</code> call then returns <code>Err</code> while that write <strong>is committed</strong>. A <code>503</code> <code>service_unavailable</code> (no connection
+<code>Resource&lt;M&gt;</code> call then returns <code>Err</code> while that write <strong>is committed</strong>. The read of a later write’s parents is
+post-commit work under the same deadline: once the first write and a wait have used it up, a later write with a
+parent to read returns <code>Err</code> (the <code>500</code>) while it is committed, and one with none to read returns <code>Ok</code>. The
+<code>Resource::get</code>, <code>list</code> and <code>list_cursor</code> calls a route makes after an earlier commit are under no deadline of their
+own. A <code>503</code> <code>service_unavailable</code> (no connection
 in time) or <code>retry_exhausted</code> met by a later write speaks for the operation given up, not for the request: the
 earlier write stands, and a client must not retry a non-idempotent request blindly (RFC 9110 § 9.2.2). Keep <strong>one
 write per route of your own</strong>. If a route must write twice, make a replay safe with the
 <a href="computed-fields.html#idempotent-creates">idempotent create</a> recipe, and never send the client an error that tells it
 nothing was written.</p>
+</blockquote>
+<blockquote>
+<p><strong>A write in a task of your own.</strong> Writes through an application-owned raw <code>DatabaseConnection</code> are outside this guarantee, and so is a <code>Resource&lt;M&gt;</code> write run in a task of your own (<code>tokio::spawn</code>): the budget sees the commits of the handler’s own future only, so it can answer 503 <code>timeout</code> while that task goes on and commits. Make every <code>Resource&lt;M&gt;</code> write in the handler’s future and await it there.</p>
 </blockquote>
 <blockquote>
 <p><strong>No response envelope in 0.9.0.</strong> The routes <code>Foundry</code> generates answer with

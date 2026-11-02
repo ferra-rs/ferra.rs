@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -303,6 +303,12 @@ is the 422 <code>reference_not_found</code>; a <code>POST</code> under it (<code
 <p><strong>A relation that shares its name with a route.</strong> A <code>HasMany</code> or <code>HasOne</code> named like a row action, or <code>restore</code>, of
 its own model would take the path of that route: <code>build()</code> refuses it, naming the model and both names
 (<code>BuildError::RelationNameCollision</code>). Rename the relation or the action.</p>
+<p><strong>A back <code>BelongsTo</code> that points at another column than the key (0.18.0).</strong> The sub-collection lists the rows of the
+child whose foreign key equals the parent’s primary key. A child whose <code>BelongsTo</code> back to the parent has a <code>to</code> that is
+not that key (<code>to = "code"</code> where <code>id</code> is the key) would be filtered by the key all the same, and answer another
+parent’s rows: <code>build()</code> refuses the pair, naming the parent, the child and the column
+(<code>BuildError::SubCollectionKeyNotPrimary</code>). Point <code>to</code> at the primary key, or do not mount both models on one
+<code>Foundry</code>.</p>
 <p><strong>To serve none of them</strong>, write the parent in the split form (it declares no relation) or do not mount the child.
 There is no per-relation opt-out yet.</p>
 <h2 id="the-aggregate-protocol"><a class="header" href="#the-aggregate-protocol">The aggregate protocol</a></h2>
@@ -413,7 +419,10 @@ read (one bit). A non-nullable key has none.</li>
 <h2 id="embedding"><a class="header" href="#embedding">Embedding</a></h2>
 <p>A projection’s <code>read</code> list may name a <code>BelongsTo</code> relation (0.16.0, FR-040). The response then carries the parent’s
 row, under the relation’s name, next to the link to it. The row is served in the parent’s projection of the same name:
-the <code>summary</code> of a review embeds the <code>summary</code> of its film.</p>
+the <code>summary</code> of a review embeds the <code>summary</code> of its film. A name that is neither a field nor a <code>BelongsTo</code> is
+<a href="ferra-forge-diagnostics.html#frg-301--projection-references-an-unknown-field">FRG-301</a>, a <code>HasMany</code> or a <code>HasOne</code>
+is <a href="ferra-forge-diagnostics.html#frg-363--a-hasmany-or-hasone-in-a-read-list">FRG-363</a>, whether the <code>#[ferra(..)]</code>
+attribute is written beside <code>#[sea_orm(..)]</code> or inside its <code>model_attrs(..)</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">use ferra::FerraModel;
 </span><span class="boring">use sea_orm::entity::prelude::*;
 </span><span class="boring">use serde::{Deserialize, Serialize};
@@ -551,8 +560,8 @@ the child’s table (0.16.0, FR-033). Ferra asks the database and answers what i
 <ul>
 <li><strong><code>ON DELETE RESTRICT</code></strong> (or the default, <code>NO ACTION</code>): the database refuses the <code>DELETE</code>. Ferra answers the 409
 <code>conflict</code> with its fixed <code>detail</code>, nothing is deleted, and the statement is run once (a foreign-key violation is
-not a transient failure, so it is not retried). The OpenAPI document declares the 409 on the <code>DELETE</code> of every model
-that a <code>BelongsTo</code> targets. The server log holds the constraint’s name (<code>INFO</code>, target <code>ferra_http::conflict</code>), never
+not a transient failure, so it is not retried). The OpenAPI document declares the 409 on the <code>DELETE</code> of every model,
+whether or not a <code>BelongsTo</code> targets it. The server log holds the constraint’s name (<code>INFO</code>, target <code>ferra_http::conflict</code>), never
 the key value that Postgres prints in its detail line.</li>
 <li><strong><code>ON DELETE CASCADE</code></strong>: the database deletes the children itself. Ferra does not see them: their <code>before_delete</code> and
 <code>after_delete</code> hooks do not run, their rules and their soft delete are not applied. Use it only for rows nothing else

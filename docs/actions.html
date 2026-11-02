@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -286,7 +286,7 @@ own, but a rule that needs an identity (<code>IsOwner</code>, <code>HasRole</cod
 repeated key), <code>FRG-142</code> (a missing <code>name</code>, <code>authorize</code> or <code>handler</code>), <code>FRG-143</code> (<code>collection</code> on a composite key),
 <code>FRG-144</code> (an action on a <code>system_only</code> model), <code>FRG-145</code> (a body type that cannot be one) and <code>FRG-146</code> (a <code>writes</code>
 entry the action cannot write). The rule’s own errors
-are <code>FRG-101</code> to <code>FRG-103</code> and <code>FRG-110</code>. <a href="ferra-forge-diagnostics.html#frg-139--an-action-name-that-is-not-allowed">The codes</a>
+are <code>FRG-101</code> to <code>FRG-103</code> and <code>FRG-110</code>, and <code>FRG-023</code> for an <code>authorize</code> that does not parse. <a href="ferra-forge-diagnostics.html#frg-139--an-action-name-that-is-not-allowed">The codes</a>
 each have a section. A wrong handler path, a wrong handler signature or a <code>body = T</code> without the derive is rustc’s
 error, spanned on the path or the type you wrote. At <code>Foundry::build()</code>, two operations that get one <code>operationId</code>,
 or two body components with one name, are refused by <a href="ferra-forge-diagnostics.html#frg-153--an-openapi-name-produced-twice"><code>FRG-153</code></a>.</p>

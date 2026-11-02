@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1c51bbc.js";
+            window.path_to_searchindex_js = "searchindex-4f5116e8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e47a5fb9.js"></script>
+        <script src="toc-82a9e0b8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -218,7 +218,9 @@ entity with the derive.</p>
 <p>A tag identifying the Rust type of a field. Option variants are spelled out so
 every field’s nullability is visible without indirection. <code>FieldType</code> is
 <code>#[non_exhaustive]</code>: a <code>match</code> on it needs a <code>_ =&gt;</code> arm to stay
-forward-compatible. This function names every variant of 0.9, and compiles:</p>
+forward-compatible. This function names every variant of 0.9 that is in the
+contract (one, a routing token for a <code>#[ferra(computed)]</code> field, is hidden), and
+compiles:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use ferra::meta::FieldType;
@@ -234,7 +236,6 @@ fn label(ty: FieldType) -&gt; &amp;'static str {
         FieldType::Timestamp | FieldType::OptionTimestamp =&gt; "instant (DateTime)",
         FieldType::Date | FieldType::OptionDate =&gt; "calendar date",
         FieldType::Time | FieldType::OptionTime =&gt; "time of day",
-        FieldType::ComputedUserNamed =&gt; "a type of the user's, on a `#[ferra(computed)]` field",
         _ =&gt; "a type added after 0.9",
     }
 }
@@ -342,7 +343,12 @@ checks of the derive, which are the only checks of these combinations. Two examp
 what a hand-built description can hold and the derive never emits: a <code>FieldMode::Computed</code>
 field marked <code>filterable</code>, and a <code>PaginationMode::Cursor { key, .. }</code> whose <code>key</code> names a
 hidden or write-only column. Trust a description only when <code>#[derive(FerraModel)]</code>
-produced it.</p>
+produced it. A hand-built description whose projection table has no default read or no
+default write projection does not mount: <code>Foundry::mount</code> panics at startup, naming it.
+For the <code>OpenAPI</code> document, the one loop over the projections hides a <code>WriteOnly</code> field
+from a <code>DefaultRead</code>, hides a <code>ReadOnly</code> or <code>Computed</code> field from a <code>DefaultWrite</code>, and a
+default kind present twice trips FRG-153; none of these is refused earlier or tested for a
+hand-built description.</p>
 <p><code>primary_key_fields</code> carries the primary-key column names in <strong>declaration
 order</strong>. A single-key model holds a one-element slice and the route shape is
 <code>/{resource}/{&lt;pk&gt;}</code>; a composite-key model holds several and the route becomes
@@ -490,11 +496,10 @@ RFC 3339 timestamp text (<code>"2023-11-14T22:13:20Z"</code>).</p>
 <tr><th>Constructor</th><th>Returns</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>DateTime::from_second(seconds: i64)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>seconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_millisecond(milliseconds: i64)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>milliseconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_microsecond(microseconds: i64)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>microseconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_nanosecond(nanoseconds: i128)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>nanoseconds since the Unix epoch</td></tr>
-<tr><td><code>DateTime::from_duration(duration: jiff::SignedDuration)</code></td><td><code>Result&lt;DateTime, jiff::Error&gt;</code></td><td>epoch-relative duration</td></tr>
+<tr><td><code>DateTime::from_second(seconds: i64)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>seconds since the Unix epoch</td></tr>
+<tr><td><code>DateTime::from_millisecond(milliseconds: i64)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>milliseconds since the Unix epoch</td></tr>
+<tr><td><code>DateTime::from_microsecond(microseconds: i64)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>microseconds since the Unix epoch</td></tr>
+<tr><td><code>DateTime::from_nanosecond(nanoseconds: i128)</code></td><td><code>Result&lt;DateTime, TimeError&gt;</code></td><td>nanoseconds since the Unix epoch</td></tr>
 <tr><td><code>DateTime::now()</code></td><td><code>DateTime</code></td><td>reads the system clock; not <code>const</code></td></tr>
 </tbody>
 </table>
@@ -502,22 +507,33 @@ RFC 3339 timestamp text (<code>"2023-11-14T22:13:20Z"</code>).</p>
 <p>The constructor names mirror the underlying time library verbatim;
 they are not invented. Names that do <strong>not</strong> exist on <code>DateTime</code> and
 will <strong>not</strong> be added: <code>from_unix_timestamp</code>, <code>from_unix_nanos</code>.</p>
-<p>Each <code>from_*</code> constructor returns a <code>Result</code> and propagates an
-out-of-range argument as the underlying time library’s error type.
+<p>Each <code>from_*</code> constructor returns a <code>Result</code> and answers an
+out-of-range argument with a <code>ferra::TimeError</code>, as do the <code>FromStr</code>
+of <code>DateTime</code>, <code>Date</code> and <code>Time</code>. A <code>TimeError</code> is opaque and
+<code>#[non_exhaustive]</code>: its <code>Display</code> is the one sentence
+<code>invalid date or time value</code>, which quotes no part of the input
+(<code>a_time_error_display_quotes_no_part_of_its_input</code>), and there is no
+<code>From&lt;TimeError&gt; for FerraError</code>, so you choose the answer where you
+catch it. The time library’s own error is dropped, not kept behind
+<code>Error::source</code>: that is <code>None</code>, so no error chain carries the input
+(<code>no_link_of_the_chain_quotes_the_input</code>).
+A bad date in a JSON body does not pass through <code>TimeError</code>: the body is
+refused as <code>invalid_json</code>, and the <code>message</code> of that error is the time
+library’s text, which may quote the value (<code>a_bad_date_in_a_body_keeps_jiffs_text_in_invalid_json</code>).
 The methods are not <code>const fn</code> — call sites use the standard <code>?</code>
 operator, not <code>const</code>-context evaluation.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use ferra::DateTime;
+</span>use ferra::{DateTime, TimeError};
 
-fn epoch_seconds(seconds: i64) -&gt; Result&lt;DateTime, jiff::Error&gt; {
+fn epoch_seconds(seconds: i64) -&gt; Result&lt;DateTime, TimeError&gt; {
     DateTime::from_second(seconds)
 }
 
 let now = DateTime::now();
 let later = epoch_seconds(1_700_000_000)?;
 <span class="boring">let _ = (now, later);
-</span><span class="boring">Ok::&lt;(), jiff::Error&gt;(())
+</span><span class="boring">Ok::&lt;(), TimeError&gt;(())
 </span><span class="boring">}</span></code></pre>
 <h3 id="date--calendar-date"><a class="header" href="#date--calendar-date"><code>Date</code> — calendar date</a></h3>
 <p><code>Date</code> represents a time-zone-free calendar date. Wire format: RFC
@@ -566,7 +582,7 @@ optional fraction (<code>"09:30:00"</code>, <code>"23:59:59.5"</code>).</p>
 </thead>
 <tbody>
 <tr><td><code>Time::new(hour: i8, minute: i8, second: i8)</code></td><td><code>Time</code></td><td><code>const fn</code>; an out-of-range triple is a <code>const</code>-eval error</td></tr>
-<tr><td><code>"09:30:00".parse::&lt;Time&gt;()</code></td><td><code>Result&lt;Time, jiff::Error&gt;</code></td><td><code>FromStr</code></td></tr>
+<tr><td><code>"09:30:00".parse::&lt;Time&gt;()</code></td><td><code>Result&lt;Time, TimeError&gt;</code></td><td><code>FromStr</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -619,8 +635,9 @@ them, behind its <code>sea-orm</code> Cargo feature. <strong>Do not enable that 
 facade. It is tied to Sea-ORM 2.x and adds no I/O dependency to <code>ferra-core</code>.</p>
 <h3 id="use-as-deprecation-dates"><a class="header" href="#use-as-deprecation-dates">Use as deprecation dates</a></h3>
 <p><code>FoundryBuilder::deprecated(since, sunset)</code> takes two <code>Date</code>s and returns
-<code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused. Every
-response under the deprecated version carries <code>Deprecation: @&lt;seconds&gt;</code> (RFC 9745: the start of <code>since</code>,
+<code>Result&lt;_, DeprecationError&gt;</code>: a <code>sunset</code> earlier than <code>since</code> is refused, and so is a date
+in a year outside <code>0..=9999</code> (<code>DeprecationError::YearOutOfRange</code>). Every
+response of a route served under the deprecated version carries <code>Deprecation: @&lt;seconds&gt;</code> (RFC 9745: the start of <code>since</code>,
 UTC) and <code>Sunset: &lt;HTTP-date&gt;</code> (RFC 8594: the last second of <code>sunset</code>, for example
 <code>Tue, 05 Jan 2027 23:59:59 GMT</code>):</p>
 <pre class="playground"><code class="language-rust">use ferra::{Foundry, date};
