@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d4ff8c9a.js";
+            window.path_to_searchindex_js = "searchindex-7f9150ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-82a9e0b8.js"></script>
@@ -202,7 +202,7 @@ Transactions are the same: begin one on your own connection with <code>conn.begi
 <a href="getting-started.html">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -698,7 +698,7 @@ or Vector’s <code>tracing_limit</code>) besides the <code>acquire_timeout</cod
 <h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
 <p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>

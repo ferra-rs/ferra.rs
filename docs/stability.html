@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d4ff8c9a.js";
+            window.path_to_searchindex_js = "searchindex-7f9150ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-82a9e0b8.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="stability-policy"><a class="header" href="#stability-policy">Stability policy</a></h1>
-<p>What a Ferra release guarantees: the API frozen in <code>v0.18.0</code> is the API of <code>v1.0.0</code>, and this page says what holds from 1.0 and what each release before it allowed. What changed release by release is in the changelog and the migration pages.</p>
+<p>What a Ferra release guarantees: the API frozen in <code>v0.18.x</code> is the API of <code>v1.0.0</code>, and this page says what holds from 1.0 and what each release before it allowed. What changed release by release is in the changelog and the migration pages.</p>
 <h2 id="how-ferra-is-released"><a class="header" href="#how-ferra-is-released">How Ferra is released</a></h2>
 <ul>
 <li>
@@ -190,7 +190,7 @@
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 </code></pre>
 </li>
 <li>
@@ -341,8 +341,9 @@ shown: <code>http_server_request_duration_seconds</code> with OpenTelemetry expo
 <code>metrics-exporter-prometheus</code> under <code>with_recommended_naming(true)</code>, <code>http_server_request_duration</code> otherwise; and
 the <code>metrics</code> major is in the table of third-party crates in the contract, below.</p>
 <h2 id="third-party-crates-in-the-contract"><a class="header" href="#third-party-crates-in-the-contract">Third-party crates in the contract</a></h2>
-<p>Types of other crates appear in Ferra’s signatures, and two crates are
-re-exported whole. A major version change of one of them (a minor of a <code>0.x</code> crate) is a break of Ferra, listed in
+<p>Types of other crates appear in Ferra’s signatures, two crates are
+re-exported whole, and the facade re-exports one type of a third,
+<code>secrecy::SecretString</code>, as <code>ferra::SecretString</code> (0.18.1). A major version change of one of them (a minor of a <code>0.x</code> crate) is a break of Ferra, listed in
 the changelog: from 1.0, a Ferra major, since a type of that crate in a Ferra signature changes with it. Before 1.0
 it came in a minor.</p>
 <div class="table-wrapper">
@@ -356,7 +357,7 @@ it came in a minor.</p>
 <tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole, with its <code>derive</code> feature on, so <code>#[derive(ferra::garde::Validate)]</code> works and stays; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
 <tr><td><code>metrics</code></td><td>with <code>observability</code>, Ferra records through its facade: the recorder you install (<code>metrics-exporter-prometheus</code>, <a href="observability.html"><code>observability.md</code></a>) must be built on the same copy</td><td>0.24</td></tr>
 <tr><td><code>tower-http</code></td><td><code>FerraLayerBuilder::cors</code>, <code>trace_layer</code></td><td>0.7</td></tr>
-<tr><td><code>secrecy</code></td><td><code>JwtConfig::single_secret</code> takes <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
+<tr><td><code>secrecy</code></td><td><code>ferra::SecretString</code>, the one type re-exported (0.18.1); <code>JwtSecret.key</code> is one, and <code>JwtConfig::single_secret</code> and <code>Foundry::etag_key</code> take <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
 <tr><td><code>serde</code></td><td>every model derives it</td><td>1</td></tr>
 <tr><td><code>uuid</code></td><td><code>ConditionType</code> is implemented for <code>uuid::Uuid</code>: a <code>Uuid</code> column is a <code>Field&lt;M, Uuid&gt;</code></td><td>1</td></tr>
 <tr><td><code>http</code></td><td><code>DocsAuthVerifier</code> is built from a closure over <code>&amp;http::request::Parts</code>; <code>RateLimitKey::from_fn</code> takes a <code>fn(&amp;http::request::Parts)</code>; <code>ForwardedFor::header</code> takes a <code>HeaderName</code>; the <code>Rejection</code> of the extractors <code>Principal</code>, <code>CurrentUser</code> and <code>Resource</code> is an <code>http::response::Response</code>, and <code>FerraPath</code> reads <code>&amp;mut http::request::Parts</code></td><td>1</td></tr>

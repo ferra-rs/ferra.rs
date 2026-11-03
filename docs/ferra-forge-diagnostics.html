@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d4ff8c9a.js";
+            window.path_to_searchindex_js = "searchindex-7f9150ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-82a9e0b8.js"></script>
@@ -8641,12 +8641,12 @@ copies.</p>
 </code></pre>
 <p><strong>Bad.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" } # built with sea-orm 2.x
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" } # built with sea-orm 2.x
 sea-orm = "1"                                                           # another major
 </code></pre>
 <p><strong>Good.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p><strong>Fix.</strong> Give <code>sea-orm</code> the same major version as Ferra, in <code>[dependencies]</code>,

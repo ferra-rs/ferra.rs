@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d4ff8c9a.js";
+            window.path_to_searchindex_js = "searchindex-7f9150ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-82a9e0b8.js"></script>
@@ -192,7 +192,7 @@ is no separate auth dependency to add.</p>
 majors of Sea-ORM does not compile: <code>FRG-400</code>):</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -311,6 +311,24 @@ from a <a href="#key-set--tokens-from-an-identity-provider-eddsa">key set</a> in
 shorter than the algorithm’s output (RFC 7518 §3.2): <strong>32 bytes for HS256, 48 for
 HS384, 64 for HS512</strong> (<code>JwtConfigError::SecretTooShort</code>). Generate one with
 <code>openssl rand -base64 32</code> (or 48, 64).</p>
+<p>A secret that is already a <code>SecretString</code> goes in as it is. The facade re-exports the
+type as <code>ferra::SecretString</code>, so you name it without declaring <code>secrecy</code>; it is the
+type of <code>JwtSecret.key</code> and of the <code>Foundry::etag_key</code> argument too.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{ClaimCheck, HmacAlgorithm, JwtConfig, SecretString};
+
+<span class="boring">fn demo(secret: SecretString) -&gt; Result&lt;JwtConfig, Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let jwt = JwtConfig::single_secret(
+    "key-2026-05",
+    secret,
+    HmacAlgorithm::Hs256,
+    ClaimCheck::expect("https://auth.example.com/"),
+    ClaimCheck::expect("films-api"),
+)?;
+<span class="boring">Ok(jwt)
+</span><span class="boring">}
+</span><span class="boring">}</span></code></pre>
 <p>The JWT secret is not the entity-tag key. <code>Foundry::etag_key</code> takes a second secret
 (at least 32 bytes, the same on every replica, see
 <a href="foundry.html#entity-tag-key"><code>foundry.md</code></a>), and <code>try_build()</code> refuses a key equal to

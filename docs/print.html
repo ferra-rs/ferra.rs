@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d4ff8c9a.js";
+            window.path_to_searchindex_js = "searchindex-7f9150ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-82a9e0b8.js"></script>
@@ -492,14 +492,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
 serde   = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0", features = ["test-support"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1", features = ["test-support"] }
 </code></pre>
 <p><code>ferra</code> is the only Ferra crate you declare: <code>ferra-core</code>, <code>ferra-db</code>,
 <code>ferra-forge</code>, <code>ferra-http</code> and <code>ferra-openapi</code> are reached through it, and the
@@ -868,7 +868,7 @@ Both are off by default.</p>
 </table>
 </div>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1", features = ["observability"] }
 </code></pre>
 <p>The implementation crates have features of their own that you do not set:</p>
 <ul>
@@ -907,7 +907,7 @@ Rust ecosystem.</p>
 <h2 id="a-worked-example"><a class="header" href="#a-worked-example">A worked example</a></h2>
 <p>A complete Ferra application written the re-export way, with no <code>sea-orm</code> of its
 own, demonstrating both halves of the principle:</p>
-<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+<pre class="playground"><code class="language-rust no_run">// Cargo.toml: ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 // (plus tokio, axum and serde, as in Getting started)
 
 // Direct re-export (half A): upstream `sea_orm` reached without renaming.
@@ -1035,7 +1035,7 @@ returned router land outside the framework’s Tower stack.</p>
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -1323,7 +1323,7 @@ is configured the same way.</p>
 <p><strong>Metrics counter</strong> (gated by the <code>observability</code> Cargo feature).
 When the <code>observability</code> feature is enabled:</p>
 <pre><code class="language-toml">[dependencies]
-ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0", features = ["observability"] }
+ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1", features = ["observability"] }
 </code></pre>
 <p>the framework also advances a <code>metrics::counter!</code> named
 <code>ferra.sunset.post_sunset_hits</code> on every post-sunset request,
@@ -2647,7 +2647,7 @@ Transactions are the same: begin one on your own connection with <code>conn.begi
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -3143,7 +3143,7 @@ or Vector’s <code>tracing_limit</code>) besides the <code>acquire_timeout</cod
 <h3 id="your-own-sql"><a class="header" href="#your-own-sql">Your own SQL</a></h3>
 <p>If you need raw SQL (a hand-written migration, an analytics query that defeats Sea-ORM’s builder), use Sea-ORM directly, on the connection you already hold. It is outside the guarantee above — the query is yours:</p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p>One rule goes with that line: <strong>a Ferra project never holds two major versions of Sea-ORM, not even for its tests or an optional feature.</strong> A <code>sea-orm = "1"</code> in <code>[dev-dependencies]</code>, or behind a feature such as <code>full = ["dep:sea-orm"]</code>, next to a model written through the facade, is refused with <code>FRG-400</code> as soon as the test or the feature is on. Give it the same major as Ferra, or remove it and write <code>ferra::sea_orm::...</code>; <code>cargo tree -d -i sea-orm</code> lists the copies (<code>docs/user-guide/ferra-forge-diagnostics.md</code> section FRG-400).</p>
@@ -3305,7 +3305,7 @@ not public in 0.9: a route of your own answers with a struct of its own
 <p>The examples on this page assume the dependencies of <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -7209,7 +7209,7 @@ your own needs its own key and its own constraint.</p>
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -7703,7 +7703,7 @@ is no separate auth dependency to add.</p>
 majors of Sea-ORM does not compile: <code>FRG-400</code>):</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -7822,6 +7822,24 @@ from a <a href="#key-set--tokens-from-an-identity-provider-eddsa">key set</a> in
 shorter than the algorithm’s output (RFC 7518 §3.2): <strong>32 bytes for HS256, 48 for
 HS384, 64 for HS512</strong> (<code>JwtConfigError::SecretTooShort</code>). Generate one with
 <code>openssl rand -base64 32</code> (or 48, 64).</p>
+<p>A secret that is already a <code>SecretString</code> goes in as it is. The facade re-exports the
+type as <code>ferra::SecretString</code>, so you name it without declaring <code>secrecy</code>; it is the
+type of <code>JwtSecret.key</code> and of the <code>Foundry::etag_key</code> argument too.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use ferra::{ClaimCheck, HmacAlgorithm, JwtConfig, SecretString};
+
+<span class="boring">fn demo(secret: SecretString) -&gt; Result&lt;JwtConfig, Box&lt;dyn std::error::Error&gt;&gt; {
+</span>let jwt = JwtConfig::single_secret(
+    "key-2026-05",
+    secret,
+    HmacAlgorithm::Hs256,
+    ClaimCheck::expect("https://auth.example.com/"),
+    ClaimCheck::expect("films-api"),
+)?;
+<span class="boring">Ok(jwt)
+</span><span class="boring">}
+</span><span class="boring">}</span></code></pre>
 <p>The JWT secret is not the entity-tag key. <code>Foundry::etag_key</code> takes a second secret
 (at least 32 bytes, the same on every replica, see
 <a href="#entity-tag-key"><code>foundry.md</code></a>), and <code>try_build()</code> refuses a key equal to
@@ -9302,7 +9320,7 @@ variants below), and the way out is the running router: you read the document at
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -10053,7 +10071,7 @@ neither replaces the other; both read the struct.</p>
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -19729,12 +19747,12 @@ copies.</p>
 </code></pre>
 <p><strong>Bad.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" } # built with sea-orm 2.x
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" } # built with sea-orm 2.x
 sea-orm = "1"                                                           # another major
 </code></pre>
 <p><strong>Good.</strong></p>
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 </code></pre>
 <p><strong>Fix.</strong> Give <code>sea-orm</code> the same major version as Ferra, in <code>[dependencies]</code>,
@@ -19757,7 +19775,7 @@ there is one copy, is shown by <code>crates/ferra/tests/sea_orm_direct_style.rs<
 <a href="#getting-started-with-ferra">Getting started</a>:</p>
 <!-- dependencies -->
 <pre><code class="language-toml">[dependencies]
-ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+ferra   = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
 tokio   = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum    = "0.8"
@@ -21126,7 +21144,7 @@ and label set never change from 0.18.0 (a new label is a new metric), a new valu
 an addition, and span attributes are add-only.</p>
 <hr>
 <h2 id="the-metrics"><a class="header" href="#the-metrics">The metrics</a></h2>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0", features = ["observability"] }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1", features = ["observability"] }
 metrics-exporter-prometheus = { version = "0.18", default-features = false }  # built on metrics 0.24, Ferra's copy
 # The recipe's test also uses `tokio`, `tower` with `util`, `sea-orm` with `mock`.
 </code></pre>
@@ -21586,7 +21604,7 @@ idle cost, and the first-request initialization in the canary journal.</li>
 acceptance step. The canary feature should be disabled in production images.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stability-policy"><a class="header" href="#stability-policy">Stability policy</a></h1>
-<p>What a Ferra release guarantees: the API frozen in <code>v0.18.0</code> is the API of <code>v1.0.0</code>, and this page says what holds from 1.0 and what each release before it allowed. What changed release by release is in the changelog and the migration pages.</p>
+<p>What a Ferra release guarantees: the API frozen in <code>v0.18.x</code> is the API of <code>v1.0.0</code>, and this page says what holds from 1.0 and what each release before it allowed. What changed release by release is in the changelog and the migration pages.</p>
 <h2 id="how-ferra-is-released"><a class="header" href="#how-ferra-is-released">How Ferra is released</a></h2>
 <ul>
 <li>
@@ -21595,7 +21613,7 @@ acceptance step. The canary feature should be disabled in production images.</p>
 </li>
 <li>
 <p>An application depends on a tag, and on the facade only:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 </code></pre>
 </li>
 <li>
@@ -21746,8 +21764,9 @@ shown: <code>http_server_request_duration_seconds</code> with OpenTelemetry expo
 <code>metrics-exporter-prometheus</code> under <code>with_recommended_naming(true)</code>, <code>http_server_request_duration</code> otherwise; and
 the <code>metrics</code> major is in the table of third-party crates in the contract, below.</p>
 <h2 id="third-party-crates-in-the-contract"><a class="header" href="#third-party-crates-in-the-contract">Third-party crates in the contract</a></h2>
-<p>Types of other crates appear in Ferra’s signatures, and two crates are
-re-exported whole. A major version change of one of them (a minor of a <code>0.x</code> crate) is a break of Ferra, listed in
+<p>Types of other crates appear in Ferra’s signatures, two crates are
+re-exported whole, and the facade re-exports one type of a third,
+<code>secrecy::SecretString</code>, as <code>ferra::SecretString</code> (0.18.1). A major version change of one of them (a minor of a <code>0.x</code> crate) is a break of Ferra, listed in
 the changelog: from 1.0, a Ferra major, since a type of that crate in a Ferra signature changes with it. Before 1.0
 it came in a minor.</p>
 <div class="table-wrapper">
@@ -21761,7 +21780,7 @@ it came in a minor.</p>
 <tr><td><code>garde</code></td><td><code>ferra::garde</code>, whole, with its <code>derive</code> feature on, so <code>#[derive(ferra::garde::Validate)]</code> works and stays; <code>ValidationErrors::from_garde_report</code></td><td>0.23</td></tr>
 <tr><td><code>metrics</code></td><td>with <code>observability</code>, Ferra records through its facade: the recorder you install (<code>metrics-exporter-prometheus</code>, <a href="#observability-metrics-spans-and-the-request-line"><code>observability.md</code></a>) must be built on the same copy</td><td>0.24</td></tr>
 <tr><td><code>tower-http</code></td><td><code>FerraLayerBuilder::cors</code>, <code>trace_layer</code></td><td>0.7</td></tr>
-<tr><td><code>secrecy</code></td><td><code>JwtConfig::single_secret</code> takes <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
+<tr><td><code>secrecy</code></td><td><code>ferra::SecretString</code>, the one type re-exported (0.18.1); <code>JwtSecret.key</code> is one, and <code>JwtConfig::single_secret</code> and <code>Foundry::etag_key</code> take <code>impl Into&lt;SecretString&gt;</code></td><td>0.10</td></tr>
 <tr><td><code>serde</code></td><td>every model derives it</td><td>1</td></tr>
 <tr><td><code>uuid</code></td><td><code>ConditionType</code> is implemented for <code>uuid::Uuid</code>: a <code>Uuid</code> column is a <code>Field&lt;M, Uuid&gt;</code></td><td>1</td></tr>
 <tr><td><code>http</code></td><td><code>DocsAuthVerifier</code> is built from a closure over <code>&amp;http::request::Parts</code>; <code>RateLimitKey::from_fn</code> takes a <code>fn(&amp;http::request::Parts)</code>; <code>ForwardedFor::header</code> takes a <code>HeaderName</code>; the <code>Rejection</code> of the extractors <code>Principal</code>, <code>CurrentUser</code> and <code>Resource</code> is an <code>http::response::Response</code>, and <code>FerraPath</code> reads <code>&amp;mut http::request::Parts</code></td><td>1</td></tr>
@@ -21842,7 +21861,7 @@ build.</p>
 exceptions are those of <a href="#stability-policy">the stability policy</a>, a security fix among them. Each entry below is a change
 from 0.17 that can stop a build, refuse a startup or change an answer you rely on. Read the entries, then point the
 application’s git dependency at the 0.18 tag:</p>
-<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.0" }
+<pre><code class="language-toml">ferra = { git = "https://github.com/ferra-rs/ferra", tag = "v0.18.1" }
 </code></pre>
 <p>How 1.0 is distributed, crates.io or a git tag, is decided before its last release candidate; the 1.0 changelog says
 which line to write.</p>
